@@ -1,16 +1,16 @@
 """Detection-related models."""
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from typing import Optional, List, Dict, Any
+from sqlalchemy import Float
 from datetime import datetime
 from enum import Enum
 
 
 class FoeType(str, Enum):
-    """Types of foes we can detect."""
-    RODENT = "rodent"
-    CROW = "crow"
-    CROW_LIKE = "crow_like"  # Magpie, jackdaw, etc.
-    CAT = "cat"
+    """Types of foes we can detect (matches sound directory names)."""
+    RATS = "rats"      # All rodents (rats, mice)
+    CROWS = "crows"    # All corvids (crows, ravens, magpies, jackdaws)
+    CATS = "cats"      # Domestic cats
     UNKNOWN = "unknown"
 
 
@@ -48,6 +48,10 @@ class Detection(SQLModel, table=True):
     status: DetectionStatus = Field(default=DetectionStatus.PENDING)
     ai_response: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     processed_at: Optional[datetime] = Field(default=None)
+    # Estimated cost of the AI detection call in USD
+    ai_cost: Optional[float] = Field(default=None, description="Estimated AI call cost in USD", sa_column=Column(Float, nullable=True))
+    # List of deterrent sound filenames played for this detection
+    played_sounds: Optional[List[str]] = Field(default=None, description="List of deterrent sounds played", sa_column=Column(JSON, nullable=True))
     
     # Relationships
     device: Optional["Device"] = Relationship(back_populates="detections")

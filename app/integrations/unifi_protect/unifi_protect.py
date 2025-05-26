@@ -5,6 +5,7 @@ import logging
 import asyncio
 import os
 import subprocess
+from pathlib import Path
 
 from app.integrations.base import IntegrationBase, DeviceInterface
 from app.models.device import Device
@@ -84,6 +85,99 @@ class UniFiProtectDevice(DeviceInterface):
                 return False
         except Exception as e:
             logger.error(f"Error testing talkback: {str(e)}")
+            return False
+    
+    async def play_sound_file(self, sound_file_path: Path) -> bool:
+        """Play a sound file through the camera's speaker using talkback."""
+        try:
+            # Check if camera has speaker capability
+            if not self.device_data.get("featureFlags", {}).get("hasSpeaker", False):
+                logger.warning(f"Camera {self.name} does not have speaker capability")
+                return False
+            
+            # Validate sound file exists
+            if not sound_file_path.exists():
+                logger.error(f"Sound file does not exist: {sound_file_path}")
+                return False
+            
+            # Create talkback session
+            url = f"{self.integration.host}/proxy/protect/integration/v1/cameras/{self.device_id}/talkback-session"
+            response = await self.integration._client.post(url)
+            
+            if response.status_code == 200:
+                talkback_info = response.json()
+                logger.info(f"Talkback session created for sound playback: {talkback_info}")
+                
+                # Get RTP URL and audio parameters
+                rtp_url = talkback_info.get('url')
+                codec = talkback_info.get('codec', 'opus')
+                sample_rate = talkback_info.get('samplingRate', 24000)
+                
+                # Handle codec-specific sample rate requirements
+                if codec == 'opus':
+                    # Opus supports 8, 12, 16, 24, and 48 kHz
+                    # Use 48kHz for best quality and compatibility
+                    target_sample_rate = 48000
+                    logger.info(f"Using 48kHz sample rate for Opus codec (camera requested {sample_rate}Hz)")
+                else:
+                    # Use the camera's preferred sample rate for other codecs
+                    target_sample_rate = sample_rate
+                
+                # Stream the audio file to the camera with real-time pacing
+                ffmpeg_cmd = [
+                    'ffmpeg',
+                    '-re',                          # Read input at its native frame rate (important for RTP streaming!)
+                    '-i', str(sound_file_path),      # Input sound file
+                    '-c:a', codec,                  # Audio codec
+                    '-ar', str(target_sample_rate), # Sample rate (corrected for codec)
+                    '-ac', '1',                     # Force mono channel
+                    '-strict', '-2',
+                    '-b:a', '24k',                  # Bitrate
+                    '-f', 'rtp',                    # Output format
+                    rtp_url                         # RTP destination
+                ]
+                
+                # Run ffmpeg command with timeout
+                logger.info(f"Playing sound file '{sound_file_path.name}' on camera {self.name} using codec '{codec}' at {target_sample_rate}Hz")
+                logger.debug(f"ffmpeg command: {' '.join(ffmpeg_cmd)}")
+                
+                # Run in background with timeout based on file duration
+                process = await asyncio.create_subprocess_exec(
+                    *ffmpeg_cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                
+                # Wait for up to 10 seconds for the sound to play (most deterrent sounds should be shorter)
+                try:
+                    stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=10.0)
+                    if process.returncode != 0:
+                        error_msg = stderr.decode()
+                        logger.error(f"ffmpeg failed to play {sound_file_path.name} on camera {self.name}: {error_msg}")
+                        
+                        # Check for common audio format issues
+                        if "sample rate" in error_msg.lower():
+                            logger.error(f"Audio sample rate issue - camera expects different rate")
+                        elif "codec" in error_msg.lower():
+                            logger.error(f"Audio codec issue - camera may not support {codec}")
+                        
+                        return False
+                    else:
+                        logger.debug(f"ffmpeg output: {stdout.decode()}")
+                        
+                except asyncio.TimeoutError:
+                    # Terminate if taking too long
+                    process.terminate()
+                    await process.wait()
+                    logger.warning(f"Sound playback timed out for {sound_file_path.name} on camera {self.name}")
+                
+                logger.info(f"Sound file '{sound_file_path.name}' played successfully on camera {self.name}")
+                return True
+            else:
+                logger.error(f"Failed to create talkback session for sound playback: {response.status_code}")
+                return False
+        except Exception as e:
+            logger.error(f"Error playing sound file {sound_file_path}: {str(e)}")
             return False
         
     async def get_snapshot(self) -> Optional[bytes]:

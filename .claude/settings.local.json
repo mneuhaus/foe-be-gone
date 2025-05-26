@@ -14,7 +14,14 @@
       "Bash(rg:*)",
       "Bash(alembic revision:*)",
       "Bash(uv run alembic revision:*)",
-      "Bash(uv run alembic:*)"
+      "Bash(uv run alembic:*)",
+      "Bash(uv sync:*)",
+      "Bash(sed:*)",
+      "Bash(grep:*)",
+      "Bash(uvicorn:*)",
+      "Bash(sqlite3:*)",
+      "Bash(python3:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

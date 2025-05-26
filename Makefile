@@ -58,13 +58,13 @@ install-playwright: ## Install/update Playwright browsers
 	@echo "🎭 Installing/updating Playwright browsers..."
 	uv run playwright install
 
-db-init: ## Initialize database (when we add Alembic)
-	@echo "🗄️  Initializing database..."
-	@echo "Note: Database migrations not yet configured"
+db-init: ## Initialize database (apply all migrations)
+	@echo "🗄️  Initializing database (apply all migrations)..."
+	uv run alembic upgrade head
 
-db-migrate: ## Run database migrations (when we add Alembic)
-	@echo "🗄️  Running database migrations..."
-	@echo "Note: Database migrations not yet configured"
+db-migrate: ## Run database migrations (apply new migrations)
+	@echo "🗄️  Running database migrations (apply new migrations)..."
+	uv run alembic upgrade head
 
 check: test ## Run all checks (tests, linting, etc.)
 	@echo "✅ All checks completed!"
