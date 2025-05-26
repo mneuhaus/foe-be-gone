@@ -339,15 +339,30 @@ async def test_device_talkback(
     
     try:
         async with integration_instance:
-            # Get the camera's UniFi ID from metadata
+            # For UniFi Protect, the device_id in our database corresponds to the device.id (UUID)
+            # but we need the UniFi camera ID from metadata
+            logger.info(f"Device metadata: {device.device_metadata}")
             camera_id = device.device_metadata.get("camera_id")
+            logger.info(f"Camera ID from metadata: {camera_id}")
+            
+            # If camera_id is not in metadata, try using the device_id directly
+            # (this might happen with older device records)
             if not camera_id:
-                raise HTTPException(status_code=400, detail="Camera ID not found in device metadata")
+                # Let's refresh the device data by testing the integration
+                devices = await integration_instance.get_devices()
+                # Find our device in the fresh list
+                for fresh_device in devices:
+                    if fresh_device.name == device.name:
+                        camera_id = fresh_device.device_metadata.get("camera_id")
+                        break
+                
+                if not camera_id:
+                    return {"success": False, "message": "Camera ID not found. Please test the integration connection first."}
             
             # Get the device interface
             device_interface = await integration_instance.get_device(camera_id)
             if not device_interface:
-                raise HTTPException(status_code=404, detail="Camera not found in UniFi")
+                return {"success": False, "message": "Camera not found in UniFi system"}
             
             # Test talkback
             success = await device_interface.test_talkback()

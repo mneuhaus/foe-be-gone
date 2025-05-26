@@ -44,35 +44,17 @@ class UniFiProtectDevice(DeviceInterface):
                 codec = talkback_info.get('codec', 'opus')
                 sample_rate = talkback_info.get('samplingRate', 24000)
                 
-                # Use a short test sound - dog barking to deter animals
-                test_sound = "/Volumes/Sites/crow-be-gone.neuhaus.nrw/public/sounds/crows/short-lo-fi-dog-barking_F_minor.wav"
-                
-                # If test sound doesn't exist, use TTS
-                if not os.path.exists(test_sound):
-                    # Use ffmpeg with flite TTS to say "Test sound"
-                    ffmpeg_cmd = [
-                        'ffmpeg',
-                        '-re',  # Read input at native frame rate
-                        '-f', 'lavfi',
-                        '-i', 'flite=text=\'Test sound\':voice=slt',
-                        '-c:a', codec,
-                        '-strict', '-2',
-                        '-b:a', '24k',
-                        '-f', 'rtp',
-                        rtp_url
-                    ]
-                else:
-                    # Use the test sound file
-                    ffmpeg_cmd = [
-                        'ffmpeg',
-                        '-re',  # Read input at native frame rate
-                        '-i', test_sound,
-                        '-c:a', codec,
-                        '-strict', '-2',
-                        '-b:a', '24k',
-                        '-f', 'rtp',
-                        rtp_url
-                    ]
+                # Generate a pleasant beep tone (800Hz) for 2.5 seconds
+                ffmpeg_cmd = [
+                    'ffmpeg',
+                    '-f', 'lavfi',
+                    '-i', 'sine=frequency=800:duration=2.5',  # 800Hz beep for 2.5 seconds
+                    '-c:a', codec,
+                    '-strict', '-2',
+                    '-b:a', '24k',
+                    '-f', 'rtp',
+                    rtp_url
+                ]
                 
                 # Run ffmpeg command with timeout
                 logger.info(f"Running ffmpeg command: {' '.join(ffmpeg_cmd)}")
@@ -270,14 +252,18 @@ class UniFiProtectIntegration(IntegrationBase):
                     device_type="camera",
                     name=camera["name"],
                     model=camera.get("modelKey", "Unknown"),
-                    status="online" if camera.get("state") == "CONNECTED" else "offline",
-                    device_metadata={
-                        "camera_id": camera["id"],
-                        "features": camera.get("featureFlags", {}),
-                        "smart_detect": camera.get("smartDetectSettings", {})
-                    },
-                    capabilities=camera.get("featureFlags", {})
+                    status="online" if camera.get("state") == "CONNECTED" else "offline"
                 )
+                
+                # Set metadata separately to ensure it's properly serialized
+                device.device_metadata = {
+                    "camera_id": camera["id"],
+                    "features": camera.get("featureFlags", {}),
+                    "smart_detect": camera.get("smartDetectSettings", {})
+                }
+                
+                # Set capabilities separately as well
+                device.capabilities = camera.get("featureFlags", {})
                 
                 # For UniFi cameras, we'll use the snapshot endpoint directly
                 # instead of storing base64 data which might be too large
