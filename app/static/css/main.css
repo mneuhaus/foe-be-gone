@@ -1,0 +1,45 @@
+/* Custom styles for Foe Be Gone */
+
+/* Smooth transitions for theme changes */
+* {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Custom card hover effects */
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Navbar enhancements */
+.navbar {
+    backdrop-filter: blur(10px);
+}
+
+/* Button hover effects */
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Status indicator styles */
+.stat-value {
+    font-weight: 700;
+}
+
+/* Loading spinner */
+.loading-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}

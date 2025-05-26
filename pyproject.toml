@@ -1,0 +1,20 @@
+[project]
+name = "crow-be-gone-neuhaus-nrw"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.16.1",
+    "fastapi>=0.115.12",
+    "jinja2>=3.1.6",
+    "sqlmodel>=0.0.24",
+    "uvicorn[standard]>=0.34.2",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=8.3.5",
+    "pytest-playwright>=0.7.0",
+]
