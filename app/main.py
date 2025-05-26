@@ -2,33 +2,83 @@
 FastAPI application for Foe Be Gone - Wildlife Detection & Deterrent System
 """
 
-from fastapi import FastAPI, Request
+import logging
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Request, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
+from sqlmodel import Session
+from dotenv import load_dotenv
+
+from app.core.database import create_db_and_tables, get_session
+from app.routes import settings, detections
+from app.routes.api import integrations
+from app.services.detection_worker import detection_worker
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+# Load environment variables
+load_dotenv()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    create_db_and_tables()
+    await detection_worker.start()
+    yield
+    # Shutdown
+    await detection_worker.stop()
 
 # Initialize FastAPI app
 app = FastAPI(
     title="Foe Be Gone",
     description="AI-powered wildlife detection and deterrent system",
     version="2.0.0",
+    lifespan=lifespan
 )
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.mount("/public", StaticFiles(directory="public"), name="public")
+app.mount("/data", StaticFiles(directory="data"), name="data")
 
 # Initialize Jinja2 templates
 templates = Jinja2Templates(directory="app/templates")
 
+# Include routers
+app.include_router(settings.router)
+app.include_router(integrations.router)
+app.include_router(detections.router)
+
+# Note: Database creation is now handled in the lifespan context manager
+
 
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
+async def home(request: Request, session: Session = Depends(get_session)):
     """Home page with dashboard overview"""
+    from sqlmodel import select
+    from app.models.device import Device
+    from app.models.integration_instance import IntegrationInstance
+    
+    # Get all camera devices from connected integrations
+    cameras = session.exec(
+        select(Device)
+        .join(IntegrationInstance)
+        .where(Device.device_type == "camera")
+        .where(IntegrationInstance.status == "connected")
+        .where(IntegrationInstance.enabled == True)
+    ).all()
+    
     context = {
         "request": request,
-        "title": "Foe Be Gone",
-        "page": "home"
+        "title": "Dashboard",
+        "page": "home",
+        "cameras": cameras
     }
     return templates.TemplateResponse(request, "home.html", context)
 

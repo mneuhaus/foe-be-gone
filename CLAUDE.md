@@ -268,4 +268,8 @@ When adding new integrations:
 - ✅ Project logo and branding
 - ✅ Understanding of integration requirements
 
+### Development Memories
+
+- never use alerts, use notifications
+
 Awaiting user direction for next development phase.

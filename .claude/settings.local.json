@@ -5,7 +5,16 @@
       "Bash(uv add:*)",
       "Bash(uv run pytest:*)",
       "Bash(git init:*)",
-      "WebFetch(domain:minds.md)"
+      "WebFetch(domain:minds.md)",
+      "Bash(git add:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(ls:*)",
+      "Bash(rm:*)",
+      "Bash(rg:*)",
+      "Bash(alembic revision:*)",
+      "Bash(uv run alembic revision:*)",
+      "Bash(uv run alembic:*)"
     ],
     "deny": []
   }

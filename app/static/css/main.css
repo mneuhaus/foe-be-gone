@@ -1,14 +1,56 @@
 /* Custom styles for Foe Be Gone */
 
+/* Override DaisyUI and Tailwind border radius globally */
+:root {
+  /* DaisyUI variables */
+  --rounded-box: 0.25rem; /* 4px instead of default 1rem */
+  --rounded-btn: 0.25rem; /* 4px for buttons */
+  --rounded-badge: 0.25rem; /* 4px for badges */
+  
+  /* Tailwind-style rounded utilities */
+  --rounded-none: 0;
+  --rounded-sm: 0.125rem; /* 2px */
+  --rounded: 0.25rem; /* 4px */
+  --rounded-md: 0.25rem; /* 4px (was 6px) */
+  --rounded-lg: 0.25rem; /* 4px (was 8px) */
+  --rounded-xl: 0.25rem; /* 4px (was 12px) */
+  --rounded-2xl: 0.25rem; /* 4px (was 16px) */
+  --rounded-3xl: 0.25rem; /* 4px (was 24px) */
+}
+
+/* Override Tailwind rounded classes */
+.rounded-sm { border-radius: 0.125rem !important; }
+.rounded { border-radius: 0.25rem !important; }
+.rounded-md { border-radius: 0.25rem !important; }
+.rounded-lg { border-radius: 0.25rem !important; }
+.rounded-xl { border-radius: 0.25rem !important; }
+.rounded-2xl { border-radius: 0.25rem !important; }
+.rounded-3xl { border-radius: 0.25rem !important; }
+.rounded-box { border-radius: 0.25rem !important; }
+
+/* Override specific DaisyUI components */
+.btn { border-radius: 0.25rem !important; }
+.card { border-radius: 0.25rem !important; }
+.dropdown-content { border-radius: 0.25rem !important; }
+.menu { border-radius: 0.25rem !important; }
+.alert { border-radius: 0.25rem !important; }
+.modal-box { border-radius: 0.25rem !important; }
+.input { border-radius: 0.25rem !important; }
+.textarea { border-radius: 0.25rem !important; }
+.select { border-radius: 0.25rem !important; }
+.badge { border-radius: 0.25rem !important; }
+.tabs-boxed { border-radius: 0.25rem !important; }
+.navbar { border-radius: 0.25rem !important; }
+
 /* Smooth transitions for theme changes */
 * {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-/* Custom card hover effects */
+/* Remove card hover effects */
 .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    transform: none;
+    box-shadow: none;
 }
 
 /* Navbar enhancements */

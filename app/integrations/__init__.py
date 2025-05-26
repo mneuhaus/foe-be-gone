@@ -1,0 +1,1 @@
+"""Integration modules for Foe Be Gone."""
