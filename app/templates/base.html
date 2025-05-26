@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="cupcake">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
     
+    
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/css/main.css">
     
@@ -17,7 +18,8 @@
 </head>
 <body class="min-h-screen bg-base-100">
     <!-- Navigation -->
-    <nav class="navbar bg-base-200 shadow-lg">
+    <nav class="bg-base-200">
+      <div class="navbar container mx-auto px-4 max-w-7xl min-h-0 h-14">
         <div class="navbar-start">
             <div class="dropdown">
                 <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
@@ -41,8 +43,8 @@
                     </li>
                 </ul>
             </div>
-            <a href="/" class="btn btn-ghost text-xl font-bold">
-                <img src="/public/logo.jpg" alt="Foe Be Gone" class="w-8 h-8 rounded-lg mr-2">
+            <a href="/" class="btn btn-ghost text-lg font-bold h-auto min-h-0 py-2">
+                <img src="/public/logo.jpg" alt="Foe Be Gone" class="w-7 h-7 rounded-lg mr-2">
                 Foe Be Gone
             </a>
         </div>
@@ -53,35 +55,27 @@
                 <li><a href="/dashboard" class="{% if page == 'dashboard' %}btn-active{% endif %}">Dashboard</a></li>
                 <li><a href="/detections" class="{% if page == 'detections' %}btn-active{% endif %}">Detections</a></li>
                 <li><a href="/recording" class="{% if page == 'recording' %}btn-active{% endif %}">Recording</a></li>
-                <li>
-                    <details>
-                        <summary class="{% if page == 'settings' %}btn-active{% endif %}">Settings</summary>
-                        <ul class="bg-base-100 rounded-t-none p-2 w-48">
-                            <li><a href="/settings/integrations">Integrations</a></li>
-                            <li><a href="/settings/ai-model">AI Model</a></li>
-                            <li><a href="/settings/foes">Foe Management</a></li>
-                            <li><a href="/settings/countermeasures">Countermeasures</a></li>
-                        </ul>
-                    </details>
-                </li>
             </ul>
         </div>
         
         <div class="navbar-end">
-            <!-- Theme toggle -->
             <div class="dropdown dropdown-end">
-                <div tabindex="0" role="button" class="btn btn-ghost btn-circle">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.464 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path>
+                <div tabindex="0" role="button" class="btn btn-ghost btn-circle btn-sm">
+                    <!-- Heroicon cog-6-tooth -->
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                     </svg>
                 </div>
-                <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-32 p-2 shadow">
-                    <li><a onclick="setTheme('light')">🌞 Light</a></li>
-                    <li><a onclick="setTheme('dark')">🌙 Dark</a></li>
-                    <li><a onclick="setTheme('system')">💻 System</a></li>
+                <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-48 p-2 shadow">
+                    <li><a href="/settings/integrations">Integrations</a></li>
+                    <li><a href="/settings/ai-model">AI Model</a></li>
+                    <li><a href="/settings/foes">Foe Management</a></li>
+                    <li><a href="/settings/countermeasures">Countermeasures</a></li>
                 </ul>
             </div>
         </div>
+      </div>
     </nav>
 
     <!-- Main content -->
@@ -89,24 +83,7 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Footer -->
-    <footer class="footer footer-center bg-base-200 text-base-content p-4 mt-auto">
-        <aside>
-            <p>© 2025 Foe Be Gone - Wildlife Detection & Deterrent System</p>
-        </aside>
-    </footer>
 
-    <!-- Theme toggle script -->
-    <script>
-        function setTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('theme', theme);
-        }
-
-        // Load saved theme or default to dark
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        setTheme(savedTheme);
-    </script>
 
     {% block scripts %}{% endblock %}
 </body>
