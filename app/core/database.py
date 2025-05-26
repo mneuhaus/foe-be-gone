@@ -2,13 +2,16 @@
 
 from sqlmodel import SQLModel, Session, create_engine
 from pathlib import Path
+import os
 
-# Create database directory if it doesn't exist
-db_dir = Path("data")
-db_dir.mkdir(exist_ok=True)
-
-# SQLite database URL
-DATABASE_URL = f"sqlite:///{db_dir}/foe_be_gone.db"
+# Get database URL from environment or use default
+if os.getenv("DATABASE_URL"):
+    DATABASE_URL = os.getenv("DATABASE_URL")
+else:
+    # Create database directory if it doesn't exist
+    db_dir = Path("data")
+    db_dir.mkdir(exist_ok=True)
+    DATABASE_URL = f"sqlite:///{db_dir}/foe_be_gone.db"
 
 # Create engine
 engine = create_engine(DATABASE_URL, echo=False)

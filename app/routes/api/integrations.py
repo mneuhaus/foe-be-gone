@@ -5,11 +5,16 @@ from sqlmodel import Session, select
 from typing import Dict, Any
 from pydantic import BaseModel
 from datetime import datetime
+import json
 
 from app.core.database import get_session
 from app.models.integration_instance import IntegrationInstance
 from app.models.device import Device
 from app.integrations.dummy_surveillance import DummySurveillanceIntegration
+from app.integrations import get_integration_class
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/integrations", tags=["integrations"])
 
@@ -45,14 +50,17 @@ async def create_integration(
 ):
     """Create a new integration instance."""
     # Validate integration type
-    if integration.integration_type not in ["dummy-surveillance"]:
+    integration_class = get_integration_class(integration.integration_type)
+    if not integration_class:
         raise HTTPException(status_code=400, detail="Invalid integration type")
+    
+    print(f"Creating integration with config: {integration.config}")
     
     # Create integration instance
     db_integration = IntegrationInstance(
         integration_type=integration.integration_type,
         name=integration.name,
-        config=integration.config
+        config_json=json.dumps(integration.config) if integration.config else "{}"
     )
     
     session.add(db_integration)
@@ -60,36 +68,24 @@ async def create_integration(
     session.refresh(db_integration)
     
     # Try to connect to the integration
-    if integration.integration_type == "dummy-surveillance":
-        dummy = DummySurveillanceIntegration(db_integration.id, integration.config)
-        if await dummy.connect():
+    integration_instance = integration_class(db_integration)
+    
+    try:
+        if await integration_instance.test_connection():
             db_integration.update_status("connected", "Successfully connected")
             
-            # Create devices from the integration
-            cameras = dummy.get_cameras()
-            for camera_data in cameras:
-                device = Device(
-                    integration_id=db_integration.id,
-                    device_type="camera",
-                    name=camera_data["name"],
-                    model=camera_data.get("model"),
-                    status=camera_data.get("status", "online"),
-                    device_metadata={
-                        "location": camera_data.get("location"),
-                        "firmware_version": camera_data.get("firmware_version"),
-                        "stream_url": camera_data.get("stream_url"),
-                        "snapshot_url": camera_data.get("snapshot_url")
-                    },
-                    capabilities=camera_data.get("capabilities", {}),
-                    current_image_url="/public/dummy-surveillance/nothing/Hühnerstall - 5-26-2025, 09.11.38 GMT+2.jpg"  # Default image
-                )
+            # Get devices from the integration
+            devices = await integration_instance.get_devices()
+            for device in devices:
                 session.add(device)
         else:
             db_integration.update_status("error", "Failed to connect")
-        
-        session.add(db_integration)
-        session.commit()
-        session.refresh(db_integration)
+    except Exception as e:
+        db_integration.update_status("error", str(e))
+    
+    session.add(db_integration)
+    session.commit()
+    session.refresh(db_integration)
     
     return db_integration
 
@@ -125,26 +121,50 @@ async def test_integration(
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
     
-    if integration.integration_type == "dummy-surveillance":
-        dummy = DummySurveillanceIntegration(integration.id, integration.config)
-        connected = await dummy.connect()
+    integration_class = get_integration_class(integration.integration_type)
+    if not integration_class:
+        return {
+            "success": False,
+            "message": "Unknown integration type"
+        }
+    
+    integration_instance = integration_class(integration)
+    
+    try:
+        connected = await integration_instance.test_connection()
         
         if connected:
-            cameras = dummy.get_cameras()
+            # Remove existing devices before getting new ones
+            existing_devices = session.exec(
+                select(Device).where(Device.integration_id == integration_id)
+            ).all()
+            for device in existing_devices:
+                session.delete(device)
+            
+            # Get and save new devices
+            devices = await integration_instance.get_devices()
+            for device in devices:
+                session.add(device)
+            
+            # Update integration status
+            integration.update_status("connected", "Successfully connected")
+            session.add(integration)
+            session.commit()
+            
             return {
                 "success": True,
-                "message": f"Connected successfully. Found {len(cameras)} camera(s)."
+                "message": f"Connected successfully. Found {len(devices)} device(s)."
             }
         else:
             return {
                 "success": False,
                 "message": "Failed to connect to integration"
             }
-    
-    return {
-        "success": False,
-        "message": "Unknown integration type"
-    }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Connection error: {str(e)}"
+        }
 
 
 @router.get("/{integration_id}/test-scenarios")
@@ -197,3 +217,189 @@ async def set_test_scenario(
     session.commit()
     
     return result
+
+
+@router.get("/{integration_id}/cameras")
+async def get_cameras(
+    integration_id: str,
+    session: Session = Depends(get_session)
+):
+    """Get all available cameras from UniFi Protect."""
+    integration = session.get(IntegrationInstance, integration_id)
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    
+    if integration.integration_type != "unifi_protect":
+        raise HTTPException(status_code=400, detail="Camera listing only available for UniFi Protect")
+    
+    integration_class = get_integration_class(integration.integration_type)
+    integration_instance = integration_class(integration)
+    
+    try:
+        # Get all cameras from UniFi
+        async with integration_instance:
+            if not integration_instance._client:
+                integration_instance._init_client()
+            
+            url = f"{integration_instance.host}/proxy/protect/integration/v1/cameras"
+            response = await integration_instance._client.get(url)
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=500, detail="Failed to fetch cameras from UniFi")
+            
+            cameras = response.json()
+            enabled_cameras = integration.config_dict.get("enabled_cameras", [])
+            
+            # Format camera data with enabled status
+            camera_list = []
+            for camera in cameras:
+                camera_list.append({
+                    "id": camera["id"],
+                    "name": camera["name"],
+                    "model": camera.get("modelKey", "Unknown"),
+                    "state": camera.get("state", "UNKNOWN"),
+                    "enabled": camera["id"] in enabled_cameras
+                })
+            
+            return {"cameras": camera_list}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching cameras: {str(e)}")
+
+
+@router.put("/{integration_id}/cameras")
+async def update_camera_selection(
+    integration_id: str,
+    camera_selection: Dict[str, list] = {"enabled_cameras": []},
+    session: Session = Depends(get_session)
+):
+    """Update camera selection for UniFi Protect integration."""
+    integration = session.get(IntegrationInstance, integration_id)
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    
+    if integration.integration_type != "unifi_protect":
+        raise HTTPException(status_code=400, detail="Camera selection only available for UniFi Protect")
+    
+    # Update configuration with selected cameras
+    config = integration.config_dict
+    config["enabled_cameras"] = camera_selection.get("enabled_cameras", [])
+    integration.config_json = json.dumps(config)
+    
+    # Remove existing devices
+    existing_devices = session.exec(
+        select(Device).where(Device.integration_id == integration_id)
+    ).all()
+    for device in existing_devices:
+        session.delete(device)
+    
+    # Recreate devices based on new selection
+    integration_class = get_integration_class(integration.integration_type)
+    integration_instance = integration_class(integration)
+    
+    try:
+        devices = await integration_instance.get_devices()
+        for device in devices:
+            session.add(device)
+    except Exception as e:
+        integration.update_status("error", f"Failed to update devices: {str(e)}")
+    
+    session.commit()
+    
+    return {"success": True, "message": f"Updated camera selection. {len(devices)} camera(s) enabled."}
+
+
+@router.post("/{integration_id}/devices/{device_id}/talkback")
+async def test_device_talkback(
+    integration_id: str,
+    device_id: str,
+    session: Session = Depends(get_session)
+):
+    """Test talkback functionality for a camera device."""
+    integration = session.get(IntegrationInstance, integration_id)
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    
+    # Get the device
+    device = session.exec(
+        select(Device).where(
+            Device.integration_id == integration_id,
+            Device.id == device_id
+        )
+    ).first()
+    
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    
+    if device.device_type != "camera":
+        raise HTTPException(status_code=400, detail="Talkback only available for camera devices")
+    
+    # Get the integration instance
+    integration_class = get_integration_class(integration.integration_type)
+    integration_instance = integration_class(integration)
+    
+    try:
+        async with integration_instance:
+            # Get the camera's UniFi ID from metadata
+            camera_id = device.device_metadata.get("camera_id")
+            if not camera_id:
+                raise HTTPException(status_code=400, detail="Camera ID not found in device metadata")
+            
+            # Get the device interface
+            device_interface = await integration_instance.get_device(camera_id)
+            if not device_interface:
+                raise HTTPException(status_code=404, detail="Camera not found in UniFi")
+            
+            # Test talkback
+            success = await device_interface.test_talkback()
+            
+            if success:
+                return {"success": True, "message": "Talkback test initiated"}
+            else:
+                return {"success": False, "message": "Failed to initiate talkback"}
+    
+    except Exception as e:
+        return {"success": False, "message": f"Talkback error: {str(e)}"}
+
+
+@router.get("/{integration_id}/devices/{device_id}/snapshot")
+async def get_device_snapshot(
+    integration_id: str,
+    device_id: str,
+    session: Session = Depends(get_session)
+):
+    """Get current snapshot from a camera device."""
+    from fastapi.responses import Response
+    
+    integration = session.get(IntegrationInstance, integration_id)
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    
+    # For UniFi cameras, device_id is the UniFi camera ID
+    integration_class = get_integration_class(integration.integration_type)
+    integration_instance = integration_class(integration)
+    
+    try:
+        async with integration_instance:
+            if not integration_instance._client:
+                integration_instance._init_client()
+            
+            # Get snapshot from UniFi
+            url = f"{integration_instance.host}/proxy/protect/integration/v1/cameras/{device_id}/snapshot"
+            response = await integration_instance._client.get(url)
+            
+            if response.status_code == 200:
+                return Response(
+                    content=response.content,
+                    media_type="image/jpeg",
+                    headers={
+                        "Cache-Control": "no-cache, no-store, must-revalidate",
+                        "Pragma": "no-cache",
+                        "Expires": "0"
+                    }
+                )
+            else:
+                raise HTTPException(status_code=response.status_code, detail="Failed to get snapshot")
+    
+    except Exception as e:
+        logger.error(f"Error getting snapshot: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Snapshot error: {str(e)}")

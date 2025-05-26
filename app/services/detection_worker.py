@@ -14,6 +14,7 @@ from app.models.integration_instance import IntegrationInstance
 from app.models.detection import Detection, Foe, DetectionStatus
 from app.services.ai_detector import AIDetector
 from app.integrations.dummy_surveillance.dummy_surveillance import DummySurveillanceIntegration
+from app.integrations import get_integration_class
 
 logger = logging.getLogger(__name__)
 
@@ -109,12 +110,18 @@ class DetectionWorker:
             
         # Get or create the integration handler
         if integration.id not in self._integrations:
-            if integration.integration_type == "dummy-surveillance":
-                handler = DummySurveillanceIntegration(
-                    integration.id,
-                    integration.config
-                )
-                await handler.connect()
+            integration_class = get_integration_class(integration.integration_type)
+            if integration_class:
+                if integration.integration_type == "dummy-surveillance":
+                    handler = DummySurveillanceIntegration(
+                        integration.id,
+                        integration.config
+                    )
+                    await handler.connect()
+                else:
+                    # For other integrations like UniFi Protect
+                    handler = integration_class(integration)
+                    
                 self._integrations[integration.id] = handler
             else:
                 logger.warning(f"Unknown integration type: {integration.integration_type}")

@@ -31,12 +31,17 @@ class IntegrationInstance(SQLModel, table=True):
     @property
     def config(self) -> Dict[str, Any]:
         """Get configuration as dictionary."""
-        return json.loads(self.config_json)
+        return json.loads(self.config_json) if self.config_json else {}
     
     @config.setter
     def config(self, value: Dict[str, Any]):
         """Set configuration from dictionary."""
-        self.config_json = json.dumps(value)
+        self.config_json = json.dumps(value) if value else "{}"
+    
+    @property
+    def config_dict(self) -> Dict[str, Any]:
+        """Alias for config property for compatibility."""
+        return self.config
         
     def update_status(self, status: str, message: Optional[str] = None):
         """Update integration status."""

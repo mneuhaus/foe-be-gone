@@ -221,6 +221,7 @@ pytest -v                                         # Verbose test output
 11. **ALWAYS** handle self-signed certificates for local API calls
 12. **ALWAYS** use Tailwind CSS + daisyUI for styling
 13. **MANDATORY**: Create comprehensive tests covering all user interactions and edge cases
+14. **CRITICAL**: ALWAYS READ THE DOCUMENTATION FILES IN THE `docs/` FOLDER BEFORE IMPLEMENTING ANY EXTERNAL API INTEGRATION! The user has provided specific API documentation that MUST be followed exactly.
 
 ### Testing Guidelines
 
