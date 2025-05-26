@@ -1,5 +1,6 @@
 """Routes for detection management and viewing."""
 from fastapi import APIRouter, Request, Depends, HTTPException
+import logging
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select, delete
@@ -14,6 +15,7 @@ from app.models.detection import Detection, Foe
 from app.models.device import Device
 from app.services.detection_worker import detection_worker
 from app.services.sound_player import sound_player
+from app.models.setting import Setting
 
 router = APIRouter(prefix="/detections", tags=["detections"])
 templates = Jinja2Templates(directory="app/templates")
@@ -108,7 +110,10 @@ async def get_detection_interval():
 
 
 @router.post("/api/interval")
-async def set_detection_interval(interval_update: IntervalUpdate):
+async def set_detection_interval(
+    interval_update: IntervalUpdate,
+    session: Session = Depends(get_session)
+):
     """Set detection interval (1-30 seconds)."""
     interval = interval_update.interval
     
@@ -118,7 +123,18 @@ async def set_detection_interval(interval_update: IntervalUpdate):
     
     # Update the detection worker interval
     detection_worker.check_interval = interval
-    
+    # Persist interval to settings
+    try:
+        setting = session.get(Setting, 'detection_interval')
+        if setting:
+            setting.value = str(interval)
+        else:
+            setting = Setting(key='detection_interval', value=str(interval))
+            session.add(setting)
+        session.commit()
+    except Exception as e:
+        # Log and continue
+        logging.getLogger(__name__).warning(f"Failed to persist detection interval: {e}")
     return {"interval": interval, "message": f"Detection interval updated to {interval} seconds"}
 
 

@@ -21,6 +21,8 @@ def create_db_and_tables():
     """Create all database tables."""
     from app.models.integration_instance import IntegrationInstance  # Import models
     from app.models.device import Device
+    from app.models.detection import Detection, Foe, DeterrentAction
+    from app.models.setting import Setting
     
     SQLModel.metadata.create_all(engine)
 
