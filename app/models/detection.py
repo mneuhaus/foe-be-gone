@@ -45,6 +45,7 @@ class Detection(SQLModel, table=True):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     image_path: Optional[str] = Field(default=None, description="Path to saved snapshot")
     image_url: Optional[str] = Field(default=None, description="URL to snapshot if stored externally")
+    video_path: Optional[str] = Field(default=None, description="Path to captured video")
     status: DetectionStatus = Field(default=DetectionStatus.PENDING)
     ai_response: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     processed_at: Optional[datetime] = Field(default=None)

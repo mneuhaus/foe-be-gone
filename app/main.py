@@ -14,6 +14,7 @@ from sqlmodel import Session, select
 
 from app.core.config import config
 from app.core.database import create_db_and_tables, get_session, engine
+from app.core.session import get_db_session
 from app.routes import settings, detections
 from app.routes.api import integrations
 from app.services.detection_worker import detection_worker
@@ -36,16 +37,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup
     create_db_and_tables()
     # Load persisted detection interval if set
-    try:
-        with Session(engine) as session:
-            setting = session.get(Setting, 'detection_interval')
-            if setting and setting.value.isdigit():
-                detection_worker.check_interval = int(setting.value)
-                logging.getLogger(__name__).info(
-                    f"Loaded persisted detection interval: {detection_worker.check_interval}s"
-                )
-    except Exception as e:
-        logging.getLogger(__name__).warning(f"Failed to load persisted settings: {e}")
+    with get_db_session() as session:
+        setting = session.get(Setting, 'detection_interval')
+        if setting and setting.value.isdigit():
+            detection_worker.check_interval = int(setting.value)
+            logging.getLogger(__name__).info(
+                f"Loaded persisted detection interval: {detection_worker.check_interval}s"
+            )
     # Start worker
     await detection_worker.start()
     yield
@@ -57,7 +55,29 @@ app = FastAPI(
     title="Foe Be Gone",
     description="AI-powered wildlife detection and deterrent system",
     version="2.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    openapi_tags=[
+        {
+            "name": "dashboard",
+            "description": "Main dashboard and UI pages"
+        },
+        {
+            "name": "detections",
+            "description": "Detection management and viewing"
+        },
+        {
+            "name": "settings",
+            "description": "System configuration and settings"
+        },
+        {
+            "name": "integrations",
+            "description": "Camera integration management"
+        },
+        {
+            "name": "health",
+            "description": "System health and status"
+        }
+    ]
 )
 
 # Mount static files
@@ -73,12 +93,22 @@ app.include_router(settings.router)
 app.include_router(integrations.router)
 app.include_router(detections.router)
 
+# Add API documentation info
+@app.get("/api", tags=["documentation"], summary="API Documentation")
+async def api_docs_redirect():
+    """Redirect to the interactive API documentation."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/docs")
+
 # Note: Database creation is now handled in the lifespan context manager
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse, tags=["dashboard"], summary="Main dashboard")
 async def dashboard(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
-    """Dashboard page with system overview"""
+    """Dashboard page with system overview.
+    
+    Shows active cameras and recent detection activity.
+    """
     
     # Get all camera devices from connected integrations
     cameras = session.exec(
@@ -98,9 +128,13 @@ async def dashboard(request: Request, session: Session = Depends(get_session)) -
     return templates.TemplateResponse(request, "dashboard.html", context)
 
 
-@app.get("/health")
+@app.get("/health", tags=["health"], summary="Health check endpoint")
 async def health_check() -> dict[str, str]:
-    """Health check endpoint"""
+    """Health check endpoint.
+    
+    Returns:
+        dict: Status and version information
+    """
     return {"status": "healthy", "version": "2.0.0"}
 
 

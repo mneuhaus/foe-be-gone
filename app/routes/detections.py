@@ -8,7 +8,7 @@ from typing import Optional, Dict, Any
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlmodel import Session, select, delete
 
 from app.core.database import get_session
@@ -23,14 +23,16 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 class IntervalUpdate(BaseModel):
-    interval: int
+    """Request model for updating detection interval."""
+    interval: int = Field(ge=1, le=30, description="Detection interval in seconds (1-30)")
 
 
 class SoundTest(BaseModel):
-    foe_type: str
+    """Request model for testing deterrent sounds."""
+    foe_type: str = Field(description="Type of foe to test sound for (rats, crows, cats)")
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse, summary="Detections page", include_in_schema=False)
 async def detections_page(
     request: Request,
     session: Session = Depends(get_session),
@@ -73,7 +75,7 @@ async def detections_page(
     return templates.TemplateResponse(request, "detections.html", context)
 
 
-@router.post("/clear-all", response_class=RedirectResponse)
+@router.post("/clear-all", response_class=RedirectResponse, summary="Clear all detections", include_in_schema=False)
 async def clear_all_detections(
     request: Request,
     session: Session = Depends(get_session)
@@ -104,7 +106,7 @@ async def clear_all_detections(
     return RedirectResponse(url="/detections/", status_code=303)
 
 
-@router.get("/api/interval")
+@router.get("/api/interval", summary="Get detection interval", response_model=Dict[str, int])
 async def get_detection_interval() -> Dict[str, int]:
     """Get current detection interval.
     
@@ -114,7 +116,7 @@ async def get_detection_interval() -> Dict[str, int]:
     return {"interval": detection_worker.check_interval}
 
 
-@router.post("/api/interval")
+@router.post("/api/interval", summary="Set detection interval", response_model=Dict[str, Any])
 async def set_detection_interval(
     interval_update: IntervalUpdate,
     session: Session = Depends(get_session)
@@ -154,7 +156,7 @@ async def set_detection_interval(
     return {"interval": interval, "message": f"Detection interval updated to {interval} seconds"}
 
 
-@router.get("/api/sounds")
+@router.get("/api/sounds", summary="List available deterrent sounds", response_model=Dict[str, Dict[str, Any]])
 async def get_available_sounds() -> Dict[str, Dict[str, Any]]:
     """Get available deterrent sounds by foe type.
     
@@ -164,7 +166,7 @@ async def get_available_sounds() -> Dict[str, Dict[str, Any]]:
     return sound_player.list_sounds_by_type()
 
 
-@router.post("/api/sounds/test")
+@router.post("/api/sounds/test", summary="Test deterrent sound locally", response_model=Dict[str, Any])
 async def test_sound(sound_test: SoundTest) -> Dict[str, Any]:
     """Test playing a deterrent sound for a specific foe type locally.
     
@@ -193,7 +195,7 @@ async def test_sound(sound_test: SoundTest) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=f"Failed to play sound for {foe_type}")
 
 
-@router.post("/api/sounds/test-camera/{device_id}")
+@router.post("/api/sounds/test-camera/{device_id}", summary="Test deterrent sound on camera", response_model=Dict[str, Any])
 async def test_sound_on_camera(
     device_id: str, 
     sound_test: SoundTest, 

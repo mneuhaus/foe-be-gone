@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from typing import Dict, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 import json
 
@@ -21,29 +21,32 @@ router = APIRouter(prefix="/api/integrations", tags=["integrations"])
 
 class IntegrationCreate(BaseModel):
     """Schema for creating new integration."""
-    integration_type: str
-    name: str
-    config: Dict[str, Any] = {}
+    integration_type: str = Field(description="Type of integration (e.g., 'dummy_surveillance', 'unifi_protect')")
+    name: str = Field(description="Display name for this integration instance")
+    config: Dict[str, Any] = Field(default={}, description="Integration-specific configuration")
 
 
 class IntegrationResponse(BaseModel):
     """Response schema for integration."""
-    id: str
-    integration_type: str
-    name: str
-    enabled: bool
-    status: str
-    status_message: str | None
+    id: str = Field(description="Unique identifier")
+    integration_type: str = Field(description="Type of integration")
+    name: str = Field(description="Display name")
+    enabled: bool = Field(description="Whether integration is enabled")
+    status: str = Field(description="Connection status")
+    status_message: str | None = Field(description="Status details or error message")
     
 
-@router.get("", response_model=list[IntegrationResponse])
+@router.get("", response_model=list[IntegrationResponse], summary="List all integrations")
 async def list_integrations(session: Session = Depends(get_session)):
-    """List all integration instances."""
+    """List all integration instances.
+    
+    Returns a list of all configured camera integrations with their current status.
+    """
     integrations = session.exec(select(IntegrationInstance)).all()
     return integrations
 
 
-@router.post("", response_model=IntegrationResponse)
+@router.post("", response_model=IntegrationResponse, summary="Create new integration")
 async def create_integration(
     integration: IntegrationCreate,
     session: Session = Depends(get_session)
