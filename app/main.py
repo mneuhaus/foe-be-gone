@@ -15,10 +15,13 @@ from app.core.database import create_db_and_tables, get_session
 from app.routes import settings, detections
 from app.routes.api import integrations
 from app.services.detection_worker import detection_worker
+from app.models.setting import Setting
+from app.core.database import engine
+from sqlmodel import Session
 
 # Set up logging
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
@@ -29,6 +32,18 @@ load_dotenv()
 async def lifespan(app: FastAPI):
     # Startup
     create_db_and_tables()
+    # Load persisted detection interval if set
+    try:
+        with Session(engine) as session:
+            setting = session.get(Setting, 'detection_interval')
+            if setting and setting.value.isdigit():
+                detection_worker.check_interval = int(setting.value)
+                logging.getLogger(__name__).info(
+                    f"Loaded persisted detection interval: {detection_worker.check_interval}s"
+                )
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Failed to load persisted settings: {e}")
+    # Start worker
     await detection_worker.start()
     yield
     # Shutdown
