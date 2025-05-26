@@ -4,32 +4,35 @@ FastAPI application for Foe Be Gone - Wildlife Detection & Deterrent System
 
 import logging
 from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
 from fastapi import FastAPI, Request, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
-from sqlmodel import Session
-from dotenv import load_dotenv
+from sqlmodel import Session, select
 
-from app.core.database import create_db_and_tables, get_session
+from app.core.config import config
+from app.core.database import create_db_and_tables, get_session, engine
 from app.routes import settings, detections
 from app.routes.api import integrations
 from app.services.detection_worker import detection_worker
 from app.models.setting import Setting
-from app.core.database import engine
-from sqlmodel import Session
+from app.models.device import Device
+from app.models.integration_instance import IntegrationInstance
+
+# Validate configuration before setting up logging
+config.validate()
 
 # Set up logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, config.LOG_LEVEL),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-# Load environment variables
-load_dotenv()
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup
     create_db_and_tables()
     # Load persisted detection interval if set
@@ -74,11 +77,8 @@ app.include_router(detections.router)
 
 
 @app.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request, session: Session = Depends(get_session)):
+async def dashboard(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
     """Dashboard page with system overview"""
-    from sqlmodel import select
-    from app.models.device import Device
-    from app.models.integration_instance import IntegrationInstance
     
     # Get all camera devices from connected integrations
     cameras = session.exec(
@@ -99,7 +99,7 @@ async def dashboard(request: Request, session: Session = Depends(get_session)):
 
 
 @app.get("/health")
-async def health_check():
+async def health_check() -> dict[str, str]:
     """Health check endpoint"""
     return {"status": "healthy", "version": "2.0.0"}
 

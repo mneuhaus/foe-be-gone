@@ -1,14 +1,15 @@
 """Routes for detection management and viewing."""
-from fastapi import APIRouter, Request, Depends, HTTPException
 import logging
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
-from sqlmodel import Session, select, delete
-from datetime import datetime, timedelta
-from typing import Optional
 import os
+from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional, Dict, Any
+
+from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
+from sqlmodel import Session, select, delete
 
 from app.core.database import get_session
 from app.models.detection import Detection, Foe
@@ -104,8 +105,12 @@ async def clear_all_detections(
 
 
 @router.get("/api/interval")
-async def get_detection_interval():
-    """Get current detection interval."""
+async def get_detection_interval() -> Dict[str, int]:
+    """Get current detection interval.
+    
+    Returns:
+        Dict containing the current detection interval in seconds
+    """
     return {"interval": detection_worker.check_interval}
 
 
@@ -113,8 +118,19 @@ async def get_detection_interval():
 async def set_detection_interval(
     interval_update: IntervalUpdate,
     session: Session = Depends(get_session)
-):
-    """Set detection interval (1-30 seconds)."""
+) -> Dict[str, Any]:
+    """Set detection interval (1-30 seconds).
+    
+    Args:
+        interval_update: New interval value
+        session: Database session
+        
+    Returns:
+        Dict containing the new interval and success message
+        
+    Raises:
+        HTTPException: If interval is not between 1-30 seconds
+    """
     interval = interval_update.interval
     
     # Validate interval range
@@ -139,14 +155,28 @@ async def set_detection_interval(
 
 
 @router.get("/api/sounds")
-async def get_available_sounds():
-    """Get available deterrent sounds by foe type."""
+async def get_available_sounds() -> Dict[str, Dict[str, Any]]:
+    """Get available deterrent sounds by foe type.
+    
+    Returns:
+        Dict mapping foe types to their available sound files
+    """
     return sound_player.list_sounds_by_type()
 
 
 @router.post("/api/sounds/test")
-async def test_sound(sound_test: SoundTest):
-    """Test playing a deterrent sound for a specific foe type locally."""
+async def test_sound(sound_test: SoundTest) -> Dict[str, Any]:
+    """Test playing a deterrent sound for a specific foe type locally.
+    
+    Args:
+        sound_test: Foe type to test sound for
+        
+    Returns:
+        Dict with success status and message
+        
+    Raises:
+        HTTPException: If foe type is invalid or sound playback fails
+    """
     foe_type = sound_test.foe_type
     
     # Validate foe type
@@ -164,8 +194,24 @@ async def test_sound(sound_test: SoundTest):
 
 
 @router.post("/api/sounds/test-camera/{device_id}")
-async def test_sound_on_camera(device_id: str, sound_test: SoundTest, session: Session = Depends(get_session)):
-    """Test playing a deterrent sound on a specific camera."""
+async def test_sound_on_camera(
+    device_id: str, 
+    sound_test: SoundTest, 
+    session: Session = Depends(get_session)
+) -> Dict[str, Any]:
+    """Test playing a deterrent sound on a specific camera.
+    
+    Args:
+        device_id: ID of the camera device
+        sound_test: Foe type to test sound for
+        session: Database session
+        
+    Returns:
+        Dict with success status and message
+        
+    Raises:
+        HTTPException: If device not found, invalid foe type, or playback fails
+    """
     from app.integrations import get_integration_class
     
     foe_type = sound_test.foe_type

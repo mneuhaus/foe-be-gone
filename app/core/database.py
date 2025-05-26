@@ -1,12 +1,15 @@
 """Database configuration and session management."""
 
-from sqlmodel import SQLModel, Session, create_engine
 from pathlib import Path
-import os
+from typing import Generator
 
-# Get database URL from environment or use default
-if os.getenv("DATABASE_URL"):
-    DATABASE_URL = os.getenv("DATABASE_URL")
+from sqlmodel import SQLModel, Session, create_engine
+
+from app.core.config import config
+
+# Get database URL from config or use default
+if config.DATABASE_URL:
+    DATABASE_URL = config.DATABASE_URL
 else:
     # Create database directory if it doesn't exist
     db_dir = Path("data")
@@ -17,9 +20,10 @@ else:
 engine = create_engine(DATABASE_URL, echo=False)
 
 
-def create_db_and_tables():
+def create_db_and_tables() -> None:
     """Create all database tables."""
-    from app.models.integration_instance import IntegrationInstance  # Import models
+    # Import all models to register them with SQLModel
+    from app.models.integration_instance import IntegrationInstance
     from app.models.device import Device
     from app.models.detection import Detection, Foe, DeterrentAction
     from app.models.setting import Setting
@@ -27,7 +31,7 @@ def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 
 
-def get_session():
+def get_session() -> Generator[Session, None, None]:
     """Dependency to get database session."""
     with Session(engine) as session:
         yield session

@@ -1,19 +1,21 @@
 """AI-powered foe detection service using OpenAI GPT-4o."""
-import os
 import base64
-from typing import List, Dict, Any, Optional
-from openai import OpenAI
-import logging
-from pydantic import BaseModel, Field
-from app.models.detection import FoeType
 import json
+import logging
+from typing import List, Dict, Any, Optional
+
+from openai import OpenAI
+from pydantic import BaseModel, Field
+
+from app.core.config import config
+from app.models.detection import FoeType
 
 # Logger for AI detector
 logger = logging.getLogger(__name__)
 
-# Pricing for GPT-4o (USD per 1K tokens); override via environment variables if needed
-_INPUT_COST_PER_1K = float(os.getenv("OPENAI_INPUT_COST_PER_1K", "0.03"))
-_OUTPUT_COST_PER_1K = float(os.getenv("OPENAI_OUTPUT_COST_PER_1K", "0.06"))
+# Pricing for GPT-4o (USD per 1K tokens)
+_INPUT_COST_PER_1K = 0.03
+_OUTPUT_COST_PER_1K = 0.06
 
 
 class DetectedFoe(BaseModel):
@@ -41,7 +43,7 @@ class AIDetector:
     
     def __init__(self, api_key: Optional[str] = None):
         """Initialize the AI detector."""
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        self.api_key = api_key or config.OPENAI_API_KEY
         if not self.api_key:
             raise ValueError("OpenAI API key not provided and OPENAI_API_KEY env var not set")
         

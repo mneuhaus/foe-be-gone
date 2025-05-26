@@ -4,7 +4,7 @@ import random
 import subprocess
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -98,9 +98,9 @@ class SoundPlayer:
         except (subprocess.CalledProcessError, FileNotFoundError):
             return False
     
-    def list_sounds_by_type(self) -> dict:
+    def list_sounds_by_type(self) -> Dict[str, Dict[str, Any]]:
         """Get a summary of available sounds by foe type."""
-        summary = {}
+        summary: Dict[str, Dict[str, Any]] = {}
         
         for foe_dir in self.sounds_dir.iterdir():
             if foe_dir.is_dir() and not foe_dir.name.startswith('.'):
