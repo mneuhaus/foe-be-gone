@@ -73,8 +73,7 @@ foe-be-gone/
 │   │   │   ├── detections.py   # Detection data API
 │   │   │   └── integrations.py # Integration testing API
 │   │   ├── dashboard.py        # Dashboard page routes
-│   │   ├── settings.py         # Settings page routes
-│   │   └── home.py             # Home page routes
+│   │   └── settings.py         # Settings page routes
 │   ├── templates/              # Jinja2 HTML templates
 │   ├── static/                 # CSS, JS, images
 │   └── core/                   # Configuration, database, etc.

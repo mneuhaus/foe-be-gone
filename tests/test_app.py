@@ -18,8 +18,8 @@ def test_health_check():
     assert data["version"] == "2.0.0"
 
 
-def test_home_page():
-    """Test the home page returns HTML"""
+def test_dashboard_page():
+    """Test the dashboard page returns HTML"""
     response = client.get("/")
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]

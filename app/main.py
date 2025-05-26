@@ -59,8 +59,8 @@ app.include_router(detections.router)
 
 
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request, session: Session = Depends(get_session)):
-    """Home page with dashboard overview"""
+async def dashboard(request: Request, session: Session = Depends(get_session)):
+    """Dashboard page with system overview"""
     from sqlmodel import select
     from app.models.device import Device
     from app.models.integration_instance import IntegrationInstance
@@ -77,10 +77,10 @@ async def home(request: Request, session: Session = Depends(get_session)):
     context = {
         "request": request,
         "title": "Dashboard",
-        "page": "home",
+        "page": "dashboard",
         "cameras": cameras
     }
-    return templates.TemplateResponse(request, "home.html", context)
+    return templates.TemplateResponse(request, "dashboard.html", context)
 
 
 @app.get("/health")

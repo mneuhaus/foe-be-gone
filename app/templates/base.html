@@ -28,8 +28,7 @@
                     </svg>
                 </div>
                 <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded z-[1] mt-3 w-52 p-2 shadow">
-                    <li><a href="/">Home</a></li>
-                    <li><a href="/dashboard">Dashboard</a></li>
+                    <li><a href="/">Dashboard</a></li>
                     <li><a href="/detections">Detections</a></li>
                     <li><a href="/recording">Recording</a></li>
                     <li>
@@ -51,8 +50,7 @@
         
         <div class="navbar-center hidden lg:flex">
             <ul class="menu menu-horizontal px-1">
-                <li><a href="/" class="{% if page == 'home' %}btn-active{% endif %}">Home</a></li>
-                <li><a href="/dashboard" class="{% if page == 'dashboard' %}btn-active{% endif %}">Dashboard</a></li>
+                <li><a href="/" class="{% if page == 'dashboard' %}btn-active{% endif %}">Dashboard</a></li>
                 <li><a href="/detections" class="{% if page == 'detections' %}btn-active{% endif %}">Detections</a></li>
                 <li><a href="/recording" class="{% if page == 'recording' %}btn-active{% endif %}">Recording</a></li>
             </ul>
