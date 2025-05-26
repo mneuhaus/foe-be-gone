@@ -1,0 +1,11 @@
+## Ignore runtime snapshot images
+data/snapshots/
+## Ignore Python cache
+__pycache__/
+*.pyc
+## Ignore environment files
+.env
+.venv/
+## Ignore CI and editor files
+*.log
+*.lock
