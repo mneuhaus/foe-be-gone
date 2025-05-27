@@ -10,6 +10,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select, delete
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_session
 from app.models.detection import Detection, Foe
@@ -67,7 +68,11 @@ async def detections_page(
     # Order by most recent first and limit to 30
     query = query.order_by(Detection.timestamp.desc()).limit(30)
     
-    # Execute query
+    # Execute query with eager loading of relationships
+    query = query.options(
+        selectinload(Detection.foes),
+        selectinload(Detection.device)
+    )
     detections = session.exec(query).all()
     
     # Get unique foe types for filter dropdown
@@ -84,18 +89,18 @@ async def detections_page(
             .limit(1)
         ).first()
         
-        # Convert to dict for template usage - convert datetime objects explicitly
+        # Convert to dict for template usage - keep datetime objects for template, convert for JS
         detection_dict = detection.model_dump()
         detection_dict['id'] = detection.id
         detection_dict['effectiveness'] = effectiveness.model_dump() if effectiveness else None
-        detection_dict['device'] = detection.device.model_dump(mode='json') if detection.device else None
-        detection_dict['foes'] = [foe.model_dump(mode='json') for foe in detection.foes] if detection.foes else []
+        detection_dict['device'] = detection.device.model_dump() if detection.device else None
+        detection_dict['foes'] = [foe.model_dump() for foe in detection.foes] if detection.foes else []
         detection_dict['played_sounds'] = detection.played_sounds or []
         detection_dict['video_path'] = detection.video_path
         detection_dict['image_path'] = detection.image_path
-        detection_dict['timestamp'] = detection.timestamp.isoformat() if detection.timestamp else None
-        detection_dict['processed_at'] = detection.processed_at.isoformat() if detection.processed_at else None
-        detection_dict['created_at'] = detection.created_at.isoformat() if detection.created_at else None
+        detection_dict['timestamp'] = detection.timestamp  # Keep as datetime for template
+        detection_dict['processed_at'] = detection.processed_at
+        detection_dict['created_at'] = detection.created_at
         detection_dict['status'] = detection.status.value if hasattr(detection.status, 'value') else detection.status
         detection_dict['ai_cost_usd'] = detection.ai_cost  # Keep as ai_cost_usd for template compatibility
         
