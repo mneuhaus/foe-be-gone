@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, and_
 
-from app.core.database import get_session_dep
+from app.core.database import get_session
 from app.models.detection import Detection, Foe, DetectionStatus
 from app.models.sound_effectiveness import SoundEffectiveness, SoundStatistics
 from app.models.device import Device
@@ -20,7 +20,7 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/", response_class=HTMLResponse)
 async def statistics_page(
     request: Request,
-    session: Session = Depends(get_session_dep)
+    session: Session = Depends(get_session)
 ):
     """Render comprehensive statistics page."""
     stats_service = StatisticsService(session)
@@ -54,7 +54,7 @@ async def statistics_page(
 
 @router.get("/api/live-data")
 async def get_live_statistics(
-    session: Session = Depends(get_session_dep)
+    session: Session = Depends(get_session)
 ) -> Dict[str, Any]:
     """Get live statistics data for real-time updates."""
     stats_service = StatisticsService(session)
@@ -73,7 +73,7 @@ async def get_live_statistics(
 @router.get("/api/effectiveness/{foe_type}")
 async def get_foe_effectiveness_details(
     foe_type: str,
-    session: Session = Depends(get_session_dep)
+    session: Session = Depends(get_session)
 ) -> Dict[str, Any]:
     """Get detailed effectiveness data for a specific foe type."""
     stats_service = StatisticsService(session)
