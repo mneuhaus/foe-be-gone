@@ -9,7 +9,7 @@ on:
     types: [ published ]
 
 env:
-  IMAGE_NAME: mneuhaus/foe-be-gone
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/foe-be-gone
 
 jobs:
   build:
@@ -31,11 +31,12 @@ jobs:
         driver-opts: |
           image=moby/buildkit:latest
 
-    - name: Log in to Docker Hub
+    - name: Login to GitHub Container Registry
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Extract metadata
       id: meta
@@ -81,18 +82,17 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Log in to Docker Hub
+    - name: Login to GitHub Container Registry
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build Home Assistant Add-on
-      uses: home-assistant/builder@master
-      env:
-        DOCKER_UPLOAD_TIMEOUT: 600
+      uses: home-assistant/builder@2025.03.0
       with:
         args: |
           --${{ matrix.arch }} \
           --target /data/foe-be-gone \
-          --image mneuhaus/{arch}-addon-foe-be-gone
+          --image ghcr.io/${{ github.repository_owner }}/{arch}-addon-foe-be-gone
