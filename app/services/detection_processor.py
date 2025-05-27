@@ -124,7 +124,7 @@ class DetectionProcessor:
                     device_id=camera.id,
                     image_path=str(image_path),
                     timestamp=datetime.utcnow(),
-                    status=DetectionStatus.detected,
+                    status=DetectionStatus.PROCESSED,
                     ai_model=result.model_used,
                     ai_response_time=result.processing_time,
                     ai_cost_usd=result.cost_estimate
@@ -185,5 +185,5 @@ class DetectionProcessor:
             # Update detection status
             detection = session.get(Detection, detection_id)
             if detection:
-                detection.status = DetectionStatus.deterred if success else DetectionStatus.failed
+                detection.status = DetectionStatus.DETERRED if success else DetectionStatus.FAILED
                 safe_commit(session)
