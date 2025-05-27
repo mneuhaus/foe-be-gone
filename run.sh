@@ -40,8 +40,8 @@ cd /app
 
 # Run database migrations
 bashio::log.info "Running database migrations..."
-uv run alembic upgrade head
+python -m alembic upgrade head
 
 # Start the application
 bashio::log.info "Starting Foe Be Gone application..."
-exec uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
+exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
