@@ -95,6 +95,4 @@ jobs:
         args: |
           --${{ matrix.arch }} \
           --target /data/foe-be-gone \
-          --image {arch}-addon-foe-be-gone \
-          --docker-hub mneuhaus \
-          --docker-hub-check
+          --image mneuhaus/{arch}-addon-foe-be-gone
