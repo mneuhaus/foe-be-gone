@@ -45,7 +45,8 @@
       "Bash(git fetch:*)",
       "Bash(git describe:*)",
       "Bash(gh run list:*)",
-      "Bash(gh run view:*)"
+      "Bash(gh run view:*)",
+      "Bash(gh release create:*)"
     ],
     "deny": []
   }
