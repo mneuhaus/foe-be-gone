@@ -357,22 +357,16 @@
 
 <script>
 let updateTimeout;
-// Store detection data for modal use
+// Store detection data for modal use - using safer JSON parsing
 const detectionData = {};
-{% for detection in detections %}
-detectionData[{{ detection.id }}] = {
-    id: {{ detection.id }},
-    device: {{ detection.device | tojson | safe if detection.device else 'null' }},
-    timestamp: "{{ detection.timestamp }}",
-    status: "{{ detection.status }}",
-    image_path: {{ ("'" + detection.image_path + "'") | safe if detection.image_path else 'null' }},
-    video_path: {{ ("'" + detection.video_path + "'") | safe if detection.video_path else 'null' }},
-    foes: {{ detection.foes | tojson | safe if detection.foes else '[]' }},
-    played_sounds: {{ detection.played_sounds | tojson | safe if detection.played_sounds else '[]' }},
-    effectiveness: {{ detection.effectiveness | tojson | safe if detection.effectiveness else 'null' }},
-    ai_cost_usd: {{ detection.ai_cost_usd if detection.ai_cost_usd else 'null' }}
-};
-{% endfor %}
+try {
+    const detectionsJson = {{ detections | tojson | safe }};
+    detectionsJson.forEach(detection => {
+        detectionData[detection.id] = detection;
+    });
+} catch (error) {
+    console.error('Error loading detection data:', error);
+}
 
 async function updateInterval(value) {
     // Update UI immediately
