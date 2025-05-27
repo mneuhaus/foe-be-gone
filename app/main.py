@@ -3,8 +3,11 @@ FastAPI application for Foe Be Gone - Wildlife Detection & Deterrent System
 """
 
 import logging
+import logging.handlers
+import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
+from pathlib import Path
 
 from fastapi import FastAPI, Request, Depends
 from fastapi.staticfiles import StaticFiles
@@ -15,7 +18,7 @@ from sqlmodel import Session, select
 from app.core.config import config
 from app.core.database import create_db_and_tables, get_session, engine
 from app.core.session import get_db_session
-from app.routes import settings, detections, statistics
+from app.routes import settings, detections, statistics, logs
 from app.routes.api import integrations
 from app.services.detection_worker import detection_worker
 from app.services.settings_service import SettingsService
@@ -26,11 +29,27 @@ from app.models.integration_instance import IntegrationInstance
 # Validate configuration before setting up logging
 config.validate()
 
-# Set up logging
-logging.basicConfig(
-    level=getattr(logging, config.LOG_LEVEL),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+# Create logs directory if it doesn't exist
+logs_dir = Path("logs")
+logs_dir.mkdir(exist_ok=True)
+
+# Set up logging with both console and file handlers
+logger = logging.getLogger()
+logger.setLevel(getattr(logging, config.LOG_LEVEL))
+
+# Console handler
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(console_handler)
+
+# File handler with rotation
+file_handler = logging.handlers.RotatingFileHandler(
+    logs_dir / "foe_be_gone.log",
+    maxBytes=10 * 1024 * 1024,  # 10MB
+    backupCount=5
 )
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(file_handler)
 
 
 @asynccontextmanager
@@ -85,6 +104,10 @@ app = FastAPI(
         {
             "name": "health",
             "description": "System health and status"
+        },
+        {
+            "name": "logs",
+            "description": "Application log viewing and management"
         }
     ]
 )
@@ -102,6 +125,7 @@ app.include_router(settings.router)
 app.include_router(integrations.router)
 app.include_router(detections.router)
 app.include_router(statistics.router)
+app.include_router(logs.router)
 
 # Add API documentation info
 @app.get("/api", tags=["documentation"], summary="API Documentation")

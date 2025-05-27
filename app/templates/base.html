@@ -33,6 +33,7 @@
                     <li><a href="/">Dashboard</a></li>
                     <li><a href="/detections">Detections</a></li>
                     <li><a href="/statistics">Statistics</a></li>
+                    <li><a href="/logs">Logs</a></li>
                     <li>
                         <a>Settings</a>
                         <ul class="p-2">
@@ -53,6 +54,7 @@
                 <li><a href="/" class="{% if current_page == 'dashboard' %}btn-active{% endif %}">Dashboard</a></li>
                 <li><a href="/detections" class="{% if current_page == 'detections' %}btn-active{% endif %}">Detections</a></li>
                 <li><a href="/statistics" class="{% if current_page == 'statistics' %}btn-active{% endif %}">Statistics</a></li>
+                <li><a href="/logs" class="{% if current_page == 'logs' %}btn-active{% endif %}">Logs</a></li>
             </ul>
         </div>
         
@@ -68,6 +70,7 @@
                 <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded z-[1] w-48 p-2 shadow">
                     <li><a href="/settings/">General</a></li>
                     <li><a href="/settings/integrations">Integrations</a></li>
+                    <li><a href="/logs">System Logs</a></li>
                 </ul>
             </div>
         </div>

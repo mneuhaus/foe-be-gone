@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .log-entry {
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+    .log-level-ERROR, .log-level-CRITICAL {
+        color: #dc2626;
+    }
+    .log-level-WARNING {
+        color: #f59e0b;
+    }
+    .log-level-INFO {
+        color: #3b82f6;
+    }
+    .log-level-DEBUG {
+        color: #6b7280;
+    }
+    .log-timestamp {
+        color: #9ca3af;
+    }
+    .log-module {
+        color: #8b5cf6;
+    }
+    #logContainer {
+        max-height: 70vh;
+        overflow-y: auto;
+        background-color: #1f2937;
+        color: #e5e7eb;
+    }
+    .log-search-highlight {
+        background-color: #fbbf24;
+        color: #1f2937;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold">Application Logs</h1>
+    <div class="flex gap-2">
+        <button id="refreshBtn" class="btn btn-primary btn-sm">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Refresh
+        </button>
+        <button id="followBtn" class="btn btn-secondary btn-sm">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+            Auto-refresh: OFF
+        </button>
+        <button id="clearBtn" class="btn btn-error btn-sm">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+            Clear Logs
+        </button>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card bg-base-200 mb-4">
+    <div class="card-body py-4">
+        <div class="flex flex-wrap gap-4">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Lines to show</span>
+                </label>
+                <select id="linesSelect" class="select select-bordered select-sm">
+                    <option value="50" {% if lines == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if lines == 100 %}selected{% endif %}>100</option>
+                    <option value="200" {% if lines == 200 %}selected{% endif %}>200</option>
+                    <option value="500" {% if lines == 500 %}selected{% endif %}>500</option>
+                    <option value="1000" {% if lines == 1000 %}selected{% endif %}>1000</option>
+                </select>
+            </div>
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Log Level</span>
+                </label>
+                <select id="levelSelect" class="select select-bordered select-sm">
+                    <option value="">All Levels</option>
+                    <option value="DEBUG" {% if level == 'DEBUG' %}selected{% endif %}>DEBUG</option>
+                    <option value="INFO" {% if level == 'INFO' %}selected{% endif %}>INFO</option>
+                    <option value="WARNING" {% if level == 'WARNING' %}selected{% endif %}>WARNING</option>
+                    <option value="ERROR" {% if level == 'ERROR' %}selected{% endif %}>ERROR</option>
+                    <option value="CRITICAL" {% if level == 'CRITICAL' %}selected{% endif %}>CRITICAL</option>
+                </select>
+            </div>
+            <div class="form-control flex-1">
+                <label class="label">
+                    <span class="label-text">Search</span>
+                </label>
+                <input type="text" id="searchInput" placeholder="Search in logs..." 
+                       class="input input-bordered input-sm" value="{{ search or '' }}">
+            </div>
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">&nbsp;</span>
+                </label>
+                <button id="applyFiltersBtn" class="btn btn-primary btn-sm">Apply Filters</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Container -->
+<div class="card bg-base-300">
+    <div class="card-body p-0">
+        <div id="logContainer" class="p-4 rounded-lg">
+            <div id="logContent" class="space-y-1">
+                <!-- Logs will be loaded here -->
+                <div class="text-center py-8">
+                    <span class="loading loading-spinner loading-lg"></span>
+                    <p class="mt-2">Loading logs...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="mt-4 text-sm text-base-content/70">
+    <span id="logStats"></span>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let autoRefresh = false;
+let refreshInterval = null;
+let currentOffset = 0;
+
+const logLevelColors = {
+    'ERROR': 'text-error',
+    'CRITICAL': 'text-error',
+    'WARNING': 'text-warning',
+    'INFO': 'text-info',
+    'DEBUG': 'text-base-content/50'
+};
+
+function formatLogEntry(entry) {
+    if (entry.raw) {
+        return `<div class="log-entry">${escapeHtml(entry.raw)}</div>`;
+    }
+    
+    const levelClass = logLevelColors[entry.level] || '';
+    const timestamp = `<span class="log-timestamp">${escapeHtml(entry.timestamp)}</span>`;
+    const module = `<span class="log-module">${escapeHtml(entry.module)}</span>`;
+    const level = `<span class="log-level-${entry.level} ${levelClass}">${escapeHtml(entry.level)}</span>`;
+    const message = escapeHtml(entry.message);
+    
+    return `<div class="log-entry">${timestamp} - ${module} - ${level} - ${highlightSearch(message)}</div>`;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function highlightSearch(text) {
+    const search = document.getElementById('searchInput').value;
+    if (!search) return text;
+    
+    const regex = new RegExp(`(${escapeRegex(search)})`, 'gi');
+    return text.replace(regex, '<span class="log-search-highlight">$1</span>');
+}
+
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function loadLogs() {
+    const lines = document.getElementById('linesSelect').value;
+    const level = document.getElementById('levelSelect').value;
+    const search = document.getElementById('searchInput').value;
+    
+    const params = new URLSearchParams({
+        lines: lines,
+        offset: currentOffset
+    });
+    
+    if (level) params.append('level', level);
+    if (search) params.append('search', search);
+    
+    try {
+        const response = await fetch(`/api/logs?${params}`);
+        const data = await response.json();
+        
+        const logContent = document.getElementById('logContent');
+        
+        if (data.logs.length === 0) {
+            logContent.innerHTML = '<div class="text-center py-8 text-base-content/50">No logs found</div>';
+        } else {
+            logContent.innerHTML = data.logs.map(formatLogEntry).join('');
+        }
+        
+        // Update stats
+        document.getElementById('logStats').textContent = 
+            `Showing ${data.logs.length} of ${data.total} log entries`;
+        
+        // Scroll to bottom if auto-refresh is on
+        if (autoRefresh) {
+            const container = document.getElementById('logContainer');
+            container.scrollTop = container.scrollHeight;
+        }
+    } catch (error) {
+        console.error('Error loading logs:', error);
+        document.getElementById('logContent').innerHTML = 
+            '<div class="alert alert-error">Failed to load logs</div>';
+    }
+}
+
+// Event listeners
+document.getElementById('refreshBtn').addEventListener('click', () => {
+    currentOffset = 0;
+    loadLogs();
+});
+
+document.getElementById('applyFiltersBtn').addEventListener('click', () => {
+    currentOffset = 0;
+    loadLogs();
+});
+
+document.getElementById('searchInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        currentOffset = 0;
+        loadLogs();
+    }
+});
+
+document.getElementById('followBtn').addEventListener('click', function() {
+    autoRefresh = !autoRefresh;
+    
+    if (autoRefresh) {
+        this.classList.remove('btn-secondary');
+        this.classList.add('btn-success');
+        this.innerHTML = `
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+            Auto-refresh: ON
+        `;
+        refreshInterval = setInterval(loadLogs, 2000);
+    } else {
+        this.classList.remove('btn-success');
+        this.classList.add('btn-secondary');
+        this.innerHTML = `
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+            Auto-refresh: OFF
+        `;
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+            refreshInterval = null;
+        }
+    }
+});
+
+document.getElementById('clearBtn').addEventListener('click', async function() {
+    if (!confirm('Are you sure you want to clear all logs?')) return;
+    
+    try {
+        const response = await fetch('/api/logs', { method: 'DELETE' });
+        const data = await response.json();
+        
+        if (response.ok) {
+            loadLogs();
+        } else {
+            alert('Failed to clear logs');
+        }
+    } catch (error) {
+        console.error('Error clearing logs:', error);
+        alert('Failed to clear logs');
+    }
+});
+
+// Initial load
+loadLogs();
+</script>
+{% endblock %}
