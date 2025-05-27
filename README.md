@@ -45,25 +45,16 @@ AI-powered wildlife detection and deterrent system that uses your security camer
    - Find "Foe Be Gone" in the add-on store
    - Click **Install** (this may take a few minutes)
 
-3. **Configure**:
-   - Go to the **Configuration** tab
-   - Add your OpenAI API key:
-   ```yaml
-   openai_api_key: "sk-your-api-key-here"
-   detection_interval: 10
-   min_foe_confidence: 0.7
-   enable_deterrent: true
-   deterrent_duration: 10
-   enable_notifications: true
-   log_level: INFO
-   ```
-
-4. **Start the Add-on**:
-   - Go to the **Info** tab
-   - Enable **Start on boot** and **Auto update**
+3. **Start the Add-on**:
+   - Enable **Start on boot** and **Auto update** (recommended)
    - Click **Start**
    - Wait for startup (check logs if needed)
    - Click **Open Web UI**
+
+4. **Configure via Web UI**:
+   - Go to **Settings** → **General**
+   - Add your OpenAI API key
+   - Configure detection settings as needed
 
 #### Detailed Setup
 

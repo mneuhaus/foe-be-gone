@@ -95,7 +95,7 @@ jobs:
       with:
         args: |
           --${{ matrix.arch }} \
-          --target /data/addon \
+          --target /data/foe-be-gone \
           --image ghcr.io/mneuhaus/{arch}-addon-foe-be-gone \
           --docker-hub ghcr.io \
           --push

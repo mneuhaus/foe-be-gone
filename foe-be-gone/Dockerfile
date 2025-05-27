@@ -44,7 +44,7 @@ ENV PYTHONUNBUFFERED=1 \
     HOME_ASSISTANT_ADDON=1
 
 # Copy add-on specific files
-COPY addon/run.sh /
+COPY foe-be-gone/run.sh /
 RUN chmod a+x /run.sh
 
 # Labels for Home Assistant
