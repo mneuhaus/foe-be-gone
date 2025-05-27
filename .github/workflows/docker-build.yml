@@ -89,12 +89,23 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Debug build parameters
+      run: |
+        echo "Architecture: ${{ matrix.arch }}"
+        echo "Repository owner: ${{ github.repository_owner }}"
+        echo "Target: /data/foe-be-gone"
+        echo "Docker hub: ghcr.io/${{ github.repository_owner }}"
+        
     - name: Build Home Assistant Add-on
       uses: home-assistant/builder@2025.03.0
+      env:
+        ACTIONS_STEP_DEBUG: true
+        ACTIONS_RUNNER_DEBUG: true
       with:
         args: |
           --${{ matrix.arch }} \
           --target /data/foe-be-gone \
           --image "${{ steps.check.outputs.image }}" \
           --docker-hub "ghcr.io/${{ github.repository_owner }}" \
-          --addon
+          --addon \
+          --verbose
