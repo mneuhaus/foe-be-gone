@@ -22,8 +22,9 @@ export VIDEO_PATH="/share/foe-be-gone/videos"
 export SOUND_PATH="/share/foe-be-gone/sounds"
 export DATABASE_URL="sqlite:////data/foe_be_gone.db"
 
-# Create directories
+# Create directories with proper permissions
 mkdir -p "${SNAPSHOT_PATH}" "${VIDEO_PATH}" "${SOUND_PATH}" /data
+chmod 777 /data  # Ensure write permissions for testing
 
 # Log configuration
 echo "Starting Foe Be Gone..."

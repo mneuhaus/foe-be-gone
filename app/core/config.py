@@ -44,9 +44,9 @@ class Config:
         """
         errors = []
         
-        # Check required variables
-        if not cls.OPENAI_API_KEY:
-            errors.append("OPENAI_API_KEY environment variable is required for AI detection")
+        # OpenAI API key is now optional - can be set from frontend
+        # if not cls.OPENAI_API_KEY:
+        #     errors.append("OPENAI_API_KEY environment variable is required for AI detection")
         
         # Check if sounds directory exists
         if not cls.SOUNDS_DIR.exists():
@@ -65,7 +65,10 @@ class Config:
         
         # Log successful validation
         print(f"Configuration validated successfully")
-        print(f"  - OpenAI API key: {'*' * 8}{cls.OPENAI_API_KEY[-4:]}")
+        if cls.OPENAI_API_KEY:
+            print(f"  - OpenAI API key: {'*' * 8}{cls.OPENAI_API_KEY[-4:]}")
+        else:
+            print(f"  - OpenAI API key: Not set (configure in settings)")
         print(f"  - Database URL: {cls.DATABASE_URL or 'Using default SQLite'}")
         print(f"  - Log level: {cls.LOG_LEVEL}")
 
