@@ -1,0 +1,42 @@
+#include <tunables/global>
+
+profile foe_be_gone flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+  #include <abstractions/python>
+  
+  # Allow network access for API calls
+  network tcp,
+  network udp,
+  
+  # Read access to add-on files
+  /app/** r,
+  /usr/local/lib/python*/dist-packages/** r,
+  
+  # Write access to data directory
+  /data/** rw,
+  
+  # Read access to media for sounds
+  /media/** r,
+  
+  # Access to system binaries
+  /usr/bin/ffmpeg rix,
+  /usr/bin/python* rix,
+  /bin/bash rix,
+  /usr/bin/uv rix,
+  
+  # Temp files
+  /tmp/** rw,
+  
+  # Process info
+  /proc/*/stat r,
+  /proc/*/status r,
+  /proc/*/fd/ r,
+  
+  # System access
+  /etc/hosts r,
+  /etc/resolv.conf r,
+  /etc/ssl/certs/** r,
+  
+  # Supervisor API access
+  /api/** rw,
+}

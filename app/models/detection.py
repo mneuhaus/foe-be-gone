@@ -54,6 +54,17 @@ class Detection(SQLModel, table=True):
     # List of deterrent sound filenames played for this detection
     played_sounds: Optional[List[str]] = Field(default=None, description="List of deterrent sounds played", sa_column=Column(JSON, nullable=True))
     
+    # Friend tracking fields
+    is_friend: Optional[bool] = Field(default=None, description="Whether this detection is a friendly creature")
+    friend_type: Optional[str] = Field(default=None, description="Type of friendly creature (squirrel, small_bird, etc)")
+    friend_confidence: Optional[float] = Field(default=None, description="Confidence that this is a friend (0-1)")
+    
+    # Additional fields for statistics
+    detected_foe: Optional[str] = Field(default=None, description="Type of foe detected (for quick queries)")
+    deterrent_effective: Optional[bool] = Field(default=None, description="Whether the deterrent was effective")
+    ai_analysis: Optional[str] = Field(default=None, description="AI analysis text")
+    created_at: datetime = Field(default_factory=datetime.utcnow, description="When the detection was created")
+    
     # Relationships
     device: Optional["Device"] = Relationship(back_populates="detections")
     foes: List["Foe"] = Relationship(back_populates="detection", cascade_delete=True)

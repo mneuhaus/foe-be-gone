@@ -15,7 +15,7 @@ from sqlmodel import Session, select
 from app.core.config import config
 from app.core.database import create_db_and_tables, get_session, engine
 from app.core.session import get_db_session
-from app.routes import settings, detections
+from app.routes import settings, detections, statistics
 from app.routes.api import integrations
 from app.services.detection_worker import detection_worker
 from app.models.setting import Setting
@@ -74,6 +74,10 @@ app = FastAPI(
             "description": "Camera integration management"
         },
         {
+            "name": "statistics",
+            "description": "System analytics and reporting"
+        },
+        {
             "name": "health",
             "description": "System health and status"
         }
@@ -92,6 +96,7 @@ templates = Jinja2Templates(directory="app/templates")
 app.include_router(settings.router)
 app.include_router(integrations.router)
 app.include_router(detections.router)
+app.include_router(statistics.router)
 
 # Add API documentation info
 @app.get("/api", tags=["documentation"], summary="API Documentation")

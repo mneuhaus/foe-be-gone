@@ -15,6 +15,8 @@
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    
+    {% block extra_head %}{% endblock %}
 </head>
 <body class="min-h-screen bg-base-100">
     <!-- Navigation -->
@@ -30,6 +32,7 @@
                 <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded z-[1] mt-3 w-52 p-2 shadow">
                     <li><a href="/">Dashboard</a></li>
                     <li><a href="/detections">Detections</a></li>
+                    <li><a href="/statistics">Statistics</a></li>
                     <li><a href="/recording">Recording</a></li>
                     <li>
                         <a>Settings</a>
@@ -50,9 +53,10 @@
         
         <div class="navbar-center hidden lg:flex">
             <ul class="menu menu-horizontal px-1">
-                <li><a href="/" class="{% if page == 'dashboard' %}btn-active{% endif %}">Dashboard</a></li>
-                <li><a href="/detections" class="{% if page == 'detections' %}btn-active{% endif %}">Detections</a></li>
-                <li><a href="/recording" class="{% if page == 'recording' %}btn-active{% endif %}">Recording</a></li>
+                <li><a href="/" class="{% if current_page == 'dashboard' %}btn-active{% endif %}">Dashboard</a></li>
+                <li><a href="/detections" class="{% if current_page == 'detections' %}btn-active{% endif %}">Detections</a></li>
+                <li><a href="/statistics" class="{% if current_page == 'statistics' %}btn-active{% endif %}">Statistics</a></li>
+                <li><a href="/recording" class="{% if current_page == 'recording' %}btn-active{% endif %}">Recording</a></li>
             </ul>
         </div>
         

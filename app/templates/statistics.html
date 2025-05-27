@@ -1,0 +1,538 @@
+{% extends "base.html" %}
+
+{% block title %}Statistics - Foe Be Gone{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<style>
+    .stat-card {
+        @apply bg-base-200 rounded-lg p-6 shadow-lg;
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin: 1rem 0;
+    }
+    .mini-chart {
+        height: 200px;
+    }
+    .stat-value {
+        @apply text-3xl font-bold;
+    }
+    .stat-label {
+        @apply text-sm opacity-70;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold mb-8">System Analytics</h1>
+    
+    <!-- Overview Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="stat-card">
+            <div class="stat-label">Total Detections</div>
+            <div class="stat-value text-primary">{{ overview.total_detections }}</div>
+            <div class="text-sm mt-2">{{ overview.detections_today }} today</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-label">Success Rate</div>
+            <div class="stat-value text-success">{{ overview.success_rate }}%</div>
+            <div class="text-sm mt-2">{{ overview.successful_deterrents }} successful</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-label">Most Common Foe</div>
+            <div class="stat-value text-error">{{ overview.most_common_foe or 'None' }}</div>
+            <div class="text-sm mt-2">{{ overview.most_common_foe_count }} detections</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-label">Friend:Foe Ratio</div>
+            <div class="stat-value text-info">{{ overview.friend_foe_ratio }}</div>
+            <div class="text-sm mt-2">{{ overview.friend_detections }} friends</div>
+        </div>
+    </div>
+
+    <!-- Daily Trends -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="stat-card">
+            <h2 class="text-xl font-bold mb-4">Daily Activity Trends</h2>
+            <div class="chart-container">
+                <canvas id="dailyTrendsChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <h2 class="text-xl font-bold mb-4">Success Rate Over Time</h2>
+            <div class="chart-container">
+                <canvas id="successRateChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hourly Patterns -->
+    <div class="stat-card mb-8">
+        <h2 class="text-xl font-bold mb-4">Activity by Hour of Day</h2>
+        <div class="chart-container">
+            <canvas id="hourlyPatternsChart"></canvas>
+        </div>
+        <div class="mt-4 text-sm">
+            <span class="mr-4">🦅 Peak foe activity: {{ hourly_patterns.peak_foe_hour }}:00</span>
+            <span>🐿️ Peak friend activity: {{ hourly_patterns.peak_friend_hour }}:00</span>
+        </div>
+    </div>
+
+    <!-- Sound Effectiveness -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="stat-card">
+            <h2 class="text-xl font-bold mb-4">Top 10 Most Effective Sounds</h2>
+            <div class="overflow-x-auto">
+                <table class="table table-compact w-full">
+                    <thead>
+                        <tr>
+                            <th>Sound</th>
+                            <th>Effectiveness</th>
+                            <th>Times Used</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sound in sound_effectiveness.overall_rankings %}
+                        <tr>
+                            <td class="text-xs">{{ sound.sound.split('/')[-1][:30] }}...</td>
+                            <td>
+                                <div class="badge badge-{{ 'success' if sound.effectiveness > 70 else 'warning' if sound.effectiveness > 40 else 'error' }}">
+                                    {{ sound.effectiveness }}%
+                                </div>
+                            </td>
+                            <td>{{ sound.times_played }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <h2 class="text-xl font-bold mb-4">Effectiveness by Foe Type</h2>
+            <div class="space-y-4">
+                {% for foe_type, sounds in sound_effectiveness.per_foe_rankings.items() %}
+                <div class="collapse collapse-arrow bg-base-300">
+                    <input type="checkbox" />
+                    <div class="collapse-title font-medium">
+                        {{ foe_type }} - Best: {{ sounds[0].effectiveness if sounds else 0 }}%
+                    </div>
+                    <div class="collapse-content">
+                        <div class="space-y-2">
+                            {% for sound in sounds[:5] %}
+                            <div class="flex justify-between text-sm">
+                                <span>{{ sound.sound.split('/')[-1][:25] }}...</span>
+                                <span class="badge badge-sm">{{ sound.effectiveness }}%</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Foe Analytics -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="stat-card">
+            <h2 class="text-xl font-bold mb-4">Foe Detection Frequency</h2>
+            <div class="chart-container mini-chart">
+                <canvas id="foeFrequencyChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <h2 class="text-xl font-bold mb-4">Deterrent Success by Foe</h2>
+            <div class="space-y-2">
+                {% for foe in foe_analytics.foe_frequencies[:5] %}
+                <div class="flex items-center justify-between">
+                    <span class="font-medium">{{ foe.type }}</span>
+                    <div class="flex items-center gap-2">
+                        <progress class="progress progress-success w-32" value="{{ foe.success_rate }}" max="100"></progress>
+                        <span class="text-sm">{{ foe.success_rate }}%</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Friend Analytics -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="stat-card">
+            <h2 class="text-xl font-bold mb-4">Friendly Creatures Detected</h2>
+            <div class="chart-container mini-chart">
+                <canvas id="friendTypesChart"></canvas>
+            </div>
+            <div class="mt-4 text-center">
+                <div class="badge badge-lg badge-info">Total Friends: {{ friend_analytics.total_friends }}</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <h2 class="text-xl font-bold mb-4">Friend Activity Trend</h2>
+            <div class="chart-container mini-chart">
+                <canvas id="friendTrendChart"></canvas>
+            </div>
+            <div class="mt-4">
+                <div class="alert alert-info">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Deterrent impact on friends: {{ friend_analytics.deterrent_impact.impact }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Camera Statistics -->
+    <div class="stat-card mb-8">
+        <h2 class="text-xl font-bold mb-4">Camera Performance</h2>
+        <div class="overflow-x-auto">
+            <table class="table w-full">
+                <thead>
+                    <tr>
+                        <th>Camera</th>
+                        <th>Detections</th>
+                        <th>Foes</th>
+                        <th>Success Rate</th>
+                        <th>Activity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for camera in camera_stats.cameras %}
+                    <tr>
+                        <td class="font-medium">{{ camera.name }}</td>
+                        <td>{{ camera.detections }}</td>
+                        <td>{{ camera.foes }}</td>
+                        <td>
+                            <div class="badge badge-{{ 'success' if camera.success_rate > 70 else 'warning' if camera.success_rate > 40 else 'error' }}">
+                                {{ camera.success_rate }}%
+                            </div>
+                        </td>
+                        <td>
+                            <progress class="progress progress-primary w-20" value="{{ camera.detections }}" max="{{ camera_stats.cameras[0].detections }}"></progress>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Cost Analytics -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="stat-card">
+            <h2 class="text-xl font-bold mb-4">AI Processing Costs</h2>
+            <div class="chart-container mini-chart">
+                <canvas id="dailyCostsChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <h2 class="text-xl font-bold mb-4">Cost Analysis</h2>
+            <div class="space-y-4">
+                <div class="flex justify-between">
+                    <span>Total Cost</span>
+                    <span class="font-bold">${{ cost_analytics.total_cost }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Average Daily Cost</span>
+                    <span class="font-bold">${{ cost_analytics.avg_daily_cost }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Cost per Success</span>
+                    <span class="font-bold">${{ cost_analytics.cost_per_success }}</span>
+                </div>
+                <div class="divider"></div>
+                <div class="flex justify-between text-lg">
+                    <span>Monthly Projection</span>
+                    <span class="font-bold text-primary">${{ cost_analytics.monthly_projection }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Chart.js configuration
+Chart.defaults.font.family = 'system-ui, -apple-system, sans-serif';
+Chart.defaults.color = 'hsl(var(--bc))';
+
+// Daily Trends Chart
+const dailyTrendsCtx = document.getElementById('dailyTrendsChart').getContext('2d');
+new Chart(dailyTrendsCtx, {
+    type: 'line',
+    data: {
+        labels: {{ daily_trends.dates | tojson }},
+        datasets: [
+            {
+                label: 'Total Detections',
+                data: {{ daily_trends.totals | tojson }},
+                borderColor: 'hsl(var(--p))',
+                backgroundColor: 'hsla(var(--p), 0.1)',
+                tension: 0.4
+            },
+            {
+                label: 'Foes',
+                data: {{ daily_trends.foes | tojson }},
+                borderColor: 'hsl(var(--er))',
+                backgroundColor: 'hsla(var(--er), 0.1)',
+                tension: 0.4
+            },
+            {
+                label: 'Friends',
+                data: {{ daily_trends.friends | tojson }},
+                borderColor: 'hsl(var(--su))',
+                backgroundColor: 'hsla(var(--su), 0.1)',
+                tension: 0.4
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        },
+        scales: {
+            x: {
+                grid: {
+                    color: 'hsla(var(--bc), 0.1)'
+                }
+            },
+            y: {
+                grid: {
+                    color: 'hsla(var(--bc), 0.1)'
+                }
+            }
+        }
+    }
+});
+
+// Success Rate Chart
+const successRateCtx = document.getElementById('successRateChart').getContext('2d');
+new Chart(successRateCtx, {
+    type: 'line',
+    data: {
+        labels: {{ daily_trends.dates | tojson }},
+        datasets: [{
+            label: 'Success Rate %',
+            data: {{ daily_trends.success_rates | tojson }},
+            borderColor: 'hsl(var(--su))',
+            backgroundColor: 'hsla(var(--su), 0.1)',
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            x: {
+                grid: {
+                    color: 'hsla(var(--bc), 0.1)'
+                }
+            },
+            y: {
+                min: 0,
+                max: 100,
+                grid: {
+                    color: 'hsla(var(--bc), 0.1)'
+                }
+            }
+        }
+    }
+});
+
+// Hourly Patterns Chart
+const hourlyCtx = document.getElementById('hourlyPatternsChart').getContext('2d');
+new Chart(hourlyCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ hourly_patterns.hours | tojson }},
+        datasets: [
+            {
+                label: 'Foes',
+                data: {{ hourly_patterns.foes | tojson }},
+                backgroundColor: 'hsla(var(--er), 0.8)'
+            },
+            {
+                label: 'Friends',
+                data: {{ hourly_patterns.friends | tojson }},
+                backgroundColor: 'hsla(var(--su), 0.8)'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: {
+                stacked: true,
+                grid: {
+                    display: false
+                }
+            },
+            y: {
+                stacked: true,
+                grid: {
+                    color: 'hsla(var(--bc), 0.1)'
+                }
+            }
+        }
+    }
+});
+
+// Foe Frequency Chart
+const foeFreqCtx = document.getElementById('foeFrequencyChart').getContext('2d');
+new Chart(foeFreqCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ foe_analytics.foe_frequencies[:5] | map(attribute='type') | list | tojson }},
+        datasets: [{
+            data: {{ foe_analytics.foe_frequencies[:5] | map(attribute='count') | list | tojson }},
+            backgroundColor: [
+                'hsl(var(--p))',
+                'hsl(var(--s))',
+                'hsl(var(--a))',
+                'hsl(var(--er))',
+                'hsl(var(--wa))'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'right'
+            }
+        }
+    }
+});
+
+// Friend Types Chart
+const friendTypesCtx = document.getElementById('friendTypesChart').getContext('2d');
+new Chart(friendTypesCtx, {
+    type: 'pie',
+    data: {
+        labels: {{ friend_analytics.friend_types.keys() | list | tojson }},
+        datasets: [{
+            data: {{ friend_analytics.friend_types.values() | list | tojson }},
+            backgroundColor: [
+                'hsl(var(--su))',
+                'hsl(var(--in))',
+                'hsl(var(--wa))',
+                'hsl(var(--p))',
+                'hsl(var(--s))'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'right'
+            }
+        }
+    }
+});
+
+// Friend Trend Chart
+const friendTrendCtx = document.getElementById('friendTrendChart').getContext('2d');
+new Chart(friendTrendCtx, {
+    type: 'line',
+    data: {
+        labels: {{ friend_analytics.friend_trend.dates | tojson }},
+        datasets: [{
+            label: 'Friends Detected',
+            data: {{ friend_analytics.friend_trend.counts | tojson }},
+            borderColor: 'hsl(var(--su))',
+            backgroundColor: 'hsla(var(--su), 0.1)',
+            fill: true,
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            x: {
+                grid: {
+                    display: false
+                }
+            },
+            y: {
+                grid: {
+                    color: 'hsla(var(--bc), 0.1)'
+                }
+            }
+        }
+    }
+});
+
+// Daily Costs Chart
+const costsCtx = document.getElementById('dailyCostsChart').getContext('2d');
+new Chart(costsCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ cost_analytics.daily_costs[-7:] | map(attribute='date') | list | tojson }},
+        datasets: [{
+            label: 'Daily Cost ($)',
+            data: {{ cost_analytics.daily_costs[-7:] | map(attribute='cost') | list | tojson }},
+            backgroundColor: 'hsl(var(--wa))'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            x: {
+                grid: {
+                    display: false
+                }
+            },
+            y: {
+                grid: {
+                    color: 'hsla(var(--bc), 0.1)'
+                }
+            }
+        }
+    }
+});
+
+// Auto-refresh every 30 seconds
+setInterval(() => {
+    fetch('/statistics/api/live-data')
+        .then(r => r.json())
+        .then(data => {
+            // Update live indicators
+            console.log('Live data:', data);
+        });
+}, 30000);
+</script>
+{% endblock %}

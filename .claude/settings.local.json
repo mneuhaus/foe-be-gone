@@ -28,7 +28,8 @@
       "Bash(pytest:*)",
       "Bash(git restore:*)",
       "Bash(python:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(chmod:*)"
     ],
     "deny": []
   }
