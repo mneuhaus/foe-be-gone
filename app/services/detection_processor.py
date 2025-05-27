@@ -102,7 +102,7 @@ class DetectionProcessor:
         
         # Update camera's last image hash
         with get_db_session() as session:
-            camera_db = session.get(Device, camera.device_id)
+            camera_db = session.get(Device, camera.id)
             if camera_db:
                 camera_db.last_image_hash = current_hash
                 safe_commit(session)
@@ -121,7 +121,7 @@ class DetectionProcessor:
             # Create detection record
             with get_db_session() as session:
                 detection = Detection(
-                    device_id=camera.device_id,
+                    device_id=camera.id,
                     image_path=str(image_path),
                     timestamp=datetime.utcnow(),
                     status=DetectionStatus.detected,

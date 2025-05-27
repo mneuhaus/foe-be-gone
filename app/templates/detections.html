@@ -106,12 +106,12 @@
                 <div class="absolute top-2 left-2 flex flex-wrap gap-1">
                     {% for foe in detection.foes %}
                     <span class="badge 
-                        {% if foe.foe_type == 'rats' %}badge-error
-                        {% elif foe.foe_type == 'crows' %}badge-warning
-                        {% elif foe.foe_type == 'cats' %}badge-success
+                        {% if foe.foe_type == 'rats' or foe.foe_type.value == 'rats' %}badge-error
+                        {% elif foe.foe_type == 'crows' or foe.foe_type.value == 'crows' %}badge-warning
+                        {% elif foe.foe_type == 'cats' or foe.foe_type.value == 'cats' %}badge-success
                         {% else %}badge-neutral{% endif %} 
                         badge-sm">
-                        {{ foe.foe_type.title() }}
+                        {{ foe.foe_type if foe.foe_type is string else foe.foe_type.value }}
                         <span class="ml-1 opacity-70">{{ "%.0f%%" | format(foe.confidence * 100) }}</span>
                     </span>
                     {% endfor %}

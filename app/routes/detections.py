@@ -63,19 +63,27 @@ async def detections_page(
         select(Foe.foe_type).distinct()
     ).all()
     
-    # Get effectiveness data for each detection
+    # Get effectiveness data for each detection and convert to dict for template
+    detections_with_effectiveness = []
     for detection in detections:
-        detection.effectiveness = session.exec(
+        effectiveness = session.exec(
             select(SoundEffectiveness)
             .where(SoundEffectiveness.detection_id == detection.id)
             .limit(1)
         ).first()
+        
+        # Convert to dict for template usage
+        detection_dict = detection.model_dump()
+        detection_dict['effectiveness'] = effectiveness
+        detection_dict['device'] = detection.device
+        detection_dict['foes'] = detection.foes
+        detections_with_effectiveness.append(detection_dict)
     
     context = {
         "request": request,
         "title": "Detections",
         "page": "detections",
-        "detections": detections,
+        "detections": detections_with_effectiveness,
         "hours": hours,
         "foe_type": foe_type,
         "available_foe_types": foe_types_result,

@@ -58,7 +58,7 @@ class CameraManager:
         """Capture a snapshot from a camera device."""
         with get_db_session() as session:
             # Get fresh camera instance with integration
-            camera_db = session.get(Device, camera.device_id)
+            camera_db = session.get(Device, camera.id)
             if not camera_db or not camera_db.integration:
                 logger.error(f"Camera {camera.device_id} not found or has no integration")
                 return None
@@ -92,7 +92,7 @@ class CameraManager:
         """Play a sound file on a camera device."""
         with get_db_session() as session:
             # Get fresh camera instance with integration
-            camera_db = session.get(Device, camera.device_id)
+            camera_db = session.get(Device, camera.id)
             if not camera_db or not camera_db.integration:
                 logger.error(f"Camera {camera.device_id} not found or has no integration")
                 return False
