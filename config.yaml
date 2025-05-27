@@ -35,4 +35,4 @@ environment:
   VIDEO_PATH: "/share/foe-be-gone/videos"
   SOUND_PATH: "/share/foe-be-gone/sounds"
   DATABASE_URL: "sqlite:///data/foe_be_gone.db"
-image: "ghcr.io/{arch}-addon-foe-be-gone"
+image: "{arch}-addon-foe-be-gone"
