@@ -105,6 +105,21 @@ async def detections_page(
         
         detections_with_effectiveness.append(detection_dict)
     
+    # Get current detection settings
+    capture_all_snapshots = False
+    phash_threshold = 10
+    
+    capture_all_setting = session.get(Setting, 'capture_all_snapshots')
+    if capture_all_setting:
+        capture_all_snapshots = capture_all_setting.value.lower() == 'true'
+    
+    phash_setting = session.get(Setting, 'phash_threshold')
+    if phash_setting:
+        try:
+            phash_threshold = int(phash_setting.value)
+        except ValueError:
+            pass
+    
     context = {
         "request": request,
         "title": "Detections",
@@ -113,7 +128,9 @@ async def detections_page(
         "hours": hours,
         "foe_type": foe_type,
         "available_foe_types": foe_types_result,
-        "current_interval": detection_worker.check_interval
+        "current_interval": detection_worker.check_interval,
+        "capture_all_snapshots": capture_all_snapshots,
+        "phash_threshold": phash_threshold
     }
     
     return templates.TemplateResponse(request, "detections.html", context)
@@ -388,4 +405,164 @@ async def get_camera_errors(camera_id: str, limit: int = 10) -> Dict[str, Any]:
         "error_count": len(errors),
         "errors": errors,
         "suggestions": suggestions
+    }
+
+
+@router.get("/api/detections", summary="Get recent detections", response_model=List[Dict[str, Any]])
+async def get_recent_detections(
+    session: Session = Depends(get_session),
+    since: Optional[datetime] = None,
+    limit: int = 50
+) -> List[Dict[str, Any]]:
+    """Get recent detections for auto-refresh.
+    
+    Args:
+        since: Only get detections after this timestamp
+        limit: Maximum number of detections to return
+        
+    Returns:
+        List of detection dictionaries
+    """
+    # Build query
+    query = select(Detection)
+    if since:
+        query = query.where(Detection.timestamp > since)
+    
+    # Order by most recent first and apply limit
+    query = query.order_by(Detection.timestamp.desc()).limit(limit)
+    
+    # Execute query
+    detections = session.exec(query).all()
+    
+    # Convert to dict format for JSON response
+    result = []
+    for detection in detections:
+        effectiveness = session.exec(
+            select(SoundEffectiveness)
+            .where(SoundEffectiveness.detection_id == detection.id)
+            .limit(1)
+        ).first()
+        
+        detection_dict = detection.model_dump(mode='json')
+        detection_dict['id'] = detection.id
+        detection_dict['effectiveness'] = effectiveness.model_dump(mode='json') if effectiveness else None
+        detection_dict['device'] = detection.device.model_dump(mode='json') if detection.device else None
+        detection_dict['foes'] = [foe.model_dump(mode='json') for foe in detection.foes] if detection.foes else []
+        detection_dict['played_sounds'] = detection.played_sounds or []
+        detection_dict['video_path'] = detection.video_path
+        detection_dict['image_path'] = detection.image_path
+        detection_dict['timestamp'] = detection.timestamp.isoformat()
+        detection_dict['status'] = detection.status.value if hasattr(detection.status, 'value') else detection.status
+        detection_dict['ai_cost_usd'] = detection.ai_cost
+        
+        # Convert foe_type enums to strings
+        if detection_dict['foes']:
+            for foe in detection_dict['foes']:
+                if hasattr(foe.get('foe_type'), 'value'):
+                    foe['foe_type'] = foe['foe_type'].value
+        
+        result.append(detection_dict)
+    
+    return result
+
+
+@router.get("/api/settings", summary="Get detection settings", response_model=Dict[str, Any])
+async def get_detection_settings(session: Session = Depends(get_session)) -> Dict[str, Any]:
+    """Get current detection settings.
+    
+    Returns:
+        Dict containing detection settings
+    """
+    # Default values
+    settings = {
+        "capture_all_snapshots": False,
+        "phash_threshold": 10
+    }
+    
+    # Get capture_all_snapshots setting
+    capture_all = session.get(Setting, 'capture_all_snapshots')
+    if capture_all:
+        settings["capture_all_snapshots"] = capture_all.value.lower() == 'true'
+    
+    # Get phash_threshold setting
+    phash = session.get(Setting, 'phash_threshold')
+    if phash:
+        try:
+            settings["phash_threshold"] = int(phash.value)
+        except ValueError:
+            pass
+    
+    return settings
+
+
+class CaptureAllUpdate(BaseModel):
+    """Request model for updating capture all snapshots setting."""
+    enabled: bool = Field(description="Whether to capture all snapshots")
+
+
+class PhashThresholdUpdate(BaseModel):
+    """Request model for updating phash threshold."""
+    threshold: int = Field(ge=1, le=30, description="Phash threshold (1-30)")
+
+
+@router.post("/api/settings/capture-all", summary="Set capture all snapshots setting", response_model=Dict[str, Any])
+async def set_capture_all_snapshots(
+    update: CaptureAllUpdate,
+    session: Session = Depends(get_session)
+) -> Dict[str, Any]:
+    """Set whether to capture all snapshots even without foes.
+    
+    Args:
+        update: CaptureAllUpdate request body
+        session: Database session
+        
+    Returns:
+        Dict with success status
+    """
+    enabled = update.enabled
+    setting = session.get(Setting, 'capture_all_snapshots')
+    if setting:
+        setting.value = str(enabled).lower()
+    else:
+        setting = Setting(key='capture_all_snapshots', value=str(enabled).lower())
+        session.add(setting)
+    
+    session.commit()
+    
+    return {
+        "success": True,
+        "message": f"Capture all snapshots {'enabled' if enabled else 'disabled'}"
+    }
+
+
+@router.post("/api/settings/phash-threshold", summary="Set phash threshold", response_model=Dict[str, Any])
+async def set_phash_threshold(
+    update: PhashThresholdUpdate,
+    session: Session = Depends(get_session)
+) -> Dict[str, Any]:
+    """Set the perceptual hash threshold for change detection.
+    
+    Args:
+        update: PhashThresholdUpdate request body
+        session: Database session
+        
+    Returns:
+        Dict with success status
+    """
+    threshold = update.threshold
+    if not 1 <= threshold <= 30:
+        raise HTTPException(status_code=400, detail="Threshold must be between 1 and 30")
+    
+    setting = session.get(Setting, 'phash_threshold')
+    if setting:
+        setting.value = str(threshold)
+    else:
+        setting = Setting(key='phash_threshold', value=str(threshold))
+        session.add(setting)
+    
+    session.commit()
+    
+    return {
+        "success": True,
+        "message": f"Change threshold set to {threshold}"
     }

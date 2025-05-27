@@ -2,6 +2,7 @@
 
 import logging
 import io
+import os
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -13,6 +14,7 @@ from sqlmodel import Session
 
 from app.models.device import Device
 from app.models.detection import Detection, Foe, DetectionStatus, DeterrentAction, FoeType
+from app.models.setting import Setting
 from app.services.ai_detector import AIDetector
 from app.core.session import get_db_session, safe_commit
 from app.core.config import config
@@ -49,12 +51,22 @@ class DetectionProcessor:
             return True
             
         try:
+            # Get threshold from settings
+            threshold = self.change_threshold
+            with get_db_session() as session:
+                phash_setting = session.get(Setting, 'phash_threshold')
+                if phash_setting:
+                    try:
+                        threshold = int(phash_setting.value)
+                    except ValueError:
+                        pass
+            
             hash1 = imagehash.hex_to_hash(current_hash)
             hash2 = imagehash.hex_to_hash(previous_hash)
             distance = hash1 - hash2
             
-            logger.debug(f"Image hash distance: {distance} (threshold: {self.change_threshold})")
-            return distance >= self.change_threshold
+            logger.debug(f"Image hash distance: {distance} (threshold: {threshold})")
+            return distance >= threshold
             
         except Exception as e:
             logger.error(f"Error comparing image hashes: {e}")
@@ -91,11 +103,45 @@ class DetectionProcessor:
         Returns:
             Detection record if foes were found, None otherwise
         """
+        # Get settings from database
+        capture_all_snapshots = False
+        phash_threshold = self.change_threshold
+        
+        with get_db_session() as session:
+            # Check if we should capture all snapshots
+            capture_all_setting = session.get(Setting, 'capture_all_snapshots')
+            if capture_all_setting:
+                capture_all_snapshots = capture_all_setting.value.lower() == 'true'
+            
+            # Get phash threshold
+            phash_setting = session.get(Setting, 'phash_threshold')
+            if phash_setting:
+                try:
+                    phash_threshold = int(phash_setting.value)
+                except ValueError:
+                    pass
+        
         # Calculate image hash
         current_hash = self.calculate_image_hash(image_data)
         
         # Check if image has changed significantly
-        if not self.has_significant_change(current_hash, camera.last_image_hash):
+        if camera.last_image_hash and current_hash:
+            try:
+                hash1 = imagehash.hex_to_hash(current_hash)
+                hash2 = imagehash.hex_to_hash(camera.last_image_hash)
+                hash_distance = hash1 - hash2
+                logger.info(f"Image change detected in {camera.name}: hash distance = {hash_distance} (threshold = {phash_threshold})")
+            except Exception as e:
+                logger.error(f"Error calculating hash distance: {e}")
+                hash_distance = None
+        else:
+            hash_distance = None
+            logger.info(f"No previous hash for {camera.name}, processing snapshot")
+        
+        # Check if there's significant change
+        has_change = self.has_significant_change(current_hash, camera.last_image_hash)
+        
+        if not has_change and not capture_all_snapshots:
             logger.debug(f"No significant change in {camera.name}, skipping detection")
             return None
         
@@ -109,58 +155,97 @@ class DetectionProcessor:
         # Save snapshot
         image_path = self.save_snapshot(image_data, camera.name)
         
-        # Run AI detection
-        try:
-            with get_db_session() as ai_session:
-                ai_detector = AIDetector(session=ai_session)
-                result = ai_detector.detect_foes(image_data)
+        # Only run AI detection if there's significant change
+        if has_change:
+            logger.info(f"Running AI detection for {camera.name} (change threshold exceeded)")
+            # Run AI detection
+            try:
+                with get_db_session() as ai_session:
+                    ai_detector = AIDetector(session=ai_session)
+                    result = ai_detector.detect_foes(image_data)
             
-            if not result.foes_detected:
-                logger.info(f"No foes detected in {camera.name}")
-                return None
-            
-            # Create detection record
-            with get_db_session() as session:
-                detection = Detection(
-                    device_id=camera.id,
-                    image_path=str(image_path),
-                    timestamp=datetime.utcnow(),
-                    status=DetectionStatus.PROCESSED,
-                    ai_response={"scene_description": result.scene_description},
-                    processed_at=datetime.utcnow(),
-                    ai_cost=result.cost
-                )
+                if not result.foes_detected:
+                    logger.info(f"No foes detected in {camera.name}")
+                    return None
                 
-                # Add detected foes
-                for detected_foe in result.foes:
-                    # Map string to enum
-                    try:
-                        foe_type = FoeType(detected_foe.foe_type)
-                    except ValueError:
-                        foe_type = FoeType.unknown
-                    
-                    foe = Foe(
-                        detection=detection,
-                        foe_type=foe_type,
-                        confidence=detected_foe.confidence,
-                        bounding_box=detected_foe.bounding_box,
-                        description=detected_foe.description
+                # Create detection record with foes
+                with get_db_session() as session:
+                    detection = Detection(
+                        device_id=camera.id,
+                        image_path=str(image_path),
+                        timestamp=datetime.utcnow(),
+                        status=DetectionStatus.PROCESSED,
+                        ai_response={
+                            "scene_description": result.scene_description,
+                            "hash_distance": hash_distance,
+                            "phash_threshold": phash_threshold
+                        },
+                        processed_at=datetime.utcnow(),
+                        ai_cost=result.cost
                     )
-                    detection.foes.append(foe)
+                    
+                    # Add detected foes
+                    for detected_foe in result.foes:
+                        # Map string to enum
+                        try:
+                            foe_type = FoeType(detected_foe.foe_type)
+                        except ValueError:
+                            foe_type = FoeType.unknown
+                        
+                        foe = Foe(
+                            detection=detection,
+                            foe_type=foe_type,
+                            confidence=detected_foe.confidence,
+                            bounding_box=detected_foe.bounding_box,
+                            description=detected_foe.description
+                        )
+                        detection.foes.append(foe)
+                    
+                    session.add(detection)
+                    safe_commit(session)
+                    
+                    logger.info(
+                        f"Created detection for {camera.name}: "
+                        f"{len(detection.foes)} foe(s) detected"
+                    )
+                    
+                    return detection
+                    
+            except Exception as e:
+                logger.error(f"Error processing detection for {camera.name}: {e}")
+                return None
                 
-                session.add(detection)
-                safe_commit(session)
-                
-                logger.info(
-                    f"Created detection for {camera.name}: "
-                    f"{len(detection.foes)} foe(s) detected"
-                )
-                
-                return detection
-                
-        except Exception as e:
-            logger.error(f"Error processing detection for {camera.name}: {e}")
-            return None
+        else:
+            # No AI detection needed - just save snapshot if capture_all_snapshots is enabled
+            if capture_all_snapshots:
+                logger.info(f"Saving snapshot for {camera.name} without AI detection (below threshold)")
+                with get_db_session() as session:
+                    detection = Detection(
+                        device_id=camera.id,
+                        image_path=str(image_path),
+                        timestamp=datetime.utcnow(),
+                        status=DetectionStatus.PROCESSED,
+                        ai_response={
+                            "scene_description": "Snapshot saved without AI analysis (below change threshold)",
+                            "hash_distance": hash_distance,
+                            "phash_threshold": phash_threshold,
+                            "skipped_ai": True
+                        },
+                        processed_at=datetime.utcnow(),
+                        ai_cost=0.0  # No AI cost
+                    )
+                    session.add(detection)
+                    safe_commit(session)
+                    logger.info(f"Saved snapshot for {camera.name} without AI analysis")
+                    return detection
+            else:
+                logger.debug(f"Skipping snapshot for {camera.name} (below threshold and capture_all_snapshots disabled)")
+                # Delete the saved image since we're not keeping it
+                try:
+                    os.remove(image_path)
+                except Exception:
+                    pass
+                return None
     
     def get_primary_foe_type(self, detection: Detection) -> Optional[str]:
         """Get the primary foe type from a detection (highest confidence)."""
