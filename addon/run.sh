@@ -7,9 +7,8 @@ export VIDEO_PATH="/data/videos"
 export SOUND_PATH="/media/sounds"
 export DATABASE_URL="sqlite:///${DATA_PATH}/foe_be_gone.db"
 
-# Get configuration from Home Assistant (as fallbacks for database settings)
-export OPENAI_API_KEY=$(bashio::config 'openai_api_key' '')
-export LOG_LEVEL=$(bashio::config 'log_level' 'INFO')
+# All configuration is now managed through the web interface
+export LOG_LEVEL="INFO"
 
 # Ingress configuration
 export INGRESS_ENTRY=$(bashio::addon.ingress_entry)
@@ -23,12 +22,7 @@ fi
 
 # Log startup info
 bashio::log.info "Starting Foe Be Gone..."
-if [ -n "${OPENAI_API_KEY}" ]; then
-    bashio::log.info "OpenAI API Key: ${OPENAI_API_KEY:0:10}... (from HA config)"
-else
-    bashio::log.info "OpenAI API Key: Will be configured via web interface"
-fi
-bashio::log.info "Log Level: ${LOG_LEVEL}"
+bashio::log.info "Configuration will be managed via web interface"
 bashio::log.info "Ingress URL: ${INGRESS_ENTRY}"
 
 # Run database migrations

@@ -3,10 +3,9 @@ version: "2.0.0"
 slug: "foe_be_gone"
 description: "AI-powered wildlife detection and deterrent system"
 url: "https://github.com/mneuhaus/foe-be-gone"
-image: "ghcr.io/mneuhaus/foe-be-gone"
+image: "ghcr.io/mneuhaus/{arch}-addon-foe-be-gone"
 arch:
   - armhf
-  - armv7
   - aarch64
   - amd64
   - i386
@@ -23,22 +22,8 @@ auth_api: false
 map:
   - media:rw
   - config:rw
-options:
-  openai_api_key: ""
-  detection_interval: 10
-  min_foe_confidence: 0.7
-  enable_deterrent: true
-  deterrent_duration: 10
-  enable_notifications: true
-  log_level: "INFO"
-schema:
-  openai_api_key: "password"
-  detection_interval: "int(1,300)"
-  min_foe_confidence: "float(0.1,1.0)"
-  enable_deterrent: "bool"
-  deterrent_duration: "int(1,30)"
-  enable_notifications: "bool"
-  log_level: "list(DEBUG|INFO|WARNING|ERROR)"
+options: {}
+schema: {}
 environment:
   PYTHONUNBUFFERED: "1"
 ports:

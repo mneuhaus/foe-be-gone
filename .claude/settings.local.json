@@ -35,7 +35,13 @@
       "Bash(git push:*)",
       "Bash(git tag:*)",
       "Bash(git filter-branch:*)",
-      "Bash(docker build:*)"
+      "Bash(docker build:*)",
+      "WebFetch(domain:developers.home-assistant.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(cp:*)",
+      "Bash(convert:*)",
+      "Bash(magick:*)"
     ],
     "deny": []
   }

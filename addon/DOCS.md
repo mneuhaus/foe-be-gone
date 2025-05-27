@@ -16,25 +16,26 @@ AI-powered wildlife detection and deterrent system that integrates with your sec
 
 1. Add this repository to your Home Assistant add-on store
 2. Install the "Foe Be Gone" add-on
-3. Configure your OpenAI API key and preferences
-4. Start the add-on
+3. Start the add-on
+4. Open the web interface and configure your settings
 
 ## Configuration
 
-### Required Settings
+All settings are managed through the web interface at Settings → General:
 
-- **openai_api_key**: Your OpenAI API key for GPT-4 Vision access
+### AI & Detection Settings
+
+- **OpenAI API Key**: Your OpenAI API key for GPT-4 Vision access
   - Get one at https://platform.openai.com/api-keys
   - Requires GPT-4 Vision access
+- **Confidence Threshold**: Minimum confidence to trigger actions (0.0-1.0, default: 0.8)
+- **Detection Interval**: How often to check cameras (seconds, default: 10)
 
-### Optional Settings
+### System Settings
 
-- **detection_interval**: How often to check cameras (seconds, default: 10)
-- **min_foe_confidence**: Minimum confidence to trigger deterrent (0.1-1.0, default: 0.7)
-- **enable_deterrent**: Enable automatic deterrent sounds (default: true)
-- **deterrent_duration**: Maximum deterrent sound duration (seconds, default: 10)
-- **enable_notifications**: Send HA notifications on detections (default: true)
-- **log_level**: Logging verbosity (DEBUG/INFO/WARNING/ERROR, default: INFO)
+- **Log Level**: Logging verbosity (DEBUG/INFO/WARNING/ERROR, default: INFO)
+- **Max Image Size**: Maximum image size for processing (MB, default: 10)
+- **Snapshot Retention**: How long to keep snapshots (days, default: 7)
 
 ## Camera Setup
 
@@ -99,8 +100,8 @@ The add-on exposes a REST API at `/api/docs` for advanced integrations.
 
 ## Support
 
-- GitHub Issues: [Link to repo]
-- Home Assistant Community: [Link to thread]
+- GitHub Issues: https://github.com/mneuhaus/foe-be-gone/issues
+- Documentation: https://github.com/mneuhaus/foe-be-gone
 
 ## Privacy
 

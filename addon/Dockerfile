@@ -1,6 +1,43 @@
-# Use the main image as base for Home Assistant add-on
-ARG BUILD_FROM=ghcr.io/mneuhaus/foe-be-gone:latest
+# Multi-architecture support with Home Assistant base images
+ARG BUILD_FROM
 FROM ${BUILD_FROM}
+
+# Install Python and system dependencies
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    ffmpeg \
+    git \
+    curl \
+    build-base \
+    python3-dev \
+    libffi-dev \
+    openssl-dev
+
+# Install uv for Python package management
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    echo 'export PATH="/root/.local/bin:$PATH"' >> ~/.bashrc
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Set up Python environment
+WORKDIR /app
+
+# Copy application files
+COPY pyproject.toml /app/
+COPY app /app/app
+COPY alembic.ini /app/
+COPY alembic /app/alembic
+COPY public /app/public
+
+# Install Python dependencies
+RUN uv pip install --system -e .
+
+# Create necessary directories
+RUN mkdir -p /data /config /media/sounds data/snapshots
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    HOME_ASSISTANT_ADDON=1
 
 # Copy add-on specific files
 COPY addon/run.sh /
