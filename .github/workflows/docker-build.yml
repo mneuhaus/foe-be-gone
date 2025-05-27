@@ -66,8 +66,6 @@ jobs:
         cache-to: |
           type=gha,mode=max
           type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-        # Enable inline cache for better layer reuse
-        outputs: type=image,push=true,annotation-index.org.opencontainers.image.description="AI-powered wildlife detection"
 
   build-addon:
     runs-on: ubuntu-latest
