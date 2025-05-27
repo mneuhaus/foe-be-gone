@@ -43,7 +43,6 @@
                         id="auto-refresh-toggle" 
                         class="checkbox checkbox-primary checkbox-sm"
                         onchange="toggleAutoRefresh(this.checked)"
-                        checked
                     >
                 </label>
             </form>
@@ -745,8 +744,8 @@ async function checkForNewDetections() {
                 detectionData[detection.id] = detection;
             });
             
-            // Show a brief notification
-            showNotification(`${newDetections.length} new detection${newDetections.length > 1 ? 's' : ''} added`, 'info');
+            // Log new detections added
+            console.log(`${newDetections.length} new detection${newDetections.length > 1 ? 's' : ''} added`);
         }
     } catch (error) {
         console.error('Error checking for new detections:', error);
@@ -754,39 +753,58 @@ async function checkForNewDetections() {
 }
 
 function addNewDetections(newDetections) {
-    const grid = document.getElementById('detections-grid');
+    let grid = document.getElementById('detections-grid');
     const emptyState = document.querySelector('.card.bg-base-200.border-2.border-dashed');
     
-    // Remove empty state if it exists
-    if (emptyState) {
+    // Remove empty state if it exists and create grid
+    if (emptyState && emptyState.parentElement) {
         emptyState.parentElement.remove();
         // Create the grid if it doesn't exist
         const newGrid = document.createElement('div');
         newGrid.id = 'detections-grid';
         newGrid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
-        document.querySelector('.container').insertBefore(newGrid, document.querySelector('.text-center.mt-6'));
+        const container = document.querySelector('.container');
+        const countElement = document.querySelector('.text-center.mt-6');
+        if (container && countElement) {
+            container.insertBefore(newGrid, countElement);
+            grid = newGrid;
+        }
+    }
+    
+    if (!grid) {
+        console.error('Could not find or create detections grid');
+        return;
     }
     
     // Add new detection cards to the beginning of the grid
     newDetections.forEach((detection, index) => {
-        const cardHtml = createDetectionCard(detection);
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = cardHtml;
-        const newCard = tempDiv.firstElementChild;
-        
-        // Add with animation
-        newCard.style.opacity = '0';
-        newCard.style.transform = 'translateY(-20px)';
-        
-        if (grid) {
+        try {
+            const cardHtml = createDetectionCard(detection);
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = cardHtml;
+            const newCard = tempDiv.firstElementChild;
+            
+            if (!newCard) {
+                console.error('Failed to create detection card for:', detection);
+                return;
+            }
+            
+            // Add with animation
+            newCard.style.opacity = '0';
+            newCard.style.transform = 'translateY(-20px)';
+            
             grid.insertBefore(newCard, grid.firstChild);
             
             // Animate in with staggered delay
             setTimeout(() => {
-                newCard.style.transition = 'all 0.3s ease-in-out';
-                newCard.style.opacity = '1';
-                newCard.style.transform = 'translateY(0)';
+                if (newCard.parentNode) {
+                    newCard.style.transition = 'all 0.3s ease-in-out';
+                    newCard.style.opacity = '1';
+                    newCard.style.transform = 'translateY(0)';
+                }
             }, 50 * (index + 1));
+        } catch (error) {
+            console.error('Error adding detection card:', error, detection);
         }
     });
     
@@ -884,17 +902,17 @@ function createDetectionCard(detection) {
                     <div class="text-xs space-y-1">
                         <div class="flex justify-between">
                             <span class="text-base-content/70">Sound:</span>
-                            <span class="font-medium truncate max-w-[150px]" title="${detection.effectiveness.sound_file}">
-                                ${detection.effectiveness.sound_file.split('/').pop()}
+                            <span class="font-medium truncate max-w-[150px]" title="${detection.effectiveness.sound_file || ''}">
+                                ${detection.effectiveness.sound_file ? detection.effectiveness.sound_file.split('/').pop() : 'N/A'}
                             </span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-base-content/70">Effectiveness:</span>
-                            <span class="font-medium">${Math.round(detection.effectiveness.effectiveness_score * 100)}%</span>
+                            <span class="font-medium">${detection.effectiveness.effectiveness_score ? Math.round(detection.effectiveness.effectiveness_score * 100) : 0}%</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-base-content/70">Before/After:</span>
-                            <span class="font-medium">${detection.effectiveness.foes_before} → ${detection.effectiveness.foes_after}</span>
+                            <span class="font-medium">${detection.effectiveness.foes_before || 0} → ${detection.effectiveness.foes_after || 0}</span>
                         </div>
                     </div>
                 </div>
@@ -922,7 +940,7 @@ function createDetectionCard(detection) {
     `;
 }
 
-// Start auto-refresh by default
-startAutoRefresh();
+// Auto-refresh is now disabled by default
+// User can enable it via the toggle
 </script>
 {% endblock %}
