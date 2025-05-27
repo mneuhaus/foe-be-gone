@@ -71,14 +71,31 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'release'
+    strategy:
+      matrix:
+        arch:
+          - amd64
+          - aarch64
+          - armhf
+          - i386
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Build Home Assistant Add-on
       uses: home-assistant/builder@master
       with:
         args: |
+          --${{ matrix.arch }} \
           --target /data/addon \
-          --generic latest
+          --image ghcr.io/mneuhaus/{arch}-addon-foe-be-gone \
+          --docker-hub ghcr.io \
+          --push
