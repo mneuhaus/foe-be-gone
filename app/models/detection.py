@@ -58,6 +58,7 @@ class Detection(SQLModel, table=True):
     device: Optional["Device"] = Relationship(back_populates="detections")
     foes: List["Foe"] = Relationship(back_populates="detection", cascade_delete=True)
     deterrent_actions: List["DeterrentAction"] = Relationship(back_populates="detection", cascade_delete=True)
+    effectiveness_tests: List["SoundEffectiveness"] = Relationship(back_populates="detection", cascade_delete=True)
 
 
 class DeterrentAction(SQLModel, table=True):
@@ -77,6 +78,7 @@ class DeterrentAction(SQLModel, table=True):
 
 # Update forward references
 from app.models.device import Device
+from app.models.sound_effectiveness import SoundEffectiveness
 Detection.model_rebuild()
 Foe.model_rebuild()
 DeterrentAction.model_rebuild()

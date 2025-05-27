@@ -10,6 +10,7 @@ from app.services.camera_manager import CameraManager
 from app.services.detection_processor import DetectionProcessor
 from app.services.sound_player import sound_player
 from app.services.video_capture import video_capture
+from app.services.effectiveness_tracker import effectiveness_tracker
 from app.core.session import get_db_session
 
 logger = logging.getLogger(__name__)
@@ -131,17 +132,44 @@ class DetectionWorker:
             else:
                 logger.warning(f"Video capture not available for {camera.name}")
             
+            # Store initial foe data for effectiveness tracking
+            initial_foes = detection.foes.copy() if detection.foes else []
+            
             # Play deterrent sound
             played_sounds = []
+            selected_sound_file = None
             
             # Try to play on camera first
             sound_files = sound_player.get_available_sounds(foe_type)
             if sound_files:
-                selected_sound = sound_player._select_random_sound(sound_files)
+                # Try to use the most effective sound based on statistics
+                best_sound_name = effectiveness_tracker.get_best_sound_for_foe(
+                    foe_type, 
+                    hour=datetime.now().hour
+                )
+                
+                if best_sound_name:
+                    # Find the best sound in available files
+                    selected_sound = next(
+                        (f for f in sound_files if f.name == best_sound_name),
+                        None
+                    )
+                    if selected_sound:
+                        logger.info(f"Using statistically best sound: {best_sound_name}")
+                    else:
+                        # Fall back to random if best not available
+                        selected_sound = sound_player._select_random_sound(sound_files)
+                else:
+                    # No statistics yet, use random
+                    selected_sound = sound_player._select_random_sound(sound_files)
+                
+                selected_sound_file = selected_sound.name
                 camera_success = await self.camera_manager.play_sound_on_camera(camera, selected_sound)
                 
+                playback_method = None
                 if camera_success:
                     played_sounds.append(f"camera:{selected_sound.name}")
+                    playback_method = "camera"
                     self.detection_processor.record_deterrent_action(
                         detection.id,
                         f"sound_camera_{foe_type}",
@@ -153,12 +181,52 @@ class DetectionWorker:
                     local_success = sound_player.play_sound(selected_sound)
                     if local_success:
                         played_sounds.append(f"local:{selected_sound.name}")
+                        playback_method = "local"
                         self.detection_processor.record_deterrent_action(
                             detection.id,
                             f"sound_local_{foe_type}",
                             True,
                             f"Played {selected_sound.name} locally"
                         )
+            
+            # Wait 10 seconds for deterrent to take effect
+            if selected_sound_file and playback_method:
+                logger.info(f"Waiting 10 seconds to check deterrent effectiveness...")
+                await asyncio.sleep(10)
+                
+                # Take follow-up snapshot
+                logger.info(f"Taking follow-up snapshot to check effectiveness")
+                follow_up_snapshot = await self.camera_manager.capture_snapshot(camera)
+                
+                if follow_up_snapshot:
+                    # Save follow-up snapshot
+                    follow_up_path = self.detection_processor.save_snapshot(
+                        follow_up_snapshot, 
+                        f"{camera.name}_followup"
+                    )
+                    
+                    # Run AI detection on follow-up snapshot
+                    follow_up_result = self.detection_processor.ai_detector.detect_foes(follow_up_snapshot)
+                    
+                    # Record effectiveness
+                    effectiveness_tracker.record_effectiveness(
+                        detection_id=detection.id,
+                        foe_type=foe_type,
+                        sound_file=selected_sound_file,
+                        playback_method=playback_method,
+                        foes_before=initial_foes,
+                        foes_after=follow_up_result.foes if follow_up_result.foes_detected else [],
+                        follow_up_image_path=str(follow_up_path),
+                        wait_duration=10
+                    )
+                    
+                    # Log result
+                    if not follow_up_result.foes_detected:
+                        logger.info(f"SUCCESS: {foe_type} deterred by {selected_sound_file}!")
+                    elif len(follow_up_result.foes) < len(initial_foes):
+                        logger.info(f"PARTIAL: Reduced {foe_type} count with {selected_sound_file}")
+                    else:
+                        logger.warning(f"FAILURE: {selected_sound_file} did not deter {foe_type}")
             
             # Wait for video capture to complete
             if video_task:

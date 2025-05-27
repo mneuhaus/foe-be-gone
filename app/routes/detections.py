@@ -3,10 +3,10 @@ import logging
 import os
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from fastapi import APIRouter, Request, Depends, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select, delete
@@ -16,7 +16,9 @@ from app.models.detection import Detection, Foe
 from app.models.device import Device
 from app.services.detection_worker import detection_worker
 from app.services.sound_player import sound_player
+from app.services.effectiveness_tracker import effectiveness_tracker
 from app.models.setting import Setting
+from app.models.sound_effectiveness import SoundEffectiveness
 
 router = APIRouter(prefix="/detections", tags=["detections"])
 templates = Jinja2Templates(directory="app/templates")
@@ -60,6 +62,14 @@ async def detections_page(
     foe_types_result = session.exec(
         select(Foe.foe_type).distinct()
     ).all()
+    
+    # Get effectiveness data for each detection
+    for detection in detections:
+        detection.effectiveness = session.exec(
+            select(SoundEffectiveness)
+            .where(SoundEffectiveness.detection_id == detection.id)
+            .limit(1)
+        ).first()
     
     context = {
         "request": request,
@@ -269,3 +279,47 @@ async def test_sound_on_camera(
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error testing sound on camera: {str(e)}")
+
+
+@router.get("/video/{detection_id}", include_in_schema=False)
+async def serve_detection_video(detection_id: int, session: Session = Depends(get_session)):
+    """Serve video file for a detection."""
+    detection = session.get(Detection, detection_id)
+    if not detection or not detection.video_path:
+        raise HTTPException(status_code=404, detail="Video not found")
+    
+    video_path = Path(detection.video_path)
+    if not video_path.exists():
+        raise HTTPException(status_code=404, detail="Video file not found")
+    
+    return FileResponse(
+        path=video_path,
+        media_type="video/mp4",
+        filename=video_path.name
+    )
+
+
+@router.get("/api/effectiveness/summary", summary="Get effectiveness summary")
+async def get_effectiveness_summary(foe_type: Optional[str] = None) -> Dict[str, Any]:
+    """Get summary of sound effectiveness statistics.
+    
+    Args:
+        foe_type: Optional filter by foe type
+        
+    Returns:
+        Summary of effectiveness statistics
+    """
+    return effectiveness_tracker.get_statistics_summary(foe_type)
+
+
+@router.get("/api/effectiveness/time-patterns/{foe_type}", summary="Get time-based patterns")
+async def get_time_patterns(foe_type: str) -> List[Dict[str, Any]]:
+    """Get effectiveness patterns by time of day for a specific foe type.
+    
+    Args:
+        foe_type: Type of foe to get patterns for
+        
+    Returns:
+        List of hourly effectiveness patterns
+    """
+    return effectiveness_tracker.get_time_patterns(foe_type)

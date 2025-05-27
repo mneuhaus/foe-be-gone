@@ -27,6 +27,11 @@ def create_db_and_tables() -> None:
     from app.models.device import Device
     from app.models.detection import Detection, Foe, DeterrentAction
     from app.models.setting import Setting
+    from app.models.sound_effectiveness import (
+        SoundEffectiveness, 
+        SoundStatistics, 
+        TimeBasedEffectiveness
+    )
     
     SQLModel.metadata.create_all(engine)
 
