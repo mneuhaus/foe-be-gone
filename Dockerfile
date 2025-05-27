@@ -23,7 +23,10 @@ COPY pyproject.toml ./
 COPY uv.lock* ./
 
 # Install Python dependencies
-RUN uv pip install --system --break-system-packages -r pyproject.toml
+# Use PyPI index instead of HA's limited musllinux index
+RUN uv pip install --system --break-system-packages \
+    --index-url https://pypi.org/simple \
+    -r pyproject.toml
 
 # Copy application code
 COPY alembic.ini ./
