@@ -48,7 +48,7 @@ RUN mkdir -p /data /config /media/sounds
 LABEL \
     io.hass.name="Foe Be Gone" \
     io.hass.description="AI-powered wildlife detection and deterrent system" \
-    io.hass.version="2.0.20" \
+    io.hass.version="1.0.0" \
     io.hass.type="addon" \
     io.hass.arch="amd64|aarch64"
 
