@@ -272,4 +272,42 @@ When adding new integrations:
 
 - never use alerts, use notifications
 
+### Release Process - IMPORTANT!
+
+**⚠️ CRITICAL: Follow these steps IN ORDER to create a proper release:**
+
+1. **Update version in config.yaml FIRST**
+   ```bash
+   # Edit config.yaml and update the version field
+   # Example: version: "1.0.2" -> version: "1.0.3"
+   ```
+
+2. **Commit the version update**
+   ```bash
+   git add config.yaml
+   git commit -m "Bump version to X.Y.Z"
+   git push
+   ```
+
+3. **Create and push tag**
+   ```bash
+   git tag vX.Y.Z -m "vX.Y.Z - Release Title"
+   git push origin vX.Y.Z
+   ```
+
+4. **Create GitHub release**
+   ```bash
+   gh release create vX.Y.Z --title "vX.Y.Z - Release Title" --notes "Release notes..."
+   ```
+
+**Why this order matters:**
+- The Home Assistant builder reads the version from `config.yaml` at build time
+- If you create the tag before updating config.yaml, it will build with the OLD version
+- This has caused v1.0.1 to be built when we intended v1.0.2
+
+**Common mistakes to avoid:**
+- ❌ Creating tag before updating config.yaml
+- ❌ Forgetting to push the config.yaml change before tagging
+- ❌ Using different version numbers in tag vs config.yaml
+
 Awaiting user direction for next development phase.
