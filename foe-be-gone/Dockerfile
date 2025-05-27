@@ -35,7 +35,7 @@ LABEL \
     io.hass.description="AI-powered wildlife detection and deterrent system" \
     io.hass.version="2.0.0" \
     io.hass.type="addon" \
-    io.hass.arch="aarch64|amd64|armhf|i386"
+    io.hass.arch="aarch64|amd64"
 
 # Start script
 CMD [ "/run.sh" ]

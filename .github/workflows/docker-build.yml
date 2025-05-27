@@ -78,8 +78,6 @@ jobs:
         arch:
           - amd64
           - aarch64
-          - armhf
-          - i386
     
     steps:
     - name: Checkout repository
