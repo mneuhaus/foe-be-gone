@@ -72,12 +72,12 @@ async def detections_page(
             .limit(1)
         ).first()
         
-        # Convert to dict for template usage
-        detection_dict = detection.model_dump()
+        # Convert to dict for template usage - use mode='json' for datetime serialization
+        detection_dict = detection.model_dump(mode='json')
         detection_dict['id'] = detection.id
-        detection_dict['effectiveness'] = effectiveness.model_dump() if effectiveness else None
-        detection_dict['device'] = detection.device.model_dump() if detection.device else None
-        detection_dict['foes'] = [foe.model_dump() for foe in detection.foes] if detection.foes else []
+        detection_dict['effectiveness'] = effectiveness.model_dump(mode='json') if effectiveness else None
+        detection_dict['device'] = detection.device.model_dump(mode='json') if detection.device else None
+        detection_dict['foes'] = [foe.model_dump(mode='json') for foe in detection.foes] if detection.foes else []
         detection_dict['played_sounds'] = detection.played_sounds or []
         detection_dict['video_path'] = detection.video_path
         detection_dict['image_path'] = detection.image_path
