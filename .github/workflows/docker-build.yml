@@ -68,7 +68,7 @@ jobs:
 
   build-addon:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     needs: build
     if: github.event_name == 'release'
     strategy:
@@ -89,9 +89,12 @@ jobs:
 
     - name: Build Home Assistant Add-on
       uses: home-assistant/builder@master
+      env:
+        DOCKER_UPLOAD_TIMEOUT: 600
       with:
         args: |
           --${{ matrix.arch }} \
           --target /data/foe-be-gone \
-          --image mneuhaus/{arch}-addon-foe-be-gone \
-          --docker-hub mneuhaus
+          --image {arch}-addon-foe-be-gone \
+          --docker-hub mneuhaus \
+          --docker-hub-check
