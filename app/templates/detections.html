@@ -768,7 +768,7 @@ function addNewDetections(newDetections) {
     }
     
     // Add new detection cards to the beginning of the grid
-    newDetections.forEach(detection => {
+    newDetections.forEach((detection, index) => {
         const cardHtml = createDetectionCard(detection);
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = cardHtml;
@@ -780,15 +780,30 @@ function addNewDetections(newDetections) {
         
         if (grid) {
             grid.insertBefore(newCard, grid.firstChild);
+            
+            // Animate in with staggered delay
+            setTimeout(() => {
+                newCard.style.transition = 'all 0.3s ease-in-out';
+                newCard.style.opacity = '1';
+                newCard.style.transform = 'translateY(0)';
+            }, 50 * (index + 1));
         }
-        
-        // Animate in
-        setTimeout(() => {
-            newCard.style.transition = 'all 0.3s ease-in-out';
-            newCard.style.opacity = '1';
-            newCard.style.transform = 'translateY(0)';
-        }, 50);
     });
+    
+    // Remove old detections if we exceed 30
+    if (grid) {
+        while (grid.children.length > 30) {
+            const lastCard = grid.lastElementChild;
+            // Fade out before removing
+            lastCard.style.transition = 'opacity 0.3s ease-out';
+            lastCard.style.opacity = '0';
+            setTimeout(() => {
+                if (lastCard.parentNode) {
+                    lastCard.remove();
+                }
+            }, 300);
+        }
+    }
     
     // Update detection count
     updateDetectionCount();
@@ -856,6 +871,34 @@ function createDetectionCard(detection) {
                     </span>
                     ` : ''}
                 </p>
+                
+                ${detection.effectiveness ? `
+                <div class="bg-base-200 rounded-lg p-3 mb-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium">Deterrent Result:</span>
+                        <span class="badge ${detection.effectiveness.result === 'success' ? 'badge-success' : detection.effectiveness.result === 'partial' ? 'badge-warning' : 'badge-error'}">
+                            ${detection.effectiveness.result.charAt(0).toUpperCase() + detection.effectiveness.result.slice(1)}
+                        </span>
+                    </div>
+                    
+                    <div class="text-xs space-y-1">
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Sound:</span>
+                            <span class="font-medium truncate max-w-[150px]" title="${detection.effectiveness.sound_file}">
+                                ${detection.effectiveness.sound_file.split('/').pop()}
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Effectiveness:</span>
+                            <span class="font-medium">${Math.round(detection.effectiveness.effectiveness_score * 100)}%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Before/After:</span>
+                            <span class="font-medium">${detection.effectiveness.foes_before} → ${detection.effectiveness.foes_after}</span>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
                 
                 <div class="flex items-center justify-between">
                     <span class="badge badge-sm ${getStatusBadgeClass(detection.status)}">

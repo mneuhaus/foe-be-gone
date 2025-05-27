@@ -1,6 +1,6 @@
 # Use our pre-built main image as base
 ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.21
-FROM ghcr.io/mneuhaus/foe-be-gone:latest AS app
+FROM mneuhaus/foe-be-gone:latest AS app
 
 # Use Home Assistant base image for the addon
 FROM ${BUILD_FROM}

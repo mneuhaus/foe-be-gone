@@ -64,8 +64,8 @@ async def detections_page(
     if foe_type:
         query = query.join(Foe).where(Foe.foe_type == foe_type)
     
-    # Order by most recent first
-    query = query.order_by(Detection.timestamp.desc())
+    # Order by most recent first and limit to 30
+    query = query.order_by(Detection.timestamp.desc()).limit(30)
     
     # Execute query
     detections = session.exec(query).all()
