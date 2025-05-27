@@ -95,7 +95,7 @@ async def detections_page(
         detection_dict['image_path'] = detection.image_path
         detection_dict['timestamp'] = detection.timestamp
         detection_dict['status'] = detection.status.value if hasattr(detection.status, 'value') else detection.status
-        detection_dict['ai_cost_usd'] = detection.ai_cost
+        detection_dict['ai_cost_usd'] = detection.ai_cost  # Keep as ai_cost_usd for template compatibility
         
         # Convert foe_type enums to strings in foes list
         if detection_dict['foes']:

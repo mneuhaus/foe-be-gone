@@ -21,7 +21,14 @@
       "Bash(uvicorn:*)",
       "Bash(sqlite3:*)",
       "Bash(python3:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(python -m mypy:*)",
+      "Bash(true)",
+      "Bash(python -m flake8:*)",
+      "Bash(pytest:*)",
+      "Bash(git restore:*)",
+      "Bash(python:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }

@@ -125,9 +125,9 @@ class DetectionProcessor:
                     image_path=str(image_path),
                     timestamp=datetime.utcnow(),
                     status=DetectionStatus.PROCESSED,
-                    ai_model=result.model_used,
-                    ai_response_time=result.processing_time,
-                    ai_cost_usd=result.cost_estimate
+                    ai_response={"scene_description": result.scene_description},
+                    processed_at=datetime.utcnow(),
+                    ai_cost=result.cost
                 )
                 
                 # Add detected foes
