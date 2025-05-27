@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}General Settings{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-base-content">General Settings</h1>
+            <p class="text-base-content/70 mt-2">Configure application-wide settings and preferences</p>
+        </div>
+    </div>
+
+    <form method="POST" class="space-y-6">
+        <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-xl mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    AI & Detection Settings
+                </h2>
+
+                <!-- OpenAI API Key -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">{{ settings.openai_api_key.label }}{% if settings.openai_api_key.required %} *{% endif %}</span>
+                    </label>
+                    <input 
+                        type="password" 
+                        name="openai_api_key" 
+                        value="{{ settings.openai_api_key.current_value }}"
+                        placeholder="sk-..."
+                        class="input input-bordered w-full {% if settings.openai_api_key.required %}input-primary{% endif %}"
+                        {% if settings.openai_api_key.required %}required{% endif %}
+                    >
+                    <label class="label">
+                        <span class="label-text-alt text-base-content/60">{{ settings.openai_api_key.description }}</span>
+                    </label>
+                </div>
+
+                <!-- Confidence Threshold -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">{{ settings.confidence_threshold.label }}</span>
+                    </label>
+                    <input 
+                        type="number" 
+                        name="confidence_threshold" 
+                        value="{{ settings.confidence_threshold.current_value }}"
+                        min="{{ settings.confidence_threshold.min }}"
+                        max="{{ settings.confidence_threshold.max }}"
+                        step="{{ settings.confidence_threshold.step }}"
+                        class="input input-bordered w-full"
+                    >
+                    <label class="label">
+                        <span class="label-text-alt text-base-content/60">{{ settings.confidence_threshold.description }}</span>
+                    </label>
+                </div>
+
+                <!-- Detection Interval -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">{{ settings.detection_interval.label }}</span>
+                    </label>
+                    <input 
+                        type="number" 
+                        name="detection_interval" 
+                        value="{{ settings.detection_interval.current_value }}"
+                        min="{{ settings.detection_interval.min }}"
+                        max="{{ settings.detection_interval.max }}"
+                        class="input input-bordered w-full"
+                    >
+                    <label class="label">
+                        <span class="label-text-alt text-base-content/60">{{ settings.detection_interval.description }}</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-xl mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+                    </svg>
+                    System Settings
+                </h2>
+
+                <!-- Log Level -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">{{ settings.log_level.label }}</span>
+                    </label>
+                    <select name="log_level" class="select select-bordered w-full">
+                        {% for option in settings.log_level.options %}
+                        <option value="{{ option }}" {% if settings.log_level.current_value == option %}selected{% endif %}>
+                            {{ option }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <label class="label">
+                        <span class="label-text-alt text-base-content/60">{{ settings.log_level.description }}</span>
+                    </label>
+                </div>
+
+                <!-- Max Image Size -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">{{ settings.max_image_size_mb.label }}</span>
+                    </label>
+                    <input 
+                        type="number" 
+                        name="max_image_size_mb" 
+                        value="{{ settings.max_image_size_mb.current_value }}"
+                        min="{{ settings.max_image_size_mb.min }}"
+                        max="{{ settings.max_image_size_mb.max }}"
+                        class="input input-bordered w-full"
+                    >
+                    <label class="label">
+                        <span class="label-text-alt text-base-content/60">{{ settings.max_image_size_mb.description }}</span>
+                    </label>
+                </div>
+
+                <!-- Snapshot Retention -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">{{ settings.snapshot_retention_days.label }}</span>
+                    </label>
+                    <input 
+                        type="number" 
+                        name="snapshot_retention_days" 
+                        value="{{ settings.snapshot_retention_days.current_value }}"
+                        min="{{ settings.snapshot_retention_days.min }}"
+                        max="{{ settings.snapshot_retention_days.max }}"
+                        class="input input-bordered w-full"
+                    >
+                    <label class="label">
+                        <span class="label-text-alt text-base-content/60">{{ settings.snapshot_retention_days.description }}</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+                <div class="card-actions justify-end">
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

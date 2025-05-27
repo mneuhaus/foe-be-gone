@@ -6,9 +6,11 @@ from typing import List, Dict, Any, Optional
 
 from openai import OpenAI
 from pydantic import BaseModel, Field
+from sqlmodel import Session
 
 from app.core.config import config
 from app.models.detection import FoeType
+from app.services.settings_service import SettingsService
 
 # Logger for AI detector
 logger = logging.getLogger(__name__)
@@ -41,11 +43,18 @@ class DetectionResult(BaseModel):
 class AIDetector:
     """AI-powered foe detection using OpenAI GPT-4o."""
     
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, session: Optional[Session] = None):
         """Initialize the AI detector."""
-        self.api_key = api_key or config.OPENAI_API_KEY
+        if api_key:
+            self.api_key = api_key
+        elif session:
+            settings_service = SettingsService(session)
+            self.api_key = settings_service.get_openai_api_key()
+        else:
+            self.api_key = config.OPENAI_API_KEY
+            
         if not self.api_key:
-            raise ValueError("OpenAI API key not provided and OPENAI_API_KEY env var not set")
+            raise ValueError("OpenAI API key not provided in settings or environment variables")
         
         self.client = OpenAI(api_key=self.api_key)
         

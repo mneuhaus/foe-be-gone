@@ -33,7 +33,8 @@
       "Bash(uv run:*)",
       "Bash(git remote add:*)",
       "Bash(git push:*)",
-      "Bash(git tag:*)"
+      "Bash(git tag:*)",
+      "Bash(git filter-branch:*)"
     ],
     "deny": []
   }

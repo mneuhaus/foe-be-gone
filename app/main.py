@@ -18,6 +18,7 @@ from app.core.session import get_db_session
 from app.routes import settings, detections, statistics
 from app.routes.api import integrations
 from app.services.detection_worker import detection_worker
+from app.services.settings_service import SettingsService
 from app.models.setting import Setting
 from app.models.device import Device
 from app.models.integration_instance import IntegrationInstance
@@ -36,14 +37,18 @@ logging.basicConfig(
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup
     create_db_and_tables()
-    # Load persisted detection interval if set
+    
+    # Initialize default settings and load persisted values
     with get_db_session() as session:
-        setting = session.get(Setting, 'detection_interval')
-        if setting and setting.value.isdigit():
-            detection_worker.check_interval = int(setting.value)
-            logging.getLogger(__name__).info(
-                f"Loaded persisted detection interval: {detection_worker.check_interval}s"
-            )
+        settings_service = SettingsService(session)
+        settings_service.initialize_defaults()
+        
+        # Load persisted detection interval
+        detection_worker.check_interval = settings_service.get_detection_interval()
+        logging.getLogger(__name__).info(
+            f"Loaded detection interval: {detection_worker.check_interval}s"
+        )
+    
     # Start worker
     await detection_worker.start()
     yield

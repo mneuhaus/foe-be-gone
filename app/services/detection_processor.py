@@ -31,7 +31,6 @@ class DetectionProcessor:
             change_threshold: Hamming distance threshold for significant image changes
         """
         self.change_threshold = change_threshold
-        self.ai_detector = AIDetector()
         
     def calculate_image_hash(self, image_data: bytes) -> str:
         """Calculate perceptual hash of image data."""
@@ -112,7 +111,9 @@ class DetectionProcessor:
         
         # Run AI detection
         try:
-            result = self.ai_detector.detect_foes(image_data)
+            with get_db_session() as ai_session:
+                ai_detector = AIDetector(session=ai_session)
+                result = ai_detector.detect_foes(image_data)
             
             if not result.foes_detected:
                 logger.info(f"No foes detected in {camera.name}")
