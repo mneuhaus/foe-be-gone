@@ -34,6 +34,8 @@ AI-powered wildlife detection and deterrent system that uses your security camer
 
 ### Home Assistant Add-on (Recommended)
 
+#### Quick Install
+
 1. **Add Repository**:
    - Go to **Supervisor** → **Add-on Store** → **⋮** → **Repositories**
    - Add: `https://github.com/mneuhaus/foe-be-gone`
@@ -41,9 +43,11 @@ AI-powered wildlife detection and deterrent system that uses your security camer
 
 2. **Install Add-on**:
    - Find "Foe Be Gone" in the add-on store
-   - Click **Install**
+   - Click **Install** (this may take a few minutes)
 
 3. **Configure**:
+   - Go to the **Configuration** tab
+   - Add your OpenAI API key:
    ```yaml
    openai_api_key: "sk-your-api-key-here"
    detection_interval: 10
@@ -55,9 +59,41 @@ AI-powered wildlife detection and deterrent system that uses your security camer
    ```
 
 4. **Start the Add-on**:
+   - Go to the **Info** tab
    - Enable **Start on boot** and **Auto update**
    - Click **Start**
+   - Wait for startup (check logs if needed)
    - Click **Open Web UI**
+
+#### Detailed Setup
+
+**OpenAI API Key Setup**:
+1. Go to [OpenAI Platform](https://platform.openai.com/api-keys)
+2. Create a new API key
+3. Make sure you have GPT-4 Vision access
+4. Copy the key to your configuration
+
+**UniFi Protect Camera Setup**:
+1. In the Foe Be Gone web interface, go to **Settings** → **Integrations**
+2. Click **Add Integration** → **UniFi Protect**
+3. Configure:
+   - **Host**: Your UniFi console IP (e.g., `192.168.1.100`)
+   - **Username**: Local UniFi user (not Ubiquiti account)
+   - **Password**: Local user password
+   - **Port**: Usually `443`
+   - **Verify SSL**: Turn OFF for local connections
+4. Click **Test Connection** and **Save**
+
+**Camera Requirements**:
+- Camera must support motion detection
+- Two-way audio required for deterrent sounds
+- RTSP stream access needed for video capture
+
+**Sound Customization**:
+Sounds are automatically included, but you can customize:
+1. Access your Home Assistant files
+2. Navigate to `/addon_configs/foe_be_gone/sounds/`
+3. Add custom sounds in appropriate folders (`crows/`, `cats/`, `rats/`, `custom/`)
 
 ### Docker Standalone
 
@@ -151,14 +187,27 @@ Comprehensive analytics showing:
 - **Cost Analysis**: AI processing expenses
 - **Friend Impact**: Effect on beneficial wildlife
 
-### Automation
+### Home Assistant Automation
 
-Create Home Assistant automations:
+Create automations to respond to detections:
 
 ```yaml
-# Send notification on detection
+# Example: Send notification with image
 automation:
-  - alias: "Crow Detection Alert"
+  - alias: "Foe Detection Alert"
+    trigger:
+      platform: webhook
+      webhook_id: foe_be_gone_detection
+    action:
+      service: notify.mobile_app_your_phone
+      data:
+        title: "Animal Detected!"
+        message: "{{ trigger.json.foe_type }} detected on {{ trigger.json.camera_name }}"
+        data:
+          image: "{{ trigger.json.snapshot_url }}"
+          
+# Example: Turn on lights when crow detected
+  - alias: "Scare Crows with Lights"
     trigger:
       platform: webhook
       webhook_id: foe_be_gone_detection
@@ -166,9 +215,12 @@ automation:
       condition: template
       value_template: "{{ trigger.json.foe_type == 'crows' }}"
     action:
-      service: notify.mobile_app
+      service: light.turn_on
+      target:
+        entity_id: light.garden_lights
       data:
-        message: "Crow detected in {{ trigger.json.camera_name }}"
+        brightness: 255
+        color_name: red
 ```
 
 ## API Documentation
@@ -227,20 +279,51 @@ foe-be-gone/
 
 ### Common Issues
 
+**Add-on Won't Start**:
+- Check the **Log** tab for errors in Home Assistant
+- Verify OpenAI API key is correct
+- Ensure sufficient system resources
+- Check network connectivity
+
 **No Detections**:
-- Check camera connectivity in Settings → Integrations
-- Verify OpenAI API key is valid
-- Ensure motion detection is enabled on cameras
+1. Verify camera integration is working:
+   - Go to **Settings** → **Integrations**
+   - Check connection status and test camera access
+2. Check motion detection:
+   - Ensure cameras have motion detection enabled
+   - Verify motion sensitivity settings
+   - Check if UniFi smart detections are working
+3. Verify AI settings:
+   - Check OpenAI API key is valid
+   - Ensure sufficient API credits
+   - Check detection confidence threshold
 
 **Sounds Not Playing**:
-- Verify camera supports two-way audio
-- Check sound files exist in media folder
-- Test audio output on camera
+1. Verify camera audio:
+   - Check if camera supports two-way audio
+   - Test speaker functionality in UniFi Protect
+   - Ensure audio is enabled
+2. Check sound files:
+   - Verify sounds exist in `/addon_configs/foe_be_gone/sounds/`
+   - Test sound file formats (MP3, WAV supported)
+   - Check file permissions
 
 **High Costs**:
-- Increase detection interval
-- Adjust camera motion sensitivity
-- Use scheduling to limit active hours
+Monitor and reduce OpenAI API costs:
+- **Increase detection interval**: Set to 30+ seconds for less frequent checks
+- **Adjust confidence threshold**: Increase to 0.8+ to reduce false positives
+- **Use scheduling**: Only run during peak problem hours
+- **Optimize camera zones**: Focus motion detection on problem areas only
+
+**Performance Issues**:
+1. Check system resources:
+   - Ensure adequate CPU/RAM
+   - Monitor disk space for snapshots/videos
+   - Check network bandwidth for video processing
+2. Optimize settings:
+   - Reduce video capture duration
+   - Lower camera resolution if possible
+   - Increase detection intervals during low-activity periods
 
 ### Logs
 
