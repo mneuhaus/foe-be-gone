@@ -1,51 +1,33 @@
-# syntax=docker/dockerfile:1
-# Multi-architecture support with Home Assistant base images
-ARG BUILD_FROM
+# Use our pre-built main image as base
+ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.21
+FROM ghcr.io/mneuhaus/foe-be-gone:latest AS app
+
+# Use Home Assistant base image for the addon
 FROM ${BUILD_FROM}
 
-# Install Python and system dependencies (least likely to change)
+# Install runtime dependencies only
 RUN apk add --no-cache \
     python3 \
     py3-pip \
     ffmpeg \
-    git \
-    curl \
-    build-base \
-    python3-dev \
-    libffi-dev \
-    openssl-dev
+    bash
 
-# Install uv for Python package management
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    echo 'export PATH="/root/.local/bin:$PATH"' >> ~/.bashrc
-ENV PATH="/root/.local/bin:${PATH}"
+# Copy the entire application from our pre-built image
+COPY --from=app /app /app
+COPY --from=app /root/.local /root/.local
 
-# Set up Python environment
+# Set up environment
 WORKDIR /app
-
-# Copy only dependency files first (for better caching)
-COPY pyproject.toml ./
-
-# Install Python dependencies with cache mount
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system -e .
-
-# Copy application code (most likely to change)
-COPY alembic.ini ./
-COPY alembic ./alembic
-COPY app ./app
-COPY public ./public
-
-# Create necessary directories
-RUN mkdir -p /data /config /media/sounds data/snapshots
-
-# Set environment variables
-ENV PYTHONUNBUFFERED=1 \
-    HOME_ASSISTANT_ADDON=1
+ENV PATH="/root/.local/bin:${PATH}"
+ENV PYTHONUNBUFFERED=1
+ENV HOME_ASSISTANT_ADDON=1
 
 # Copy add-on specific files
-COPY foe-be-gone/run.sh /
+COPY run.sh /
 RUN chmod a+x /run.sh
+
+# Create necessary directories
+RUN mkdir -p /data /config /media/sounds
 
 # Labels for Home Assistant
 LABEL \
@@ -53,7 +35,7 @@ LABEL \
     io.hass.description="AI-powered wildlife detection and deterrent system" \
     io.hass.version="2.0.0" \
     io.hass.type="addon" \
-    io.hass.arch="aarch64|amd64"
+    io.hass.arch="aarch64|amd64|armhf|i386"
 
 # Start script
 CMD [ "/run.sh" ]
