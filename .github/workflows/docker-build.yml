@@ -97,6 +97,4 @@ jobs:
           --${{ matrix.arch }} \
           --target /data/foe-be-gone \
           --image ghcr.io/mneuhaus/{arch}-addon-foe-be-gone \
-          --docker-hub ghcr.io \
-          --docker-user ${{ github.actor }} \
-          --docker-password ${{ secrets.GITHUB_TOKEN }}
+          --docker-hub ghcr.io/mneuhaus

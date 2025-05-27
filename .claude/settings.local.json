@@ -46,7 +46,9 @@
       "Bash(git describe:*)",
       "Bash(gh run list:*)",
       "Bash(gh run view:*)",
-      "Bash(gh release create:*)"
+      "Bash(gh release create:*)",
+      "Bash(git add -A)",
+      "Bash(git commit -m \"Remove explicit Docker credentials from HA builder\n\n- Remove --docker-user and --docker-password parameters\n- Rely on docker/login-action authentication from previous step\n- Update --docker-hub to include namespace (ghcr.io/mneuhaus)\")"
     ],
     "deny": []
   }
