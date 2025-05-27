@@ -19,7 +19,7 @@ class StatisticsService:
     def __init__(self, session: Session):
         self.session = session
     
-    async def get_overview_stats(self) -> Dict[str, Any]:
+    def get_overview_stats(self) -> Dict[str, Any]:
         """Get high-level overview statistics."""
         # Total detections
         total_detections = self.session.query(Detection).count()
@@ -48,7 +48,7 @@ class StatisticsService:
         
         # Active cameras
         active_cameras = self.session.query(Device).filter(
-            Device.is_active == True
+            Device.status == "online"
         ).count()
         
         # Friend vs foe ratio (we'll determine friends based on non-foe detections)
@@ -70,7 +70,7 @@ class StatisticsService:
             "friend_foe_ratio": round(friend_detections / foe_detections, 2) if foe_detections > 0 else 0
         }
     
-    async def get_daily_trends(self, days: int = 30) -> Dict[str, Any]:
+    def get_daily_trends(self, days: int = 30) -> Dict[str, Any]:
         """Get daily detection and success trends."""
         start_date = datetime.now() - timedelta(days=days)
         
@@ -110,7 +110,7 @@ class StatisticsService:
             "success_rates": success_rates
         }
     
-    async def get_hourly_patterns(self) -> Dict[str, Any]:
+    def get_hourly_patterns(self) -> Dict[str, Any]:
         """Get hourly activity patterns."""
         # Activity by hour
         hourly_stats = self.session.query(
@@ -144,7 +144,7 @@ class StatisticsService:
             "peak_friend_hour": peak_friend_hour
         }
     
-    async def get_sound_effectiveness_rankings(self) -> Dict[str, Any]:
+    def get_sound_effectiveness_rankings(self) -> Dict[str, Any]:
         """Get comprehensive sound effectiveness rankings."""
         # Overall sound effectiveness
         overall_rankings = self.session.query(
@@ -196,7 +196,7 @@ class StatisticsService:
             "untested_sounds": untested_sounds
         }
     
-    async def get_foe_analytics(self) -> Dict[str, Any]:
+    def get_foe_analytics(self) -> Dict[str, Any]:
         """Get detailed foe behavior analytics."""
         # Foe frequency
         foe_counts = self.session.query(
@@ -233,7 +233,7 @@ class StatisticsService:
             "average_intervals": avg_intervals
         }
     
-    async def get_friend_analytics(self) -> Dict[str, Any]:
+    def get_friend_analytics(self) -> Dict[str, Any]:
         """Analyze impact on friendly creatures."""
         # Get detections where no foe was detected (potential friends)
         friend_detections = self._get_friend_detections()
@@ -268,7 +268,7 @@ class StatisticsService:
             "total_friends": len(friend_detections)
         }
     
-    async def get_camera_statistics(self) -> Dict[str, Any]:
+    def get_camera_statistics(self) -> Dict[str, Any]:
         """Get camera-specific statistics."""
         camera_stats = self.session.query(
             Device.name,
@@ -299,7 +299,7 @@ class StatisticsService:
             "most_active": camera_data[0]['name'] if camera_data else None
         }
     
-    async def get_cost_analytics(self) -> Dict[str, Any]:
+    def get_cost_analytics(self) -> Dict[str, Any]:
         """Analyze AI processing costs."""
         # Daily costs
         daily_costs = self.session.query(
@@ -332,7 +332,7 @@ class StatisticsService:
             "avg_daily_cost": round(float(avg_daily_cost), 2)
         }
     
-    async def get_recent_detections(self, hours: int = 1) -> List[Dict[str, Any]]:
+    def get_recent_detections(self, hours: int = 1) -> List[Dict[str, Any]]:
         """Get recent detections for live updates."""
         since = datetime.now() - timedelta(hours=hours)
         
@@ -351,7 +351,7 @@ class StatisticsService:
             for d in detections
         ]
     
-    async def get_current_activity_level(self) -> str:
+    def get_current_activity_level(self) -> str:
         """Determine current activity level."""
         # Count detections in last 15 minutes
         recent = datetime.now() - timedelta(minutes=15)
@@ -368,7 +368,7 @@ class StatisticsService:
         else:
             return "high"
     
-    async def get_detailed_foe_effectiveness(self, foe_type: str) -> Dict[str, Any]:
+    def get_detailed_foe_effectiveness(self, foe_type: str) -> Dict[str, Any]:
         """Get detailed effectiveness data for a specific foe type."""
         # All sounds tested against this foe
         sound_stats = self.session.query(SoundStatistics).filter(

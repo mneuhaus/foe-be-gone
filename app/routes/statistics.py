@@ -26,14 +26,14 @@ async def statistics_page(
     stats_service = StatisticsService(session)
     
     # Get various statistics
-    overview = await stats_service.get_overview_stats()
-    daily_trends = await stats_service.get_daily_trends(days=30)
-    hourly_patterns = await stats_service.get_hourly_patterns()
-    sound_effectiveness = await stats_service.get_sound_effectiveness_rankings()
-    foe_analytics = await stats_service.get_foe_analytics()
-    friend_analytics = await stats_service.get_friend_analytics()
-    camera_stats = await stats_service.get_camera_statistics()
-    cost_analytics = await stats_service.get_cost_analytics()
+    overview = stats_service.get_overview_stats()
+    daily_trends = stats_service.get_daily_trends(days=30)
+    hourly_patterns = stats_service.get_hourly_patterns()
+    sound_effectiveness = stats_service.get_sound_effectiveness_rankings()
+    foe_analytics = stats_service.get_foe_analytics()
+    friend_analytics = stats_service.get_friend_analytics()
+    camera_stats = stats_service.get_camera_statistics()
+    cost_analytics = stats_service.get_cost_analytics()
     
     return templates.TemplateResponse(
         "statistics.html",
@@ -60,8 +60,8 @@ async def get_live_statistics(
     stats_service = StatisticsService(session)
     
     # Get last hour's data for live updates
-    recent_detections = await stats_service.get_recent_detections(hours=1)
-    current_activity = await stats_service.get_current_activity_level()
+    recent_detections = stats_service.get_recent_detections(hours=1)
+    current_activity = stats_service.get_current_activity_level()
     
     return {
         "recent_detections": recent_detections,
@@ -78,4 +78,4 @@ async def get_foe_effectiveness_details(
     """Get detailed effectiveness data for a specific foe type."""
     stats_service = StatisticsService(session)
     
-    return await stats_service.get_detailed_foe_effectiveness(foe_type)
+    return stats_service.get_detailed_foe_effectiveness(foe_type)
