@@ -23,9 +23,10 @@ COPY pyproject.toml ./
 COPY uv.lock* ./
 
 # Install Python dependencies
-# Use PyPI index instead of HA's limited musllinux index
+# Use PyPI index and allow packages from any index to fix HA's limited musllinux index
 RUN uv pip install --system --break-system-packages \
     --index-url https://pypi.org/simple \
+    --index-strategy unsafe-best-match \
     -r pyproject.toml
 
 # Copy application code
