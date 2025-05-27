@@ -189,10 +189,25 @@ class DetectionWorker:
                             f"Played {selected_sound.name} locally"
                         )
             
-            # Wait 10 seconds for deterrent to take effect
+            # Wait for deterrent to take effect
             if selected_sound_file and playback_method:
-                logger.info(f"Waiting 10 seconds to check deterrent effectiveness...")
-                await asyncio.sleep(10)
+                # Cap sound playback at 10 seconds max
+                sound_duration = 10  # Maximum 10 seconds for any sound
+                logger.info(f"Playing sound for up to {sound_duration} seconds...")
+                
+                # If playing on camera, the sound plays asynchronously
+                # For local playback, we need to wait for it to finish
+                if playback_method == "local":
+                    # Local playback is synchronous, so it's already done
+                    pass
+                else:
+                    # Camera playback might be async, wait for sound duration
+                    await asyncio.sleep(sound_duration)
+                
+                # Now wait additional 10 seconds for deterrent to take effect
+                wait_time = 10
+                logger.info(f"Sound finished. Waiting {wait_time} seconds to check deterrent effectiveness...")
+                await asyncio.sleep(wait_time)
                 
                 # Take follow-up snapshot
                 logger.info(f"Taking follow-up snapshot to check effectiveness")
@@ -217,7 +232,7 @@ class DetectionWorker:
                         foes_before=initial_foes,
                         foes_after=follow_up_result.foes if follow_up_result.foes_detected else [],
                         follow_up_image_path=str(follow_up_path),
-                        wait_duration=10
+                        wait_duration=sound_duration + wait_time  # Total time: sound + wait
                     )
                     
                     # Log result

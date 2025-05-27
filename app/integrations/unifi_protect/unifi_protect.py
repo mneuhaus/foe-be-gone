@@ -87,8 +87,16 @@ class UniFiProtectDevice(DeviceInterface):
             logger.error(f"Error testing talkback: {str(e)}")
             return False
     
-    async def play_sound_file(self, sound_file_path: Path) -> bool:
-        """Play a sound file through the camera's speaker using talkback."""
+    async def play_sound_file(self, sound_file_path: Path, max_duration: int = 10) -> bool:
+        """Play a sound file through the camera's speaker using talkback.
+        
+        Args:
+            sound_file_path: Path to the sound file
+            max_duration: Maximum duration in seconds (default: 10)
+            
+        Returns:
+            True if sound played successfully
+        """
         try:
             # Check if camera has speaker capability
             if not self.device_data.get("featureFlags", {}).get("hasSpeaker", False):
@@ -123,9 +131,10 @@ class UniFiProtectDevice(DeviceInterface):
                     # Use the camera's preferred sample rate for other codecs
                     target_sample_rate = sample_rate
                 
-                # Stream the audio file to the camera with real-time pacing
+                # Stream the audio file to the camera with real-time pacing and duration limit
                 ffmpeg_cmd = [
                     'ffmpeg',
+                    '-t', str(max_duration),        # Limit input duration to max_duration seconds
                     '-re',                          # Read input at its native frame rate (important for RTP streaming!)
                     '-i', str(sound_file_path),      # Input sound file
                     '-c:a', codec,                  # Audio codec

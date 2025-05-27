@@ -97,8 +97,17 @@ class CameraManager:
                 )
                 return None
     
-    async def play_sound_on_camera(self, camera: Device, sound_file: Path) -> bool:
-        """Play a sound file on a camera device."""
+    async def play_sound_on_camera(self, camera: Device, sound_file: Path, max_duration: int = 10) -> bool:
+        """Play a sound file on a camera device.
+        
+        Args:
+            camera: Camera device
+            sound_file: Path to sound file
+            max_duration: Maximum duration in seconds (default: 10)
+            
+        Returns:
+            True if sound played successfully
+        """
         with get_db_session() as session:
             # Get fresh camera instance with integration
             camera_db = session.get(Device, camera.id)
@@ -125,8 +134,8 @@ class CameraManager:
                     
                 # Play sound if supported
                 if hasattr(device_interface, 'play_sound_file'):
-                    logger.info(f"Playing sound {sound_file.name} on camera {camera_db.name}")
-                    success = await device_interface.play_sound_file(sound_file)
+                    logger.info(f"Playing sound {sound_file.name} on camera {camera_db.name} (max {max_duration}s)")
+                    success = await device_interface.play_sound_file(sound_file, max_duration)
                     return success
                 else:
                     logger.warning(f"Camera {camera_db.name} does not support sound playback")
