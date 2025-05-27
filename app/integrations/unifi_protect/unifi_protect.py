@@ -190,8 +190,15 @@ class UniFiProtectDevice(DeviceInterface):
             if response.status_code == 200:
                 return response.content
             else:
-                logger.error(f"Failed to get snapshot: {response.status_code}")
-                return None
+                error_msg = f"Failed to get snapshot: HTTP {response.status_code}"
+                if response.status_code == 500:
+                    error_msg += " - Camera may be offline or experiencing issues"
+                elif response.status_code == 404:
+                    error_msg += " - Camera not found"
+                elif response.status_code == 403:
+                    error_msg += " - Permission denied"
+                logger.error(error_msg)
+                raise Exception(error_msg)
         except Exception as e:
             logger.error(f"Error getting snapshot: {str(e)}")
             return None

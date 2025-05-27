@@ -17,6 +17,7 @@ from app.models.device import Device
 from app.services.detection_worker import detection_worker
 from app.services.sound_player import sound_player
 from app.services.effectiveness_tracker import effectiveness_tracker
+from app.services.camera_diagnostics import camera_diagnostics
 from app.models.setting import Setting
 from app.models.sound_effectiveness import SoundEffectiveness
 
@@ -32,6 +33,17 @@ class IntervalUpdate(BaseModel):
 class SoundTest(BaseModel):
     """Request model for testing deterrent sounds."""
     foe_type: str = Field(description="Type of foe to test sound for (rats, crows, cats)")
+
+
+@router.get("/diagnostics", response_class=HTMLResponse, summary="Camera diagnostics page", include_in_schema=False)
+async def diagnostics_page(request: Request):
+    """Camera diagnostics page."""
+    context = {
+        "request": request,
+        "title": "Camera Diagnostics",
+        "page": "diagnostics"
+    }
+    return templates.TemplateResponse(request, "diagnostics.html", context)
 
 
 @router.get("/", response_class=HTMLResponse, summary="Detections page", include_in_schema=False)
@@ -345,3 +357,35 @@ async def get_time_patterns(foe_type: str) -> List[Dict[str, Any]]:
         List of hourly effectiveness patterns
     """
     return effectiveness_tracker.get_time_patterns(foe_type)
+
+
+@router.get("/api/diagnostics/cameras", summary="Get camera health status")
+async def get_camera_diagnostics() -> Dict[str, Any]:
+    """Get diagnostic information about camera health and errors.
+    
+    Returns:
+        Camera health status and error information
+    """
+    return camera_diagnostics.get_camera_health_status()
+
+
+@router.get("/api/diagnostics/camera/{camera_id}/errors", summary="Get camera error history")
+async def get_camera_errors(camera_id: str, limit: int = 10) -> Dict[str, Any]:
+    """Get error history for a specific camera.
+    
+    Args:
+        camera_id: ID of the camera
+        limit: Maximum number of errors to return
+        
+    Returns:
+        Error history and suggested fixes
+    """
+    errors = camera_diagnostics.get_camera_error_history(camera_id, limit)
+    suggestions = camera_diagnostics.suggest_fixes(camera_id)
+    
+    return {
+        "camera_id": camera_id,
+        "error_count": len(errors),
+        "errors": errors,
+        "suggestions": suggestions
+    }

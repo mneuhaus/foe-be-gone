@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 pt-0 pb-2 max-w-7xl">
+    <h1 class="text-3xl font-bold mb-6">Camera Diagnostics</h1>
+    
+    <div id="diagnosticsContent">
+        <div class="text-center py-8">
+            <span class="loading loading-spinner loading-lg"></span>
+            <p class="mt-4">Loading camera diagnostics...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+async function loadDiagnostics() {
+    try {
+        const response = await fetch('/detections/api/diagnostics/cameras');
+        const data = await response.json();
+        
+        let html = `
+            <div class="stats shadow w-full mb-6">
+                <div class="stat">
+                    <div class="stat-title">Total Cameras</div>
+                    <div class="stat-value">${data.total_cameras}</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-title">Healthy</div>
+                    <div class="stat-value text-success">${data.healthy_cameras}</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-title">Issues</div>
+                    <div class="stat-value text-error">${data.unhealthy_cameras}</div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        `;
+        
+        for (const camera of data.camera_details) {
+            const statusColor = camera.is_healthy ? 'success' : 'error';
+            const statusIcon = camera.is_healthy ? '✓' : '⚠';
+            
+            html += `
+                <div class="card bg-base-100 shadow-sm">
+                    <div class="card-body">
+                        <h3 class="card-title text-lg">
+                            ${camera.name}
+                            <span class="badge badge-${statusColor} badge-sm">${statusIcon}</span>
+                        </h3>
+                        <div class="text-sm space-y-1">
+                            <div class="flex justify-between">
+                                <span class="text-base-content/70">Status:</span>
+                                <span>${camera.status}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-base-content/70">Integration:</span>
+                                <span>${camera.integration}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-base-content/70">Recent Errors:</span>
+                                <span class="${camera.recent_error_count > 0 ? 'text-error' : 'text-success'}">
+                                    ${camera.recent_error_count}
+                                </span>
+                            </div>
+                        </div>
+                        ${camera.last_error ? `
+                            <div class="alert alert-error mt-3">
+                                <div>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <div>
+                                        <div class="text-xs font-medium">${camera.last_error.error_type}</div>
+                                        <div class="text-xs">${new Date(camera.last_error.timestamp).toLocaleString()}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                        ${!camera.is_healthy ? `
+                            <button onclick="showCameraErrors('${camera.id}', '${camera.name}')" 
+                                    class="btn btn-sm btn-outline btn-error mt-3">
+                                View Error Details
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        
+        if (data.unhealthy_cameras > 0) {
+            html += `
+                <div class="alert alert-warning mt-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    <span>${data.unhealthy_cameras} camera(s) are experiencing issues. Click "View Error Details" for troubleshooting suggestions.</span>
+                </div>
+            `;
+        }
+        
+        document.getElementById('diagnosticsContent').innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error loading diagnostics:', error);
+        document.getElementById('diagnosticsContent').innerHTML = `
+            <div class="alert alert-error">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>Failed to load diagnostics</span>
+            </div>
+        `;
+    }
+}
+
+async function showCameraErrors(cameraId, cameraName) {
+    try {
+        const response = await fetch(`/detections/api/diagnostics/camera/${cameraId}/errors?limit=20`);
+        const data = await response.json();
+        
+        let modalHtml = `
+            <dialog id="errorModal" class="modal modal-open">
+                <div class="modal-box max-w-3xl">
+                    <h3 class="font-bold text-lg mb-4">${cameraName} - Error Details</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="alert alert-info">
+                            <div>
+                                <h4 class="font-medium">Suggested Fixes:</h4>
+                                <ul class="list-disc list-inside mt-2 text-sm">
+                                    ${data.suggestions.map(s => `<li>${s}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-medium mb-2">Recent Errors (${data.error_count} total):</h4>
+                            <div class="overflow-x-auto">
+                                <table class="table table-sm table-zebra">
+                                    <thead>
+                                        <tr>
+                                            <th>Time</th>
+                                            <th>Error Type</th>
+                                            <th>Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.errors.map(err => `
+                                            <tr>
+                                                <td>${new Date(err.timestamp).toLocaleString()}</td>
+                                                <td><span class="badge badge-error badge-sm">${err.error_type}</span></td>
+                                                <td class="text-xs">${err.error_details}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-action">
+                        <button onclick="document.getElementById('errorModal').close()" class="btn">Close</button>
+                    </div>
+                </div>
+                <form method="dialog" class="modal-backdrop" onclick="document.getElementById('errorModal').close()">
+                    <button>close</button>
+                </form>
+            </dialog>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('errorModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add new modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+    } catch (error) {
+        console.error('Error loading camera errors:', error);
+        alert('Failed to load error details');
+    }
+}
+
+// Load diagnostics on page load
+loadDiagnostics();
+
+// Refresh every 30 seconds
+setInterval(loadDiagnostics, 30000);
+</script>
+{% endblock %}

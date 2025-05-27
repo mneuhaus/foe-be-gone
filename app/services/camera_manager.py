@@ -10,6 +10,7 @@ from app.models.device import Device
 from app.models.integration_instance import IntegrationInstance
 from app.integrations import get_integration_class
 from app.core.session import get_db_session
+from app.services.camera_diagnostics import camera_diagnostics
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,14 @@ class CameraManager:
                 
             except Exception as e:
                 logger.error(f"Error capturing snapshot from {camera_db.name}: {e}")
+                # Record error for diagnostics
+                error_type = "HTTP 500" if "500" in str(e) else type(e).__name__
+                camera_diagnostics.record_camera_error(
+                    camera_id=camera_db.id,
+                    camera_name=camera_db.name,
+                    error_type=error_type,
+                    error_details=str(e)
+                )
                 return None
     
     async def play_sound_on_camera(self, camera: Device, sound_file: Path) -> bool:
