@@ -95,4 +95,6 @@ jobs:
         args: |
           --${{ matrix.arch }} \
           --target /data/foe-be-gone \
-          --image ghcr.io/${{ github.repository_owner }}/{arch}-addon-foe-be-gone
+          --image "${{ steps.check.outputs.image }}" \
+          --docker-hub "ghcr.io/${{ github.repository_owner }}" \
+          --addon
