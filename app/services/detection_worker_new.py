@@ -204,10 +204,8 @@ class DetectionWorker:
                     # Camera playback might be async, wait for sound duration
                     await asyncio.sleep(sound_duration)
                 
-                # Now wait additional 10 seconds for deterrent to take effect
-                wait_time = 10
-                logger.info(f"Sound finished. Waiting {wait_time} seconds to check deterrent effectiveness...")
-                await asyncio.sleep(wait_time)
+                # Sound finished, check effectiveness immediately
+                logger.info(f"Sound finished. Checking deterrent effectiveness now...")
                 
                 # Take follow-up snapshot
                 logger.info(f"Taking follow-up snapshot to check effectiveness")
@@ -232,7 +230,7 @@ class DetectionWorker:
                         foes_before=initial_foes,
                         foes_after=follow_up_result.foes if follow_up_result.foes_detected else [],
                         follow_up_image_path=str(follow_up_path),
-                        wait_duration=sound_duration + wait_time  # Total time: sound + wait
+                        wait_duration=sound_duration  # Just the sound duration
                     )
                     
                     # Log result
