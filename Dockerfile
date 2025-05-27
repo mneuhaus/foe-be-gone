@@ -8,8 +8,12 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv for Python package management
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:${PATH}"
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    echo 'export PATH="/root/.local/bin:$PATH"' >> ~/.bashrc
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Verify uv installation
+RUN which uv && uv --version
 
 # Set working directory
 WORKDIR /app
