@@ -24,7 +24,7 @@ Foe Be Gone uses your existing security cameras to detect unwanted animals (like
 
 1. Add this repository to your Home Assistant add-on store:
    ```
-   https://github.com/yourusername/foe-be-gone-addon
+   https://github.com/mneuhaus/foe-be-gone
    ```
 
 2. Click "Install" on the Foe Be Gone add-on
@@ -55,7 +55,7 @@ log_level: INFO           # Logging verbosity
 
 ## Screenshot
 
-![Dashboard](https://raw.githubusercontent.com/yourusername/foe-be-gone/main/screenshots/dashboard.png)
+![Dashboard](https://raw.githubusercontent.com/mneuhaus/foe-be-gone/main/screenshots/dashboard.png)
 
 ## Support
 
