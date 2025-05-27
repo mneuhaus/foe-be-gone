@@ -27,6 +27,7 @@ jobs:
 
       - name: Get changed files
         id: changed_files
+        if: github.event_name != 'release'
         uses: jitterbit/get-changed-files@v1
 
       - name: Get changed add-ons
