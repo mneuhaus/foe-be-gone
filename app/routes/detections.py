@@ -47,7 +47,7 @@ async def diagnostics_page(request: Request):
     return templates.TemplateResponse(request, "diagnostics.html", context)
 
 
-@router.get("/", response_class=HTMLResponse, summary="Detections page", include_in_schema=False)
+@router.get("/", response_class=HTMLResponse, summary="Detections page", include_in_schema=False, name="view_detections")
 async def detections_page(
     request: Request,
     session: Session = Depends(get_session),

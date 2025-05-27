@@ -11,10 +11,10 @@
     
     
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="{{ static_url(request, '/static/css/main.css') }}">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="{{ static_url(request, '/public/favicon.ico') }}">
     
     {% block extra_head %}{% endblock %}
 </head>
@@ -30,31 +30,31 @@
                     </svg>
                 </div>
                 <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded z-[1] mt-3 w-52 p-2 shadow">
-                    <li><a href="/">Dashboard</a></li>
-                    <li><a href="/detections">Detections</a></li>
-                    <li><a href="/statistics">Statistics</a></li>
-                    <li><a href="/logs">Logs</a></li>
+                    <li><a href="{{ url_for(request, 'dashboard') }}">Dashboard</a></li>
+                    <li><a href="{{ url_for(request, 'view_detections') }}">Detections</a></li>
+                    <li><a href="{{ url_for(request, 'view_statistics') }}">Statistics</a></li>
+                    <li><a href="{{ url_for(request, 'view_logs') }}">Logs</a></li>
                     <li>
                         <a>Settings</a>
                         <ul class="p-2">
-                            <li><a href="/settings/">General</a></li>
-                            <li><a href="/settings/integrations">Integrations</a></li>
+                            <li><a href="{{ url_for(request, 'settings_general') }}">General</a></li>
+                            <li><a href="{{ url_for(request, 'settings_integrations') }}">Integrations</a></li>
                         </ul>
                     </li>
                 </ul>
             </div>
-            <a href="/" class="btn btn-ghost text-lg font-bold h-auto min-h-0 py-2">
-                <img src="/public/logo.jpg" alt="Foe Be Gone" class="w-7 h-7 rounded mr-2">
+            <a href="{{ url_for(request, 'dashboard') }}" class="btn btn-ghost text-lg font-bold h-auto min-h-0 py-2">
+                <img src="{{ static_url(request, '/public/logo.jpg') }}" alt="Foe Be Gone" class="w-7 h-7 rounded mr-2">
                 Foe Be Gone
             </a>
         </div>
         
         <div class="navbar-center hidden lg:flex">
             <ul class="menu menu-horizontal px-1">
-                <li><a href="/" class="{% if current_page == 'dashboard' %}btn-active{% endif %}">Dashboard</a></li>
-                <li><a href="/detections" class="{% if current_page == 'detections' %}btn-active{% endif %}">Detections</a></li>
-                <li><a href="/statistics" class="{% if current_page == 'statistics' %}btn-active{% endif %}">Statistics</a></li>
-                <li><a href="/logs" class="{% if current_page == 'logs' %}btn-active{% endif %}">Logs</a></li>
+                <li><a href="{{ url_for(request, 'dashboard') }}" class="{% if current_page == 'dashboard' %}btn-active{% endif %}">Dashboard</a></li>
+                <li><a href="{{ url_for(request, 'view_detections') }}" class="{% if current_page == 'detections' %}btn-active{% endif %}">Detections</a></li>
+                <li><a href="{{ url_for(request, 'view_statistics') }}" class="{% if current_page == 'statistics' %}btn-active{% endif %}">Statistics</a></li>
+                <li><a href="{{ url_for(request, 'view_logs') }}" class="{% if current_page == 'logs' %}btn-active{% endif %}">Logs</a></li>
             </ul>
         </div>
         
@@ -68,9 +68,9 @@
                     </svg>
                 </div>
                 <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded z-[1] w-48 p-2 shadow">
-                    <li><a href="/settings/">General</a></li>
-                    <li><a href="/settings/integrations">Integrations</a></li>
-                    <li><a href="/logs">System Logs</a></li>
+                    <li><a href="{{ url_for(request, 'settings_general') }}">General</a></li>
+                    <li><a href="{{ url_for(request, 'settings_integrations') }}">Integrations</a></li>
+                    <li><a href="{{ url_for(request, 'view_logs') }}">System Logs</a></li>
                 </ul>
             </div>
         </div>

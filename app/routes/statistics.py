@@ -17,7 +17,7 @@ router = APIRouter(prefix="/statistics", tags=["statistics"])
 templates = Jinja2Templates(directory="app/templates")
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse, name="view_statistics")
 async def statistics_page(
     request: Request,
     session: Session = Depends(get_session)

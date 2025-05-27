@@ -44,7 +44,7 @@ def set_setting_value(session: Session, key: str, value: str) -> None:
     session.commit()
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse, name="settings_general")
 async def general_settings_page(
     request: Request,
     session: Session = Depends(get_session)
@@ -85,7 +85,7 @@ async def update_general_settings(
     return RedirectResponse(url="/settings/", status_code=303)
 
 
-@router.get("/integrations", response_class=HTMLResponse)
+@router.get("/integrations", response_class=HTMLResponse, name="settings_integrations")
 async def integrations_page(
     request: Request, 
     session: Session = Depends(get_session)

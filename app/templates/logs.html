@@ -135,6 +135,16 @@
 
 {% block scripts %}
 <script>
+// Get base URL for API calls
+const BASE_URL = '{{ get_base_url(request) }}';
+
+function apiUrl(path) {
+    // Ensure path starts with /
+    if (!path.startsWith('/')) {
+        path = '/' + path;
+    }
+    return BASE_URL + path;
+}
 let autoRefresh = false;
 let refreshInterval = null;
 let currentOffset = 0;
@@ -193,7 +203,7 @@ async function loadLogs() {
     if (search) params.append('search', search);
     
     try {
-        const response = await fetch(`/api/logs?${params}`);
+        const response = await fetch(apiUrl(`/api/logs?${params}`));
         const data = await response.json();
         
         const logContent = document.getElementById('logContent');
@@ -274,7 +284,7 @@ document.getElementById('clearBtn').addEventListener('click', async function() {
     if (!confirm('Are you sure you want to clear all logs?')) return;
     
     try {
-        const response = await fetch('/api/logs', { method: 'DELETE' });
+        const response = await fetch(apiUrl('/api/logs'), { method: 'DELETE' });
         const data = await response.json();
         
         if (response.ok) {

@@ -11,14 +11,14 @@ from fastapi import APIRouter, Request, Query, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
-router = APIRouter()
+router = APIRouter(tags=["logs"])
 templates = Jinja2Templates(directory="app/templates")
 
 LOG_FILE_PATH = Path("/data/logs/foe_be_gone.log") if os.path.exists("/data") else Path("logs/foe_be_gone.log")
 MAX_LINES = 1000  # Maximum lines to return at once
 
 
-@router.get("/logs", response_class=HTMLResponse)
+@router.get("/logs", response_class=HTMLResponse, name="view_logs")
 async def view_logs(
     request: Request,
     lines: int = Query(100, ge=10, le=MAX_LINES, description="Number of lines to show"),
@@ -39,7 +39,7 @@ async def view_logs(
     )
 
 
-@router.get("/api/logs")
+@router.get("/api/logs", tags=["logs"])
 async def get_logs(
     lines: int = Query(100, ge=10, le=MAX_LINES),
     level: Optional[str] = Query(None),

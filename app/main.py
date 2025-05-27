@@ -124,6 +124,12 @@ app.mount("/data", StaticFiles(directory="data"), name="data")
 # Initialize Jinja2 templates
 templates = Jinja2Templates(directory="app/templates")
 
+# Add URL helpers to template globals
+from app.core.url_helpers import url_for, static_url, get_base_url
+templates.env.globals["url_for"] = url_for
+templates.env.globals["static_url"] = static_url
+templates.env.globals["get_base_url"] = get_base_url
+
 # Include routers
 app.include_router(settings.router)
 app.include_router(integrations.router)
@@ -141,7 +147,7 @@ async def api_docs_redirect():
 # Note: Database creation is now handled in the lifespan context manager
 
 
-@app.get("/", response_class=HTMLResponse, tags=["dashboard"], summary="Main dashboard")
+@app.get("/", response_class=HTMLResponse, tags=["dashboard"], summary="Main dashboard", name="dashboard")
 async def dashboard(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
     """Dashboard page with system overview.
     
