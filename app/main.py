@@ -11,7 +11,6 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request, Depends
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from sqlmodel import Session, select
 
@@ -121,14 +120,8 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.mount("/public", StaticFiles(directory="public"), name="public")
 app.mount("/data", StaticFiles(directory="data"), name="data")
 
-# Initialize Jinja2 templates
-templates = Jinja2Templates(directory="app/templates")
-
-# Add URL helpers to template globals
-from app.core.url_helpers import url_for, static_url, get_base_url
-templates.env.globals["url_for"] = url_for
-templates.env.globals["static_url"] = static_url
-templates.env.globals["get_base_url"] = get_base_url
+# Import shared templates
+from app.core.templates import templates
 
 # Include routers
 app.include_router(settings.router)

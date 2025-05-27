@@ -2,17 +2,16 @@
 
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_session
+from app.core.templates import templates
 from app.models.integration_instance import IntegrationInstance
 from app.models.device import Device
 from app.models.setting import Setting
 
 router = APIRouter(prefix="/settings", tags=["settings"])
-templates = Jinja2Templates(directory="app/templates")
 
 # Define default settings structure
 DEFAULT_SETTINGS = {

@@ -3,18 +3,17 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, and_
 
 from app.core.database import get_session
+from app.core.templates import templates
 from app.models.detection import Detection, Foe, DetectionStatus
 from app.models.sound_effectiveness import SoundEffectiveness, SoundStatistics
 from app.models.device import Device
 from app.services.statistics_service import StatisticsService
 
 router = APIRouter(prefix="/statistics", tags=["statistics"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/", response_class=HTMLResponse, name="view_statistics")

@@ -7,12 +7,12 @@ from typing import Optional, Dict, Any, List
 
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
-from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select, delete
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_session
+from app.core.templates import templates
 from app.models.detection import Detection, Foe
 from app.models.device import Device
 from app.services.detection_worker import detection_worker
@@ -23,7 +23,6 @@ from app.models.setting import Setting
 from app.models.sound_effectiveness import SoundEffectiveness
 
 router = APIRouter(prefix="/detections", tags=["detections"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 class IntervalUpdate(BaseModel):

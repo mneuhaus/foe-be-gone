@@ -9,10 +9,10 @@ from datetime import datetime
 
 from fastapi import APIRouter, Request, Query, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
+
+from app.core.templates import templates
 
 router = APIRouter(tags=["logs"])
-templates = Jinja2Templates(directory="app/templates")
 
 LOG_FILE_PATH = Path("/data/logs/foe_be_gone.log") if os.path.exists("/data") else Path("logs/foe_be_gone.log")
 MAX_LINES = 1000  # Maximum lines to return at once
