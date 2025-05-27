@@ -132,8 +132,12 @@ class DetectionWorker:
             else:
                 logger.warning(f"Video capture not available for {camera.name}")
             
-            # Store initial foe data for effectiveness tracking
-            initial_foes = detection.foes.copy() if detection.foes else []
+            # Store initial foe data for effectiveness tracking - get from fresh session
+            initial_foes = []
+            with get_db_session() as foe_session:
+                fresh_detection = foe_session.get(Detection, detection.id)
+                if fresh_detection and fresh_detection.foes:
+                    initial_foes = [foe for foe in fresh_detection.foes]
             
             # Play deterrent sound
             played_sounds = []

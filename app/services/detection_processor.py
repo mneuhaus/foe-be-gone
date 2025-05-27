@@ -249,11 +249,22 @@ class DetectionProcessor:
     
     def get_primary_foe_type(self, detection: Detection) -> Optional[str]:
         """Get the primary foe type from a detection (highest confidence)."""
-        if not detection.foes:
+        # Handle detached objects by getting fresh data from session
+        try:
+            if not detection.foes:
+                # Try to get fresh detection with foes if object is detached
+                with get_db_session() as session:
+                    fresh_detection = session.get(Detection, detection.id)
+                    if not fresh_detection or not fresh_detection.foes:
+                        return None
+                    primary_foe = max(fresh_detection.foes, key=lambda f: f.confidence)
+                    return primary_foe.foe_type.value
+            else:
+                primary_foe = max(detection.foes, key=lambda f: f.confidence)
+                return primary_foe.foe_type.value
+        except Exception as e:
+            logger.error(f"Error getting primary foe type: {e}")
             return None
-            
-        primary_foe = max(detection.foes, key=lambda f: f.confidence)
-        return primary_foe.foe_type.value
     
     def record_deterrent_action(self, detection_id: int, action_type: str, success: bool, details: Optional[str] = None):
         """Record a deterrent action taken for a detection."""

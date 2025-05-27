@@ -363,14 +363,32 @@ const detectionData = {};
 try {
     detectionData[{{ detection.id }}] = {
         id: {{ detection.id }},
-        device: {{ detection.device | tojson | safe if detection.device else 'null' }},
+        device: {
+            id: "{{ detection.device.id if detection.device else '' }}",
+            name: "{{ detection.device.name if detection.device else 'Unknown Camera' }}"
+        },
         timestamp: "{{ detection.timestamp.isoformat() if detection.timestamp else '' }}",
         status: "{{ detection.status }}",
         image_path: {{ ("'" + detection.image_path + "'") | safe if detection.image_path else 'null' }},
         video_path: {{ ("'" + detection.video_path + "'") | safe if detection.video_path else 'null' }},
-        foes: {{ detection.foes | tojson | safe if detection.foes else '[]' }},
+        foes: [
+            {% for foe in detection.foes %}
+            {
+                foe_type: "{{ foe.foe_type }}",
+                confidence: {{ foe.confidence }},
+                description: "{{ foe.description or '' }}"
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ],
         played_sounds: {{ detection.played_sounds | tojson | safe if detection.played_sounds else '[]' }},
-        effectiveness: {{ detection.effectiveness | tojson | safe if detection.effectiveness else 'null' }},
+        effectiveness: {% if detection.effectiveness %}{
+            result: "{{ detection.effectiveness.result or '' }}",
+            sound_file: "{{ detection.effectiveness.sound_file or '' }}",
+            effectiveness_score: {{ detection.effectiveness.effectiveness_score or 0 }},
+            foes_before: {{ detection.effectiveness.foes_before or 0 }},
+            foes_after: {{ detection.effectiveness.foes_after or 0 }},
+            playback_method: "{{ detection.effectiveness.playback_method or '' }}"
+        }{% else %}null{% endif %},
         ai_cost_usd: {{ detection.ai_cost_usd if detection.ai_cost_usd else 'null' }},
         ai_response: {{ detection.ai_response | tojson | safe if detection.ai_response else 'null' }}
     };
