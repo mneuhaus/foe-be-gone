@@ -1,0 +1,58 @@
+# Git files
+.git
+.gitignore
+.github
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+dist
+build
+
+# Virtual environments
+venv
+env
+ENV
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Documentation
+docs
+*.md
+!README.md
+
+# Test files
+tests
+.pytest_cache
+.coverage
+htmlcov
+
+# Development files
+.env
+.env.*
+*.log
+
+# Data files (these are mounted as volumes)
+data
+*.db
+
+# Home Assistant addon files (built separately)
+addon
+
+# macOS
+.DS_Store
+
+# Temporary files
+tmp
+temp
+*.tmp
+*.temp

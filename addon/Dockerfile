@@ -1,8 +1,9 @@
+# syntax=docker/dockerfile:1
 # Multi-architecture support with Home Assistant base images
 ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
-# Install Python and system dependencies
+# Install Python and system dependencies (least likely to change)
 RUN apk add --no-cache \
     python3 \
     py3-pip \
@@ -22,15 +23,18 @@ ENV PATH="/root/.local/bin:${PATH}"
 # Set up Python environment
 WORKDIR /app
 
-# Copy application files
-COPY pyproject.toml /app/
-COPY app /app/app
-COPY alembic.ini /app/
-COPY alembic /app/alembic
-COPY public /app/public
+# Copy only dependency files first (for better caching)
+COPY pyproject.toml ./
 
-# Install Python dependencies
-RUN uv pip install --system -e .
+# Install Python dependencies with cache mount
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --system -e .
+
+# Copy application code (most likely to change)
+COPY alembic.ini ./
+COPY alembic ./alembic
+COPY app ./app
+COPY public ./public
 
 # Create necessary directories
 RUN mkdir -p /data /config /media/sounds data/snapshots

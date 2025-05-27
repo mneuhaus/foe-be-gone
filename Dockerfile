@@ -1,10 +1,12 @@
+# syntax=docker/dockerfile:1
 # Standalone Dockerfile for running outside Home Assistant
 FROM python:3.11-slim
 
-# Install system dependencies
+# Install system dependencies (least likely to change)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv for Python package management
@@ -18,14 +20,20 @@ RUN which uv && uv --version
 # Set working directory
 WORKDIR /app
 
-# Copy requirements first for better caching
-COPY pyproject.toml uv.lock* ./
+# Copy only dependency files first (most important for caching)
+COPY pyproject.toml ./
+COPY uv.lock* ./
 
-# Install Python dependencies
-RUN uv pip install --system -r pyproject.toml
+# Install Python dependencies with cache mount for uv
+# This caches downloaded packages between builds
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --system -r pyproject.toml
 
-# Copy application code
-COPY . .
+# Copy application code (most likely to change)
+COPY alembic.ini ./
+COPY alembic ./alembic
+COPY app ./app
+COPY public ./public
 
 # Create necessary directories
 RUN mkdir -p /data/snapshots /data/videos /data/sounds
