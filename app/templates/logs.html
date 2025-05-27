@@ -208,10 +208,13 @@ async function loadLogs() {
         document.getElementById('logStats').textContent = 
             `Showing ${data.logs.length} of ${data.total} log entries`;
         
-        // Scroll to bottom if auto-refresh is on
-        if (autoRefresh) {
-            const container = document.getElementById('logContainer');
-            container.scrollTop = container.scrollHeight;
+        // Scroll to bottom to show most recent logs
+        // Do this on initial load or when auto-refresh is on
+        if (autoRefresh || currentOffset === 0) {
+            setTimeout(() => {
+                const container = document.getElementById('logContainer');
+                container.scrollTop = container.scrollHeight;
+            }, 100);
         }
     } catch (error) {
         console.error('Error loading logs:', error);

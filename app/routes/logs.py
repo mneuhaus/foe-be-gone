@@ -100,12 +100,16 @@ async def get_logs(
                 or search_lower in e.get("raw", "").lower()
             ]
         
-        # Reverse to show newest first
-        log_entries.reverse()
-        
-        # Apply pagination
+        # Keep chronological order (oldest first)
         total = len(log_entries)
-        log_entries = log_entries[offset:offset + lines]
+        
+        # Get the last N entries to show most recent logs
+        if offset == 0 and len(log_entries) > lines:
+            # When not paginating, show the most recent entries
+            log_entries = log_entries[-lines:]
+        else:
+            # Apply normal pagination
+            log_entries = log_entries[offset:offset + lines]
         
         return {
             "logs": log_entries,
