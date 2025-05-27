@@ -1,6 +1,6 @@
 name: "Foe Be Gone"
 description: "AI-powered wildlife detection and deterrent system"
-version: "2.0.20"
+version: "2.0.25"
 slug: "foe-be-gone"
 init: false
 arch:
@@ -35,4 +35,4 @@ environment:
   VIDEO_PATH: "/share/foe-be-gone/videos"
   SOUND_PATH: "/share/foe-be-gone/sounds"
   DATABASE_URL: "sqlite:///data/foe_be_gone.db"
-image: "{arch}-addon-foe-be-gone"
+image: "ghcr.io/mneuhaus/{arch}-addon-foe-be-gone"
