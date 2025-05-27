@@ -1,20 +1,15 @@
 #!/usr/bin/env bashio
 
-# Get configuration from Home Assistant
-export OPENAI_API_KEY=$(bashio::config 'openai_api_key')
-export DETECTION_INTERVAL=$(bashio::config 'detection_interval')
-export MIN_FOE_CONFIDENCE=$(bashio::config 'min_foe_confidence')
-export ENABLE_DETERRENT=$(bashio::config 'enable_deterrent')
-export DETERRENT_DURATION=$(bashio::config 'deterrent_duration')
-export ENABLE_NOTIFICATIONS=$(bashio::config 'enable_notifications')
-export LOG_LEVEL=$(bashio::config 'log_level')
-
 # Home Assistant specific paths
 export DATA_PATH="/data"
 export SNAPSHOT_PATH="/data/snapshots"
 export VIDEO_PATH="/data/videos"
 export SOUND_PATH="/media/sounds"
 export DATABASE_URL="sqlite:///${DATA_PATH}/foe_be_gone.db"
+
+# Get configuration from Home Assistant (as fallbacks for database settings)
+export OPENAI_API_KEY=$(bashio::config 'openai_api_key' '')
+export LOG_LEVEL=$(bashio::config 'log_level' 'INFO')
 
 # Ingress configuration
 export INGRESS_ENTRY=$(bashio::addon.ingress_entry)
@@ -28,10 +23,12 @@ fi
 
 # Log startup info
 bashio::log.info "Starting Foe Be Gone..."
-bashio::log.info "OpenAI API Key: ${OPENAI_API_KEY:0:10}..."
-bashio::log.info "Detection Interval: ${DETECTION_INTERVAL}s"
-bashio::log.info "Min Confidence: ${MIN_FOE_CONFIDENCE}"
-bashio::log.info "Deterrent Enabled: ${ENABLE_DETERRENT}"
+if [ -n "${OPENAI_API_KEY}" ]; then
+    bashio::log.info "OpenAI API Key: ${OPENAI_API_KEY:0:10}... (from HA config)"
+else
+    bashio::log.info "OpenAI API Key: Will be configured via web interface"
+fi
+bashio::log.info "Log Level: ${LOG_LEVEL}"
 bashio::log.info "Ingress URL: ${INGRESS_ENTRY}"
 
 # Run database migrations

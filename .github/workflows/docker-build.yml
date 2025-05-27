@@ -1,12 +1,12 @@
 name: Build and Push Docker Images
 
-#on:
-#  push:
-#    branches: [ main ]
-#  pull_request:
-#    branches: [ main ]
-#  release:
-#    types: [ published ]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
 
 env:
   REGISTRY: ghcr.io
@@ -49,8 +49,8 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: .
-        file: ./addon/Dockerfile
-        platforms: linux/amd64,linux/arm64,linux/arm/v7
+        file: ./Dockerfile
+        platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
