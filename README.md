@@ -102,14 +102,12 @@ Sounds are automatically included, but you can customize:
 git clone https://github.com/mneuhaus/foe-be-gone.git
 cd foe-be-gone
 
-# Copy environment file
-cp .env.example .env
-
-# Edit .env with your settings
-nano .env
-
 # Start with Docker Compose
 docker-compose up -d
+
+# Configure via web interface
+# Open http://localhost:8000 and go to Settings > General
+# Add your OpenAI API key and adjust other settings as needed
 ```
 
 ### Manual Installation

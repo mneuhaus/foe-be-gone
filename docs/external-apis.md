@@ -453,7 +453,7 @@ UNIFI_PROTECT_API_KEY=your-unifi-api-key
 
 ### Local Development
 
-1. Set up environment variables in `.env.local`
+1. Configure API keys via the web interface (Settings > General)
 2. Use test API keys where available
 3. Mock external services for faster development
 
