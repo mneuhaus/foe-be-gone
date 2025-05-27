@@ -23,7 +23,7 @@ COPY pyproject.toml ./
 COPY uv.lock* ./
 
 # Install Python dependencies
-RUN uv pip install --system -r pyproject.toml
+RUN uv pip install --system --break-system-packages -r pyproject.toml
 
 # Copy application code
 COPY alembic.ini ./
