@@ -11,8 +11,6 @@ mkdir -p test-data test-share/foe-be-gone/{snapshots,videos,sounds}
 # Create test options.json
 cat > test-data/options.json << EOF
 {
-  "openai_api_key": "${OPENAI_API_KEY:-test-key}",
-  "openai_model": "gpt-4o-mini",
   "capture_all_snapshots": false,
   "phash_threshold": 15
 }

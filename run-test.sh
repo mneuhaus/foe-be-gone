@@ -3,15 +3,11 @@
 
 # Read config from options.json
 if [ -f /data/options.json ]; then
-    OPENAI_API_KEY=$(cat /data/options.json | grep -o '"openai_api_key"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\(.*\)"/\1/')
-    OPENAI_MODEL=$(cat /data/options.json | grep -o '"openai_model"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\(.*\)"/\1/')
     CAPTURE_ALL_SNAPSHOTS=$(cat /data/options.json | grep -o '"capture_all_snapshots"[[:space:]]*:[[:space:]]*[^,}]*' | sed 's/.*:[[:space:]]*//')
     PHASH_THRESHOLD=$(cat /data/options.json | grep -o '"phash_threshold"[[:space:]]*:[[:space:]]*[^,}]*' | sed 's/.*:[[:space:]]*//')
 fi
 
 # Set environment variables
-export OPENAI_API_KEY="${OPENAI_API_KEY}"
-export OPENAI_MODEL="${OPENAI_MODEL}"
 export CAPTURE_ALL_SNAPSHOTS="${CAPTURE_ALL_SNAPSHOTS}"
 export PHASH_THRESHOLD="${PHASH_THRESHOLD}"
 
@@ -28,7 +24,6 @@ chmod 777 /data  # Ensure write permissions for testing
 
 # Log configuration
 echo "Starting Foe Be Gone..."
-echo "OpenAI Model: ${OPENAI_MODEL}"
 echo "Capture All Snapshots: ${CAPTURE_ALL_SNAPSHOTS}"
 echo "pHash Threshold: ${PHASH_THRESHOLD}"
 echo "Database URL: ${DATABASE_URL}"

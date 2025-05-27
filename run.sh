@@ -8,14 +8,11 @@
 CONFIG_PATH=/data/options.json
 
 # Get configuration from Home Assistant
-OPENAI_API_KEY=$(bashio::config 'openai_api_key')
-OPENAI_MODEL=$(bashio::config 'openai_model')
+# Note: OpenAI settings are managed through the web interface, not addon config
 CAPTURE_ALL_SNAPSHOTS=$(bashio::config 'capture_all_snapshots')
 PHASH_THRESHOLD=$(bashio::config 'phash_threshold')
 
 # Set environment variables
-export OPENAI_API_KEY="${OPENAI_API_KEY}"
-export OPENAI_MODEL="${OPENAI_MODEL}"
 export CAPTURE_ALL_SNAPSHOTS="${CAPTURE_ALL_SNAPSHOTS}"
 export PHASH_THRESHOLD="${PHASH_THRESHOLD}"
 
@@ -31,7 +28,6 @@ mkdir -p "${SNAPSHOT_PATH}" "${VIDEO_PATH}" "${SOUND_PATH}"
 
 # Log configuration
 bashio::log.info "Starting Foe Be Gone..."
-bashio::log.info "OpenAI Model: ${OPENAI_MODEL}"
 bashio::log.info "Capture All Snapshots: ${CAPTURE_ALL_SNAPSHOTS}"
 bashio::log.info "pHash Threshold: ${PHASH_THRESHOLD}"
 

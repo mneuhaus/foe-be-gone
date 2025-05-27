@@ -9,8 +9,8 @@ from pathlib import Path
 class Config:
     """Application configuration with environment variable validation."""
     
-    # Required environment variables for AI integration
-    OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
+    # OpenAI API key is managed through frontend settings, not environment variables
+    # OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
     
     # Optional environment variables with defaults
     DATABASE_URL: str = os.getenv("DATABASE_URL", "")
@@ -65,10 +65,6 @@ class Config:
         
         # Log successful validation
         print(f"Configuration validated successfully")
-        if cls.OPENAI_API_KEY:
-            print(f"  - OpenAI API key: {'*' * 8}{cls.OPENAI_API_KEY[-4:]}")
-        else:
-            print(f"  - OpenAI API key: Not set (configure in settings)")
         print(f"  - Database URL: {cls.DATABASE_URL or 'Using default SQLite'}")
         print(f"  - Log level: {cls.LOG_LEVEL}")
 
