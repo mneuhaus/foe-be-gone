@@ -34,14 +34,15 @@ def live_server_url():
     env["DATABASE_URL"] = f"sqlite:///{test_db}"
     
     # Run migrations
-    subprocess.run(["alembic", "upgrade", "head"], env=env, check=True)
+    subprocess.run(["uv", "run", "alembic", "upgrade", "head"], env=env, check=True)
     
     # Start the server
     process = subprocess.Popen(
-        ["uvicorn", "app.main:app", "--port", str(port)],
+        ["uv", "run", "uvicorn", "app.main:app", "--port", str(port), "--log-level", "debug"],
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        env=env
+        stderr=subprocess.STDOUT,  # Combine stdout and stderr
+        env=env,
+        text=True
     )
     
     # Give the server time to start
@@ -51,6 +52,15 @@ def live_server_url():
     
     # Cleanup
     process.terminate()
+    
+    # Print server output for debugging
+    if process.stdout:
+        output = process.stdout.read()
+        if output:
+            print("\n=== Server Output ===")
+            print(output)
+            print("===================\n")
+    
     process.wait()
     
     # Remove test database
@@ -75,6 +85,18 @@ def clean_db():
     with Session(engine) as session:
         # Delete all data from tables in reverse dependency order
         try:
+            session.exec(text("DELETE FROM sound_effectiveness"))
+        except:
+            pass  # Table might not exist
+        try:
+            session.exec(text("DELETE FROM sound_statistics"))
+        except:
+            pass  # Table might not exist
+        try:
+            session.exec(text("DELETE FROM time_based_effectiveness"))
+        except:
+            pass  # Table might not exist
+        try:
             session.exec(text("DELETE FROM deterrent_actions"))
         except:
             pass  # Table might not exist
@@ -88,6 +110,7 @@ def clean_db():
             pass  # Table might not exist
         session.exec(text("DELETE FROM devices"))
         session.exec(text("DELETE FROM integration_instances"))
+        session.exec(text("DELETE FROM settings"))
         session.commit()
     
     yield

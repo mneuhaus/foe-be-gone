@@ -1,10 +1,11 @@
-"""Service for aggregating and analyzing detection statistics."""
+"""Service for aggregating and analyzing detection statistics - Fixed version."""
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 from collections import defaultdict
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc, and_, or_, case
+from sqlalchemy import func, desc, and_, or_, case, text
+from sqlmodel import select, col
 
 from app.models.detection import Detection, Foe, DetectionStatus
 from app.models.sound_effectiveness import SoundEffectiveness, SoundStatistics
@@ -22,48 +23,55 @@ class StatisticsService:
     def get_overview_stats(self) -> Dict[str, Any]:
         """Get high-level overview statistics."""
         # Total detections
-        total_detections = self.session.query(Detection).count()
+        total_detections = len(self.session.exec(select(Detection)).all())
         
         # Detections with successful deterrents
-        successful_deterrents = self.session.query(Detection).filter(
-            Detection.deterrent_effective == True
-        ).count()
+        successful_deterrents = len(self.session.exec(
+            select(Detection).where(Detection.deterrent_effective == True)
+        ).all())
         
         # Overall success rate
         success_rate = (successful_deterrents / total_detections * 100) if total_detections > 0 else 0
         
         # Detections today
         today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        detections_today = self.session.query(Detection).filter(
-            Detection.created_at >= today_start
-        ).count()
+        detections_today = len(self.session.exec(
+            select(Detection).where(Detection.created_at >= today_start)
+        ).all())
         
-        # Most common foe
-        most_common_foe = self.session.query(
-            Detection.detected_foe,
-            func.count(Detection.id).label('count')
-        ).filter(
-            Detection.detected_foe != None
-        ).group_by(Detection.detected_foe).order_by(desc('count')).first()
+        # Most common foe - using raw SQL for aggregation
+        result = self.session.execute(
+            text("""
+            SELECT detected_foe, COUNT(*) as count
+            FROM detections
+            WHERE detected_foe IS NOT NULL
+            GROUP BY detected_foe
+            ORDER BY count DESC
+            LIMIT 1
+            """)
+        ).first()
+        
+        most_common_foe = result[0] if result else None
+        most_common_foe_count = result[1] if result else 0
         
         # Active cameras
-        active_cameras = self.session.query(Device).filter(
-            Device.status == "online"
-        ).count()
+        active_cameras = len(self.session.exec(
+            select(Device).where(Device.status == "online")
+        ).all())
         
-        # Friend vs foe ratio (we'll determine friends based on non-foe detections)
+        # Friend vs foe ratio
         friend_detections = self._get_friend_detections_count()
-        foe_detections = self.session.query(Detection).filter(
-            Detection.detected_foe != None
-        ).count()
+        foe_detections = len(self.session.exec(
+            select(Detection).where(Detection.detected_foe != None)
+        ).all())
         
         return {
             "total_detections": total_detections,
             "successful_deterrents": successful_deterrents,
             "success_rate": round(success_rate, 1),
             "detections_today": detections_today,
-            "most_common_foe": most_common_foe[0] if most_common_foe else None,
-            "most_common_foe_count": most_common_foe[1] if most_common_foe else 0,
+            "most_common_foe": most_common_foe,
+            "most_common_foe_count": most_common_foe_count,
             "active_cameras": active_cameras,
             "friend_detections": friend_detections,
             "foe_detections": foe_detections,
@@ -74,16 +82,21 @@ class StatisticsService:
         """Get daily detection and success trends."""
         start_date = datetime.now() - timedelta(days=days)
         
-        # Daily detections and successes
-        daily_stats = self.session.query(
-            func.date(Detection.created_at).label('date'),
-            func.count(Detection.id).label('total'),
-            func.sum(case((Detection.deterrent_effective == True, 1), else_=0)).label('successful'),
-            func.sum(case((Detection.detected_foe != None, 1), else_=0)).label('foes'),
-            func.sum(case((Detection.detected_foe == None, 1), else_=0)).label('friends')
-        ).filter(
-            Detection.created_at >= start_date
-        ).group_by(func.date(Detection.created_at)).all()
+        # Use raw SQL for complex aggregation
+        daily_stats = self.session.execute(
+            text(f"""
+            SELECT 
+                DATE(created_at) as date,
+                COUNT(*) as total,
+                SUM(CASE WHEN deterrent_effective = 1 THEN 1 ELSE 0 END) as successful,
+                SUM(CASE WHEN detected_foe IS NOT NULL THEN 1 ELSE 0 END) as foes,
+                SUM(CASE WHEN detected_foe IS NULL THEN 1 ELSE 0 END) as friends
+            FROM detections
+            WHERE created_at >= '{start_date.isoformat()}'
+            GROUP BY DATE(created_at)
+            ORDER BY date
+            """)
+        ).all()
         
         dates = []
         totals = []
@@ -93,12 +106,12 @@ class StatisticsService:
         success_rates = []
         
         for stat in daily_stats:
-            dates.append(stat.date.strftime('%Y-%m-%d'))
-            totals.append(stat.total)
-            successes.append(stat.successful or 0)
-            foes.append(stat.foes or 0)
-            friends.append(stat.friends or 0)
-            success_rate = (stat.successful / stat.foes * 100) if stat.foes > 0 else 0
+            dates.append(stat[0])
+            totals.append(stat[1])
+            successes.append(stat[2] or 0)
+            foes.append(stat[3] or 0)
+            friends.append(stat[4] or 0)
+            success_rate = (stat[2] / stat[3] * 100) if stat[3] > 0 else 0
             success_rates.append(round(success_rate, 1))
         
         return {
@@ -112,13 +125,19 @@ class StatisticsService:
     
     def get_hourly_patterns(self) -> Dict[str, Any]:
         """Get hourly activity patterns."""
-        # Activity by hour
-        hourly_stats = self.session.query(
-            func.extract('hour', Detection.created_at).label('hour'),
-            func.count(Detection.id).label('total'),
-            func.sum(case((Detection.detected_foe != None, 1), else_=0)).label('foes'),
-            func.sum(case((Detection.detected_foe == None, 1), else_=0)).label('friends')
-        ).group_by(func.extract('hour', Detection.created_at)).all()
+        # Activity by hour using raw SQL
+        hourly_stats = self.session.execute(
+            text("""
+            SELECT 
+                CAST(strftime('%H', created_at) AS INTEGER) as hour,
+                COUNT(*) as total,
+                SUM(CASE WHEN detected_foe IS NOT NULL THEN 1 ELSE 0 END) as foes,
+                SUM(CASE WHEN detected_foe IS NULL THEN 1 ELSE 0 END) as friends
+            FROM detections
+            GROUP BY hour
+            ORDER BY hour
+            """)
+        ).all()
         
         hours = list(range(24))
         totals = [0] * 24
@@ -126,10 +145,10 @@ class StatisticsService:
         friends = [0] * 24
         
         for stat in hourly_stats:
-            hour = int(stat.hour)
-            totals[hour] = stat.total
-            foes[hour] = stat.foes or 0
-            friends[hour] = stat.friends or 0
+            hour = int(stat[0])
+            totals[hour] = stat[1]
+            foes[hour] = stat[2] or 0
+            friends[hour] = stat[3] or 0
         
         # Find peak hours
         peak_foe_hour = hours[foes.index(max(foes))] if max(foes) > 0 else None
@@ -147,27 +166,17 @@ class StatisticsService:
     def get_sound_effectiveness_rankings(self) -> Dict[str, Any]:
         """Get comprehensive sound effectiveness rankings."""
         # Overall sound effectiveness
-        overall_rankings = self.session.query(
-            SoundStatistics.sound_file,
-            SoundStatistics.times_played,
-            SoundStatistics.times_effective,
-            SoundStatistics.effectiveness_rate,
-            func.avg(SoundStatistics.effectiveness_rate).label('avg_effectiveness')
-        ).group_by(
-            SoundStatistics.sound_file
-        ).order_by(desc('avg_effectiveness')).limit(10).all()
+        overall_rankings = self.session.exec(
+            select(SoundStatistics)
+            .order_by(col(SoundStatistics.success_rate).desc())
+            .limit(10)
+        ).all()
         
         # Per-foe effectiveness
-        per_foe_stats = self.session.query(
-            SoundStatistics.foe_type,
-            SoundStatistics.sound_file,
-            SoundStatistics.effectiveness_rate,
-            SoundStatistics.times_played
-        ).filter(
-            SoundStatistics.times_played >= 3  # Only sounds tested at least 3 times
-        ).order_by(
-            SoundStatistics.foe_type,
-            desc(SoundStatistics.effectiveness_rate)
+        per_foe_stats = self.session.exec(
+            select(SoundStatistics)
+            .where(SoundStatistics.total_uses >= 3)
+            .order_by(SoundStatistics.foe_type, col(SoundStatistics.success_rate).desc())
         ).all()
         
         # Group by foe type
@@ -175,8 +184,8 @@ class StatisticsService:
         for stat in per_foe_stats:
             foe_sound_rankings[stat.foe_type].append({
                 "sound": stat.sound_file,
-                "effectiveness": round(stat.effectiveness_rate, 1),
-                "times_played": stat.times_played
+                "effectiveness": round(stat.success_rate, 1),
+                "total_uses": stat.total_uses
             })
         
         # Sounds needing more testing
@@ -186,9 +195,9 @@ class StatisticsService:
             "overall_rankings": [
                 {
                     "sound": r.sound_file,
-                    "times_played": r.times_played,
-                    "times_effective": r.times_effective,
-                    "effectiveness": round(r.avg_effectiveness, 1)
+                    "total_uses": r.total_uses,
+                    "successful_uses": r.successful_uses,
+                    "effectiveness": round(r.success_rate, 1)
                 }
                 for r in overall_rankings
             ],
@@ -198,22 +207,26 @@ class StatisticsService:
     
     def get_foe_analytics(self) -> Dict[str, Any]:
         """Get detailed foe behavior analytics."""
-        # Foe frequency
-        foe_counts = self.session.query(
-            Detection.detected_foe,
-            func.count(Detection.id).label('count'),
-            func.sum(case((Detection.deterrent_effective == True, 1), else_=0)).label('deterred')
-        ).filter(
-            Detection.detected_foe != None
-        ).group_by(Detection.detected_foe).all()
+        # Foe frequency using raw SQL
+        foe_counts = self.session.execute(
+            text("""
+            SELECT 
+                detected_foe,
+                COUNT(*) as count,
+                SUM(CASE WHEN deterrent_effective = 1 THEN 1 ELSE 0 END) as deterred
+            FROM detections
+            WHERE detected_foe IS NOT NULL
+            GROUP BY detected_foe
+            """)
+        ).all()
         
         foe_data = []
         for foe in foe_counts:
-            deterred = foe.deterred or 0
-            success_rate = (deterred / foe.count * 100) if foe.count > 0 else 0
+            deterred = foe[2] or 0
+            success_rate = (deterred / foe[1] * 100) if foe[1] > 0 else 0
             foe_data.append({
-                "type": foe.detected_foe,
-                "count": foe.count,
+                "type": foe[0],
+                "count": foe[1],
                 "deterred": deterred,
                 "success_rate": round(success_rate, 1)
             })
@@ -270,24 +283,28 @@ class StatisticsService:
     
     def get_camera_statistics(self) -> Dict[str, Any]:
         """Get camera-specific statistics."""
-        camera_stats = self.session.query(
-            Device.name,
-            Device.id,
-            func.count(Detection.id).label('detections'),
-            func.sum(case((Detection.detected_foe != None, 1), else_=0)).label('foes'),
-            func.sum(case((Detection.deterrent_effective == True, 1), else_=0)).label('successful')
-        ).join(
-            Detection, Device.id == Detection.device_id
-        ).group_by(Device.id, Device.name).all()
+        camera_stats = self.session.execute(
+            text("""
+            SELECT 
+                d.name,
+                d.id,
+                COUNT(det.id) as detections,
+                SUM(CASE WHEN det.detected_foe IS NOT NULL THEN 1 ELSE 0 END) as foes,
+                SUM(CASE WHEN det.deterrent_effective = 1 THEN 1 ELSE 0 END) as successful
+            FROM devices d
+            LEFT JOIN detections det ON d.id = det.device_id
+            GROUP BY d.id, d.name
+            """)
+        ).all()
         
         camera_data = []
         for stat in camera_stats:
-            success_rate = (stat.successful / stat.foes * 100) if stat.foes > 0 else 0
+            success_rate = (stat[4] / stat[3] * 100) if stat[3] > 0 else 0
             camera_data.append({
-                "name": stat.name,
-                "detections": stat.detections,
-                "foes": stat.foes or 0,
-                "successful": stat.successful or 0,
+                "name": stat[0],
+                "detections": stat[2],
+                "foes": stat[3] or 0,
+                "successful": stat[4] or 0,
                 "success_rate": round(success_rate, 1)
             })
         
@@ -302,18 +319,27 @@ class StatisticsService:
     def get_cost_analytics(self) -> Dict[str, Any]:
         """Analyze AI processing costs."""
         # Daily costs
-        daily_costs = self.session.query(
-            func.date(Detection.created_at).label('date'),
-            func.sum(Detection.ai_cost).label('cost')
-        ).filter(
-            Detection.created_at >= datetime.now() - timedelta(days=30)
-        ).group_by(func.date(Detection.created_at)).all()
+        daily_costs = self.session.execute(
+            text(f"""
+            SELECT 
+                DATE(created_at) as date,
+                SUM(ai_cost) as cost
+            FROM detections
+            WHERE created_at >= '{(datetime.now() - timedelta(days=30)).isoformat()}'
+            GROUP BY DATE(created_at)
+            ORDER BY date
+            """)
+        ).all()
         
         # Cost per successful deterrent
-        total_cost = self.session.query(func.sum(Detection.ai_cost)).scalar() or 0
-        successful_deterrents = self.session.query(Detection).filter(
-            Detection.deterrent_effective == True
-        ).count()
+        total_cost_result = self.session.execute(
+            text("SELECT SUM(ai_cost) FROM detections")
+        ).scalar() or 0
+        total_cost = float(total_cost_result) if total_cost_result else 0.0
+        
+        successful_deterrents = len(self.session.exec(
+            select(Detection).where(Detection.deterrent_effective == True)
+        ).all())
         
         cost_per_success = (total_cost / successful_deterrents) if successful_deterrents > 0 else 0
         
@@ -323,7 +349,7 @@ class StatisticsService:
         
         return {
             "daily_costs": [
-                {"date": c.date.strftime('%Y-%m-%d'), "cost": float(c.cost or 0)}
+                {"date": c[0], "cost": float(c[1] or 0)}
                 for c in daily_costs
             ],
             "total_cost": round(float(total_cost), 2),
@@ -336,9 +362,12 @@ class StatisticsService:
         """Get recent detections for live updates."""
         since = datetime.now() - timedelta(hours=hours)
         
-        detections = self.session.query(Detection).filter(
-            Detection.created_at >= since
-        ).order_by(desc(Detection.created_at)).limit(10).all()
+        detections = self.session.exec(
+            select(Detection)
+            .where(Detection.created_at >= since)
+            .order_by(col(Detection.created_at).desc())
+            .limit(10)
+        ).all()
         
         return [
             {
@@ -355,9 +384,9 @@ class StatisticsService:
         """Determine current activity level."""
         # Count detections in last 15 minutes
         recent = datetime.now() - timedelta(minutes=15)
-        recent_count = self.session.query(Detection).filter(
-            Detection.created_at >= recent
-        ).count()
+        recent_count = len(self.session.exec(
+            select(Detection).where(Detection.created_at >= recent)
+        ).all())
         
         if recent_count == 0:
             return "quiet"
@@ -371,36 +400,42 @@ class StatisticsService:
     def get_detailed_foe_effectiveness(self, foe_type: str) -> Dict[str, Any]:
         """Get detailed effectiveness data for a specific foe type."""
         # All sounds tested against this foe
-        sound_stats = self.session.query(SoundStatistics).filter(
-            SoundStatistics.foe_type == foe_type
-        ).order_by(desc(SoundStatistics.effectiveness_rate)).all()
+        sound_stats = self.session.exec(
+            select(SoundStatistics)
+            .where(SoundStatistics.foe_type == foe_type)
+            .order_by(col(SoundStatistics.success_rate).desc())
+        ).all()
         
         # Time-based effectiveness
-        hourly_effectiveness = self.session.query(
-            func.extract('hour', Detection.created_at).label('hour'),
-            func.count(Detection.id).label('total'),
-            func.sum(case((Detection.deterrent_effective == True, 1), else_=0)).label('effective')
-        ).filter(
-            Detection.detected_foe == foe_type
-        ).group_by(func.extract('hour', Detection.created_at)).all()
+        hourly_effectiveness = self.session.execute(
+            text(f"""
+            SELECT 
+                CAST(strftime('%H', created_at) AS INTEGER) as hour,
+                COUNT(*) as total,
+                SUM(CASE WHEN deterrent_effective = 1 THEN 1 ELSE 0 END) as effective
+            FROM detections
+            WHERE detected_foe = '{foe_type}'
+            GROUP BY hour
+            """)
+        ).all()
         
         return {
             "foe_type": foe_type,
             "sound_rankings": [
                 {
                     "sound": s.sound_file,
-                    "effectiveness": round(s.effectiveness_rate, 1),
-                    "times_played": s.times_played,
-                    "times_effective": s.times_effective
+                    "effectiveness": round(s.success_rate, 1),
+                    "total_uses": s.total_uses,
+                    "successful_uses": s.successful_uses
                 }
                 for s in sound_stats
             ],
             "hourly_effectiveness": [
                 {
-                    "hour": int(h.hour),
-                    "total": h.total,
-                    "effective": h.effective or 0,
-                    "rate": round((h.effective / h.total * 100) if h.total > 0 else 0, 1)
+                    "hour": int(h[0]),
+                    "total": h[1],
+                    "effective": h[2] or 0,
+                    "rate": round((h[2] / h[1] * 100) if h[1] > 0 else 0, 1)
                 }
                 for h in hourly_effectiveness
             ]
@@ -409,20 +444,18 @@ class StatisticsService:
     # Helper methods
     def _get_friend_detections_count(self) -> int:
         """Count detections that are likely friends."""
-        return self.session.query(Detection).filter(
-            and_(
-                Detection.detected_foe == None,
-                Detection.status == DetectionStatus.PROCESSED
-            )
-        ).count()
+        return len(self.session.exec(
+            select(Detection)
+            .where(Detection.detected_foe == None)
+            .where(Detection.status == DetectionStatus.PROCESSED)
+        ).all())
     
     def _get_friend_detections(self) -> List[Detection]:
         """Get detections that are likely friends."""
-        return self.session.query(Detection).filter(
-            and_(
-                Detection.detected_foe == None,
-                Detection.status == DetectionStatus.PROCESSED
-            )
+        return self.session.exec(
+            select(Detection)
+            .where(Detection.detected_foe == None)
+            .where(Detection.status == DetectionStatus.PROCESSED)
         ).all()
     
     def _get_untested_sounds(self) -> List[str]:
@@ -432,13 +465,13 @@ class StatisticsService:
         all_sounds = []  # TODO: Get from sound directory
         
         # Get tested sounds
-        tested = self.session.query(
-            SoundStatistics.sound_file
-        ).filter(
-            SoundStatistics.times_played >= 5
-        ).distinct().all()
+        tested = self.session.exec(
+            select(SoundStatistics.sound_file)
+            .where(SoundStatistics.total_uses >= 5)
+            .distinct()
+        ).all()
         
-        tested_files = {s[0] for s in tested}
+        tested_files = set(tested)
         return [s for s in all_sounds if s not in tested_files]
     
     def _get_persistent_foes(self) -> List[Dict[str, Any]]:
@@ -457,19 +490,22 @@ class StatisticsService:
     def _get_friend_trend(self) -> Dict[str, Any]:
         """Analyze friend detection trends over time."""
         # Daily friend counts for last 30 days
-        friend_counts = self.session.query(
-            func.date(Detection.created_at).label('date'),
-            func.count(Detection.id).label('count')
-        ).filter(
-            and_(
-                Detection.detected_foe == None,
-                Detection.created_at >= datetime.now() - timedelta(days=30)
-            )
-        ).group_by(func.date(Detection.created_at)).all()
+        friend_counts = self.session.execute(
+            text(f"""
+            SELECT 
+                DATE(created_at) as date,
+                COUNT(*) as count
+            FROM detections
+            WHERE detected_foe IS NULL
+            AND created_at >= '{(datetime.now() - timedelta(days=30)).isoformat()}'
+            GROUP BY DATE(created_at)
+            ORDER BY date
+            """)
+        ).all()
         
         return {
-            "dates": [f.date.strftime('%Y-%m-%d') for f in friend_counts],
-            "counts": [f.count for f in friend_counts]
+            "dates": [f[0] for f in friend_counts],
+            "counts": [f[1] for f in friend_counts]
         }
     
     def _analyze_deterrent_impact_on_friends(self) -> Dict[str, Any]:
