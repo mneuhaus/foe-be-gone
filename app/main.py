@@ -30,8 +30,12 @@ from app.models.integration_instance import IntegrationInstance
 config.validate()
 
 # Create logs directory if it doesn't exist
-logs_dir = Path("logs")
-logs_dir.mkdir(exist_ok=True)
+# Use /data/logs for Home Assistant addon, or local logs directory
+if os.path.exists("/data"):
+    logs_dir = Path("/data/logs")
+else:
+    logs_dir = Path("logs")
+logs_dir.mkdir(parents=True, exist_ok=True)
 
 # Set up logging with both console and file handlers
 logger = logging.getLogger()

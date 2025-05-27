@@ -24,7 +24,7 @@ export DATA_PATH="/data"
 export SNAPSHOT_PATH="/share/foe-be-gone/snapshots"
 export VIDEO_PATH="/share/foe-be-gone/videos"
 export SOUND_PATH="/share/foe-be-gone/sounds"
-export DATABASE_URL="sqlite:///data/foe_be_gone.db"
+export DATABASE_URL="sqlite:////data/foe_be_gone.db"
 
 # Create directories
 mkdir -p "${SNAPSHOT_PATH}" "${VIDEO_PATH}" "${SOUND_PATH}"

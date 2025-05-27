@@ -35,14 +35,15 @@ COPY alembic ./alembic
 COPY app ./app
 COPY public ./public
 
-# Copy addon run script
+# Copy addon run scripts
 COPY run.sh /
+COPY run-test.sh /
 
-# Make run script executable
-RUN chmod a+x /run.sh
+# Make run scripts executable
+RUN chmod a+x /run.sh /run-test.sh
 
 # Create necessary directories
-RUN mkdir -p /data /config /media/sounds
+RUN mkdir -p /data /config /media/sounds /app/logs
 
 # Set labels
 LABEL \
