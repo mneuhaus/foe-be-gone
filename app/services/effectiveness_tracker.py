@@ -270,6 +270,42 @@ class EffectivenessTracker:
             
             return summary
     
+    def get_least_tested_sound(self, foe_type: str, available_sounds: List[str]) -> Optional[str]:
+        """
+        Get the least tested sound from available options to encourage exploration.
+        
+        Args:
+            foe_type: Type of foe
+            available_sounds: List of available sound filenames
+            
+        Returns:
+            Filename of the least tested sound, or None
+        """
+        with get_db_session() as session:
+            # Get usage counts for all sounds
+            sound_usage = {}
+            
+            for sound in available_sounds:
+                stats = session.exec(
+                    select(SoundStatistics)
+                    .where(SoundStatistics.foe_type == foe_type)
+                    .where(SoundStatistics.sound_file == sound)
+                ).first()
+                
+                if stats:
+                    sound_usage[sound] = stats.total_uses
+                else:
+                    # Never used - highest priority for testing
+                    sound_usage[sound] = 0
+            
+            if not sound_usage:
+                return None
+            
+            # Return the sound with lowest usage
+            least_used = min(sound_usage.items(), key=lambda x: x[1])
+            logger.info(f"Least tested sound for {foe_type}: {least_used[0]} (used {least_used[1]} times)")
+            return least_used[0]
+    
     def get_time_patterns(self, foe_type: str) -> List[Dict[str, Any]]:
         """Get effectiveness patterns by time of day for a foe type."""
         with get_db_session() as session:

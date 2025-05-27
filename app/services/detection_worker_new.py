@@ -142,26 +142,53 @@ class DetectionWorker:
             # Try to play on camera first
             sound_files = sound_player.get_available_sounds(foe_type)
             if sound_files:
-                # Try to use the most effective sound based on statistics
-                best_sound_name = effectiveness_tracker.get_best_sound_for_foe(
-                    foe_type, 
-                    hour=datetime.now().hour
-                )
+                import random
                 
-                if best_sound_name:
-                    # Find the best sound in available files
-                    selected_sound = next(
-                        (f for f in sound_files if f.name == best_sound_name),
-                        None
+                # 50% chance to explore new sounds vs exploit best known
+                use_best_sound = random.random() < 0.5
+                
+                if use_best_sound:
+                    # Try to use the most effective sound based on statistics
+                    best_sound_name = effectiveness_tracker.get_best_sound_for_foe(
+                        foe_type, 
+                        hour=datetime.now().hour
                     )
-                    if selected_sound:
-                        logger.info(f"Using statistically best sound: {best_sound_name}")
+                    
+                    if best_sound_name:
+                        # Find the best sound in available files
+                        selected_sound = next(
+                            (f for f in sound_files if f.name == best_sound_name),
+                            None
+                        )
+                        if selected_sound:
+                            logger.info(f"Using statistically best sound: {best_sound_name}")
+                        else:
+                            # Fall back to random if best not available
+                            selected_sound = sound_player._select_random_sound(sound_files)
+                            logger.info(f"Best sound not available, using random: {selected_sound.name}")
                     else:
-                        # Fall back to random if best not available
+                        # No statistics yet, use random
                         selected_sound = sound_player._select_random_sound(sound_files)
+                        logger.info(f"No statistics yet, using random: {selected_sound.name}")
                 else:
-                    # No statistics yet, use random
-                    selected_sound = sound_player._select_random_sound(sound_files)
+                    # Exploration: prefer least-tested sounds
+                    sound_names = [f.name for f in sound_files]
+                    least_tested = effectiveness_tracker.get_least_tested_sound(foe_type, sound_names)
+                    
+                    if least_tested:
+                        selected_sound = next(
+                            (f for f in sound_files if f.name == least_tested),
+                            None
+                        )
+                        if selected_sound:
+                            logger.info(f"Exploring least-tested sound: {selected_sound.name}")
+                        else:
+                            selected_sound = sound_player._select_random_sound(sound_files)
+                            logger.info(f"Fallback to random exploration: {selected_sound.name}")
+                    else:
+                        # Fallback to pure random
+                        selected_sound = sound_player._select_random_sound(sound_files)
+                        logger.info(f"Random exploration (no usage data): {selected_sound.name}")
                 
                 selected_sound_file = selected_sound.name
                 camera_success = await self.camera_manager.play_sound_on_camera(camera, selected_sound)
