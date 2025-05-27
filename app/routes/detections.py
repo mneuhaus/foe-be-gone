@@ -74,9 +74,23 @@ async def detections_page(
         
         # Convert to dict for template usage
         detection_dict = detection.model_dump()
-        detection_dict['effectiveness'] = effectiveness
-        detection_dict['device'] = detection.device
-        detection_dict['foes'] = detection.foes
+        detection_dict['id'] = detection.id
+        detection_dict['effectiveness'] = effectiveness.model_dump() if effectiveness else None
+        detection_dict['device'] = detection.device.model_dump() if detection.device else None
+        detection_dict['foes'] = [foe.model_dump() for foe in detection.foes] if detection.foes else []
+        detection_dict['played_sounds'] = detection.played_sounds or []
+        detection_dict['video_path'] = detection.video_path
+        detection_dict['image_path'] = detection.image_path
+        detection_dict['timestamp'] = detection.timestamp
+        detection_dict['status'] = detection.status.value if hasattr(detection.status, 'value') else detection.status
+        detection_dict['ai_cost_usd'] = detection.ai_cost
+        
+        # Convert foe_type enums to strings in foes list
+        if detection_dict['foes']:
+            for foe in detection_dict['foes']:
+                if hasattr(foe.get('foe_type'), 'value'):
+                    foe['foe_type'] = foe['foe_type'].value
+        
         detections_with_effectiveness.append(detection_dict)
     
     context = {
