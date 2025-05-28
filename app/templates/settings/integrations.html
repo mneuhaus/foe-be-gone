@@ -276,7 +276,7 @@ function showNotification(message, type = 'info') {
 
 async function addIntegration(integrationType) {
     try {
-        const response = await fetch('/api/integrations', {
+        const response = await apiFetch('/api/integrations', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -301,7 +301,7 @@ async function addIntegration(integrationType) {
 
 async function testIntegration(integrationId) {
     try {
-        const response = await fetch(`/api/integrations/${integrationId}/test`, {
+        const response = await apiFetch(`/api/integrations/${integrationId}/test`, {
             method: 'POST'
         });
         
@@ -323,7 +323,7 @@ async function deleteIntegration(integrationId) {
     }
     
     try {
-        const response = await fetch(`/api/integrations/${integrationId}`, {
+        const response = await apiFetch(`/api/integrations/${integrationId}`, {
             method: 'DELETE'
         });
         
@@ -340,7 +340,7 @@ async function deleteIntegration(integrationId) {
 
 async function setTestScenario(integrationId, scenario) {
     try {
-        const response = await fetch(`/api/integrations/${integrationId}/test-scenario/${scenario}`, {
+        const response = await apiFetch(`/api/integrations/${integrationId}/test-scenario/${scenario}`, {
             method: 'POST'
         });
         
@@ -386,7 +386,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (scenariosList.dataset.loaded) return;
             
             try {
-                const response = await fetch(`/api/integrations/${integrationId}/test-scenarios`);
+                const response = await apiFetch(`/api/integrations/${integrationId}/test-scenarios`);
                 if (response.ok) {
                     const data = await response.json();
                     scenariosList.innerHTML = '';
@@ -437,7 +437,7 @@ async function showCameraSelectionModal(integrationId) {
     
     try {
         // Fetch available cameras from UniFi
-        const response = await fetch(`/api/integrations/${integrationId}/cameras`);
+        const response = await apiFetch(`/api/integrations/${integrationId}/cameras`);
         if (!response.ok) {
             throw new Error('Failed to fetch cameras');
         }
@@ -494,7 +494,7 @@ async function saveCameraSelection() {
     const selectedCameras = Array.from(checkboxes).map(cb => cb.value);
     
     try {
-        const response = await fetch(`/api/integrations/${currentIntegrationId}/cameras`, {
+        const response = await apiFetch(`/api/integrations/${currentIntegrationId}/cameras`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -522,7 +522,7 @@ async function saveCameraSelection() {
 
 async function testTalkback(integrationId, deviceId) {
     try {
-        const response = await fetch(`/api/integrations/${integrationId}/devices/${deviceId}/talkback`, {
+        const response = await apiFetch(`/api/integrations/${integrationId}/devices/${deviceId}/talkback`, {
             method: 'POST'
         });
         
@@ -550,7 +550,7 @@ document.getElementById('unifi-config-form').addEventListener('submit', async fu
     
     try {
         // Create the integration with configuration
-        const response = await fetch('/api/integrations', {
+        const response = await apiFetch('/api/integrations', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
