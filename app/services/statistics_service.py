@@ -10,6 +10,7 @@ from sqlmodel import select, col
 from app.models.detection import Detection, Foe, DetectionStatus
 from app.models.sound_effectiveness import SoundEffectiveness, SoundStatistics
 from app.models.device import Device
+from app.core.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +79,7 @@ class StatisticsService:
             "friend_foe_ratio": round(friend_detections / foe_detections, 2) if foe_detections > 0 else 0
         }
     
-    def get_daily_trends(self, days: int = 30) -> Dict[str, Any]:
+    def get_daily_trends(self, days: int = config.STATS_DEFAULT_DAYS) -> Dict[str, Any]:
         """Get daily detection and success trends."""
         start_date = datetime.now() - timedelta(days=days)
         
@@ -320,7 +321,7 @@ class StatisticsService:
     def get_cost_analytics(self) -> Dict[str, Any]:
         """Analyze AI processing costs."""
         # Daily costs
-        start_date_30_days = datetime.now() - timedelta(days=30)
+        start_date_30_days = datetime.now() - timedelta(days=config.STATS_DEFAULT_DAYS)
         daily_costs = self.session.execute(
             text("""
             SELECT 
@@ -385,8 +386,8 @@ class StatisticsService:
     
     def get_current_activity_level(self) -> str:
         """Determine current activity level."""
-        # Count detections in last 15 minutes
-        recent = datetime.now() - timedelta(minutes=15)
+        # Count detections in recent activity period
+        recent = datetime.now() - timedelta(minutes=config.STATS_RECENT_ACTIVITY_MINUTES)
         recent_count = len(self.session.exec(
             select(Detection).where(Detection.created_at >= recent)
         ).all())
@@ -464,9 +465,8 @@ class StatisticsService:
     
     def _get_untested_sounds(self) -> List[str]:
         """Get sounds that need more testing."""
-        # Get all available sounds (this would be from your sounds directory)
-        # For now, returning placeholder
-        all_sounds = []  # TODO: Get from sound directory
+        # Get all available sounds from the sounds directory
+        all_sounds = self._get_available_sounds()
         
         # Get tested sounds
         tested = self.session.exec(
@@ -477,6 +477,30 @@ class StatisticsService:
         
         tested_files = set(tested)
         return [s for s in all_sounds if s not in tested_files]
+    
+    def _get_available_sounds(self) -> List[str]:
+        """Get all available sound files from the sounds directory."""
+        import os
+        from pathlib import Path
+        
+        sound_dir = Path("/share/foe-be-gone/sounds")
+        if not sound_dir.exists():
+            # Fallback to local public sounds directory
+            sound_dir = Path("public/sounds")
+            if not sound_dir.exists():
+                logger.warning("No sounds directory found")
+                return []
+        
+        sound_files = []
+        
+        # Scan all subdirectories for audio files
+        for foe_dir in sound_dir.iterdir():
+            if foe_dir.is_dir():
+                for sound_file in foe_dir.iterdir():
+                    if sound_file.suffix.lower() in ['.mp3', '.wav', '.m4a', '.ogg']:
+                        sound_files.append(sound_file.name)
+        
+        return sorted(sound_files)
     
     def _get_persistent_foes(self) -> List[Dict[str, Any]]:
         """Identify foes that return frequently."""
@@ -494,7 +518,7 @@ class StatisticsService:
     def _get_friend_trend(self) -> Dict[str, Any]:
         """Analyze friend detection trends over time."""
         # Daily friend counts for last 30 days
-        start_date_30_days = datetime.now() - timedelta(days=30)
+        start_date_30_days = datetime.now() - timedelta(days=config.STATS_DEFAULT_DAYS)
         friend_counts = self.session.execute(
             text("""
             SELECT 

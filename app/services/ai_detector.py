@@ -1,10 +1,10 @@
-"""AI-powered foe detection service using OpenAI GPT-4o."""
+"""AI-powered foe detection service using LiteLLM for multi-model support."""
 import base64
 import json
 import logging
 from typing import List, Dict, Any, Optional
 
-from openai import OpenAI
+import litellm
 from pydantic import BaseModel, Field
 from sqlmodel import Session
 
@@ -15,9 +15,8 @@ from app.services.settings_service import SettingsService
 # Logger for AI detector
 logger = logging.getLogger(__name__)
 
-# Pricing for GPT-4o (USD per 1K tokens)
-_INPUT_COST_PER_1K = 0.03
-_OUTPUT_COST_PER_1K = 0.06
+# Set LiteLLM logging level to reduce noise
+litellm.set_verbose = False
 
 
 class DetectedFoe(BaseModel):
@@ -36,12 +35,12 @@ class DetectionResult(BaseModel):
     foes_detected: bool = Field(description="Whether any foes were detected")
     foes: List[DetectedFoe] = Field(default_factory=list, description="List of detected foes")
     scene_description: str = Field(description="Brief description of the overall scene")
-    # Estimated cost of the AI call in USD
+    # Estimated cost of the AI call in USD (automatically calculated by LiteLLM)
     cost: Optional[float] = Field(default=None, description="Estimated cost of the AI call in USD")
 
 
 class AIDetector:
-    """AI-powered foe detection using OpenAI GPT-4o."""
+    """AI-powered foe detection using LiteLLM for multi-model support."""
     
     def __init__(self, api_key: Optional[str] = None, session: Optional[Session] = None):
         """Initialize the AI detector."""
@@ -51,168 +50,184 @@ class AIDetector:
             settings_service = SettingsService(session)
             self.api_key = settings_service.get_openai_api_key()
         else:
-            self.api_key = config.OPENAI_API_KEY
+            self.api_key = None
             
-        if not self.api_key:
-            raise ValueError("OpenAI API key not provided in settings or environment variables")
+        # Set the API key for LiteLLM
+        if self.api_key:
+            import os
+            os.environ["OPENAI_API_KEY"] = self.api_key
+            
+        self.model = config.AI_MODEL
+        self.temperature = config.AI_TEMPERATURE
+        self.max_tokens = config.AI_MAX_TOKENS
         
-        self.client = OpenAI(api_key=self.api_key)
-        
-    def detect_foes(self, image_data: bytes) -> DetectionResult:
+        logger.info(f"AI Detector initialized with model: {self.model}")
+    
+    def encode_image(self, image_data: bytes) -> str:
+        """Encode image data to base64 string."""
+        return base64.b64encode(image_data).decode('utf-8')
+    
+    async def detect_foes(self, image_data: bytes, context: Optional[str] = None) -> DetectionResult:
         """
-        Detect foes in an image using GPT-4o.
+        Detect foes in the provided image using AI vision.
         
         Args:
             image_data: Raw image bytes
+            context: Optional context about the camera location
             
         Returns:
-            DetectionResult with structured detection data
+            DetectionResult with detected foes and cost information
         """
-        # Encode image to base64
-        base64_image = base64.b64encode(image_data).decode('utf-8')
-        
-        # Prepare the prompt
-        system_prompt = """You are a high-precision wildlife detection system for SECURITY PURPOSES. This is critical infrastructure protection that requires MAXIMUM ACCURACY and CAREFUL ANALYSIS.
-
-EXAMINE THE IMAGE EXTREMELY CAREFULLY and identify any of these specific target animals (foes):
-
-**TARGET SPECIES (analyze with extreme precision):**
-
-1. **RATS** (all rodents including mice): 
-   - Brown rats (Rattus norvegicus) - gray-brown fur, long tail, large ears
-   - Black rats (Rattus rattus) - darker fur, pointed snout, large ears
-   - House mice (Mus musculus) - small, gray-brown, large ears relative to head
-   - Look for: distinctive body shape, long bare tail, quick movements, small size
-
-2. **CROWS** (ALL corvids - crows, ravens, magpies, jackdaws):
-   - Carrion Crow (Corvus corone) - completely black, robust build, thick bill
-   - Hooded Crow (Corvus cornix) - black with gray body, same size as carrion crow
-   - Eurasian Magpie (Pica pica) - black and white, long iridescent tail, distinctive pattern
-   - Western Jackdaw (Coloeus monedula) - smaller than crow, gray neck/nape, pale eyes
-   - Northern Raven (Corvus corax) - much larger than crow, wedge-shaped tail, shaggy throat feathers
-   - Look for: corvid family characteristics - intelligent eyes, sturdy bills, confident posture
-
-3. **CATS** (Felis catus):
-   - Domestic cats of any color/pattern
-   - Look for: feline body shape, pointed ears, whiskers, typical cat posture and movement
-
-**CRITICAL CLASSIFICATION RULES:**
-- Use EXACTLY these foe_type values: "rats", "crows", "cats", or "unknown"
-- Group ALL rodents (rats, mice) under "rats"
-- Group ALL corvids (crows, ravens, magpies, jackdaws) under "crows"
-- These names MUST match exactly for the countermeasure sound system
-
-**DETECTION REQUIREMENTS:**
-- LOOK LONG AND HARD - scan every part of the image systematically
-- Only report detections you are HIGHLY CONFIDENT about (>0.7 confidence minimum)
-- Consider size, posture, coloration, and behavioral cues
-- For partially obscured animals, be extra cautious with identification
-
-**CRITICAL**: False positives can trigger unnecessary security responses. False negatives can miss genuine threats. PRECISION IS PARAMOUNT.
-
-For each detection, provide:
-- Exact type: "rats", "crows", "cats", or "unknown" (MUST match exactly)
-- Confidence score (0.7-1.0 for security-grade detections)
-- Precise bounding box coordinates
-- Detailed description including key identifying features
-
-If no target species are present, report foes_detected: false."""
-
-        user_prompt = """SECURITY ANALYSIS REQUEST: Examine this surveillance image with MAXIMUM PRECISION for the presence of target foe species.
-
-INSTRUCTIONS:
-1. Scan the ENTIRE image systematically - check corners, shadows, partial obscured areas
-2. Look for ANY signs of: rats (all rodents), crows (all corvids), or cats
-3. Pay special attention to movement blur, partial visibility, or camouflaged animals
-4. Consider the setting/context (indoor/outdoor, day/night, etc.) for species likelihood
-5. Only report detections with HIGH CONFIDENCE (≥0.7) suitable for security applications
-6. Provide detailed reasoning for each detection including specific identifying features
-7. CRITICAL: Use EXACTLY "rats", "crows", "cats", or "unknown" as foe_type values
-
-This is critical security infrastructure - accuracy is essential."""
+        if not self.api_key:
+            logger.error("No OpenAI API key available for detection")
+            return DetectionResult(
+                foes_detected=False,
+                foes=[],
+                scene_description="No API key configured for AI detection"
+            )
         
         try:
-            # Call GPT-4o with structured output
-            response = self.client.beta.chat.completions.parse(
-                model="gpt-4o",
+            # Encode image
+            base64_image = self.encode_image(image_data)
+            
+            # Build context-aware prompt
+            location_context = f" The camera is monitoring: {context}." if context else ""
+            
+            # System prompt for structured output
+            system_prompt = """You are an expert wildlife detection system. Analyze the image and detect any of these foe types:
+
+**Target Foes:**
+- **rats**: Any rodents (rats, mice, shrews, voles)
+- **crows**: Any corvids (crows, ravens, magpies, jackdaws, jays)  
+- **cats**: Domestic cats (not wildcats or large cats)
+
+**What to IGNORE (these are friends, not foes):**
+- Small birds (sparrows, finches, tits, robins, wrens, etc.)
+- Squirrels and chipmunks
+- Hedgehogs and other small mammals that aren't rodents
+- Beneficial insects
+- Humans, pets (dogs), livestock
+- Any wildlife that doesn't match the three foe categories above
+
+Return a JSON object with:
+- foes_detected: boolean
+- foes: array of detected foes with foe_type, confidence (0-1), optional bounding_box, and description
+- scene_description: brief overall scene description
+
+Only detect the specific foe types listed above. Be conservative - if unsure, classify as unknown or don't detect."""
+
+            user_prompt = f"""Analyze this image for the target foe types (rats, crows, cats only).{location_context}
+            
+Return structured JSON with your analysis. Be precise and only detect the specified foe types."""
+
+            # Make API call using LiteLLM
+            response = await litellm.acompletion(
+                model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {
-                        "role": "user", 
+                        "role": "user",
                         "content": [
                             {"type": "text", "text": user_prompt},
                             {
                                 "type": "image_url",
                                 "image_url": {
-                                    "url": f"data:image/jpeg;base64,{base64_image}"
+                                    "url": f"data:image/jpeg;base64,{base64_image}",
+                                    "detail": "high"
                                 }
                             }
                         ]
                     }
                 ],
-                response_format=DetectionResult,
-                temperature=0.1  # Very low temperature for maximum precision and consistency
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                response_format={"type": "json_object"}
             )
             
-            # Debug-log the raw API response structure
-            logger.debug(f"AI parse response object: {response}")
+            # Extract response content
+            content = response.choices[0].message.content
+            
+            # Parse the JSON response
             try:
-                raw_data = getattr(response, '_raw', None)
-                logger.debug(f"AI raw underlying data: {raw_data}")
-            except Exception as _dl_exc:
-                logger.debug(f"Error accessing raw response data: {_dl_exc}")
-
-            # Compute cost based on returned usage info
-            cost = 0.0
-            usage = getattr(response, 'usage', None)
-            if usage:
-                prompt_tokens = getattr(usage, 'prompt_tokens', None)
-                completion_tokens = getattr(usage, 'completion_tokens', None)
-                total_tokens = getattr(usage, 'total_tokens', None)
-                if prompt_tokens is not None:
-                    cost += prompt_tokens * (_INPUT_COST_PER_1K / 1000)
-                if completion_tokens is not None:
-                    cost += completion_tokens * (_OUTPUT_COST_PER_1K / 1000)
-                logger.info(
-                    f"OpenAI GPT-4o usage: prompt_tokens={prompt_tokens}, "
-                    f"completion_tokens={completion_tokens}, total_tokens={total_tokens}, "
-                    f"estimated_cost=${cost:.6f}"
+                detection_data = json.loads(content)
+                
+                # Convert to our structured format
+                foes = []
+                if detection_data.get("foes"):
+                    for foe_data in detection_data["foes"]:
+                        # Validate foe type
+                        foe_type = foe_data.get("foe_type", "").lower()
+                        if foe_type not in ["rats", "crows", "cats", "unknown"]:
+                            logger.warning(f"Invalid foe type detected: {foe_type}, setting to unknown")
+                            foe_type = "unknown"
+                        
+                        foes.append(DetectedFoe(
+                            foe_type=foe_type,
+                            confidence=min(1.0, max(0.0, foe_data.get("confidence", 0.0))),
+                            bounding_box=foe_data.get("bounding_box"),
+                            description=foe_data.get("description", f"Detected {foe_type}")
+                        ))
+                
+                # Calculate cost using LiteLLM's automatic cost calculation
+                cost = 0.0
+                if hasattr(response, '_hidden_params') and 'response_cost' in response._hidden_params:
+                    cost = response._hidden_params['response_cost']
+                elif hasattr(response, 'usage') and response.usage:
+                    # Fallback: try to calculate cost using LiteLLM's cost calculator
+                    try:
+                        cost = litellm.completion_cost(completion_response=response)
+                    except Exception as e:
+                        logger.warning(f"Could not calculate cost: {e}")
+                        cost = 0.0
+                
+                logger.info(f"AI Detection completed - Model: {self.model}, Cost: ${cost:.6f}")
+                
+                return DetectionResult(
+                    foes_detected=detection_data.get("foes_detected", False),
+                    foes=foes,
+                    scene_description=detection_data.get("scene_description", "Scene analyzed"),
+                    cost=cost
                 )
-            else:
-                logger.debug("No usage info on response; response.usage is None; cost remains 0.0")
-            
-            result = response.choices[0].message.parsed
-            # Attach estimated cost to the result
-            try:
-                result.cost = cost
-            except Exception:
-                pass
-            
-            # Validate foe types match our enum values (no mapping needed since AI uses correct names)
-            for foe in result.foes:
-                if foe.foe_type not in ["rats", "crows", "cats", "unknown"]:
-                    logger.warning(f"AI returned invalid foe_type '{foe.foe_type}', changing to 'unknown'")
-                    foe.foe_type = "unknown"
-                    
-            return result
+                
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse AI response as JSON: {e}")
+                logger.error(f"Raw response: {content}")
+                return DetectionResult(
+                    foes_detected=False,
+                    foes=[],
+                    scene_description=f"Error parsing AI response: {str(e)}"
+                )
             
         except Exception as e:
-            # Return empty result on error
+            logger.exception(f"Error during AI detection")
             return DetectionResult(
                 foes_detected=False,
                 foes=[],
                 scene_description=f"Error during detection: {str(e)}"
             )
     
-    def test_connection(self) -> bool:
-        """Test the connection to OpenAI API."""
-        try:
-            # Simple test call
-            response = self.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": "Hello"}],
-                max_tokens=5
-            )
-            return True
-        except Exception:
-            return False
+    def get_supported_models(self) -> List[str]:
+        """Get list of supported models through LiteLLM."""
+        return [
+            "gpt-4o",
+            "gpt-4o-mini", 
+            "gpt-4-turbo",
+            "claude-3-5-sonnet-20241022",
+            "claude-3-5-haiku-20241022",
+            "gemini-1.5-pro",
+            "gemini-1.5-flash"
+        ]
+    
+    def health_check(self) -> Dict[str, Any]:
+        """Check if the AI detector is properly configured."""
+        return {
+            "api_key_configured": bool(self.api_key),
+            "model": self.model,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "supported_models": self.get_supported_models()
+        }
+
+
+# Global AI detector instance
+ai_detector = AIDetector()

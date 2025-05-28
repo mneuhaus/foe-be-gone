@@ -5,6 +5,7 @@ from typing import Optional, Dict, Any
 from sqlmodel import Session, select
 
 from app.models.setting import Setting
+from app.core.config import config
 
 
 class SettingsService:
@@ -51,7 +52,7 @@ class SettingsService:
         interval = self.get_setting("detection_interval", "10")
         try:
             value = int(interval)
-            return max(1, min(30, value))  # Clamp between 1-30 seconds
+            return max(config.MIN_DETECTION_INTERVAL, min(config.MAX_DETECTION_INTERVAL, value))
         except ValueError:
             return 10
     

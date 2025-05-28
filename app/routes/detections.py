@@ -13,6 +13,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_session
 from app.core.templates import templates
+from app.core.responses import success_response, error_response
 from app.models.detection import Detection, Foe
 from app.models.device import Device
 from app.services.detection_worker import detection_worker
@@ -257,7 +258,7 @@ async def test_sound(sound_test: SoundTest) -> Dict[str, Any]:
     success = sound_player.play_random_sound(foe_type)
     
     if success:
-        return {"success": True, "message": f"Played deterrent sound for {foe_type} locally"}
+        return success_response(f"Played deterrent sound for {foe_type} locally")
     else:
         raise HTTPException(status_code=500, detail=f"Failed to play sound for {foe_type}")
 
@@ -328,7 +329,7 @@ async def test_sound_on_camera(
         if hasattr(device_interface, 'play_sound_file'):
             success = await device_interface.play_sound_file(selected_sound)
             if success:
-                return {"success": True, "message": f"Played deterrent sound '{selected_sound.name}' on camera {device.name}"}
+                return success_response(f"Played deterrent sound '{selected_sound.name}' on camera {device.name}")
             else:
                 raise HTTPException(status_code=500, detail=f"Failed to play sound on camera {device.name}")
         else:
@@ -535,10 +536,7 @@ async def set_capture_all_snapshots(
     
     session.commit()
     
-    return {
-        "success": True,
-        "message": f"Capture all snapshots {'enabled' if enabled else 'disabled'}"
-    }
+    return success_response(f"Capture all snapshots {'enabled' if enabled else 'disabled'}")
 
 
 @router.post("/api/settings/phash-threshold", summary="Set phash threshold", response_model=Dict[str, Any])
@@ -568,7 +566,4 @@ async def set_phash_threshold(
     
     session.commit()
     
-    return {
-        "success": True,
-        "message": f"Change threshold set to {threshold}"
-    }
+    return success_response(f"Change threshold set to {threshold}")

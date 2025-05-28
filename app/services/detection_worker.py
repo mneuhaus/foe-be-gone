@@ -12,6 +12,7 @@ from app.services.sound_player import sound_player
 from app.services.video_capture import video_capture
 from app.services.effectiveness_tracker import effectiveness_tracker
 from app.core.session import get_db_session
+from app.core.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +125,7 @@ class DetectionWorker:
                     video_capture.capture_video(
                         rtsp_url=rtsp_url,
                         camera_name=camera.name,
-                        duration=15,  # 15 seconds
+                        duration=config.VIDEO_CAPTURE_DURATION,
                         detection_id=detection.id
                     )
                 )
