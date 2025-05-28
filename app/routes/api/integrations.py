@@ -180,7 +180,7 @@ async def get_test_scenarios(
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
     
-    if integration.integration_type != "dummy-surveillance":
+    if integration.integration_type != "dummy_surveillance":
         raise HTTPException(status_code=400, detail="Test scenarios only available for dummy integrations")
     
     scenarios = DummySurveillanceIntegration.get_test_scenarios()
@@ -198,10 +198,10 @@ async def set_test_scenario(
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
     
-    if integration.integration_type != "dummy-surveillance":
+    if integration.integration_type != "dummy_surveillance":
         raise HTTPException(status_code=400, detail="Test scenarios only available for dummy integrations")
     
-    dummy = DummySurveillanceIntegration(integration.id, integration.config)
+    dummy = DummySurveillanceIntegration(integration)
     result = dummy.set_test_scenario(scenario)
     
     if "error" in result:

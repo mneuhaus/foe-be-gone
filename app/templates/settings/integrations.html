@@ -17,7 +17,7 @@
             </div>
             <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded z-[1] w-64 p-2 shadow-lg">
                 <li>
-                    <a href="#" onclick="addIntegration('dummy-surveillance'); return false;">
+                    <a href="#" onclick="addIntegration('dummy_surveillance'); return false;">
                         <div>
                             <div class="font-semibold">Dummy Surveillance</div>
                             <div class="text-xs opacity-70">Test integration for development</div>
@@ -59,7 +59,7 @@
                             </div>
                             
                             <!-- Test Scenarios Dropdown (for dummy integrations) -->
-                            {% if integration.integration_type == "dummy-surveillance" %}
+                            {% if integration.integration_type == "dummy_surveillance" %}
                             <div class="dropdown dropdown-end" id="test-dropdown-{{ integration.id }}">
                                 <div tabindex="0" role="button" class="btn btn-sm btn-outline">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
@@ -372,7 +372,7 @@ async function setTestScenario(integrationId, scenario) {
     }
 }
 
-// Load test scenarios when dropdown is clicked
+// Initialize all event handlers when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     // Find all test scenario dropdowns
     const testDropdowns = document.querySelectorAll('[id^="test-dropdown-"]');
@@ -410,6 +410,66 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    
+    // UniFi Protect form handler
+    const unifiForm = document.getElementById('unifi-config-form');
+    if (unifiForm) {
+        unifiForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const config = {
+                host: formData.get('host'),
+                api_key: formData.get('api_key')
+            };
+            
+            console.log('Creating UniFi integration with config:', config);
+            console.log('API URL:', apiUrl('/api/integrations'));
+            
+            try {
+                // Create the integration with configuration
+                const response = await apiFetch('/api/integrations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        integration_type: 'unifi_protect',
+                        name: 'UniFi Protect',
+                        config: config
+                    })
+                });
+                
+                if (response.ok) {
+                    const integration = await response.json();
+                    document.getElementById('unifi-config-modal').close();
+                    
+                    // For UniFi integrations, automatically open camera selection
+                    if (integration.integration_type === 'unifi_protect') {
+                        // Wait a moment for the modal to close
+                        setTimeout(() => {
+                            showCameraSelectionModal(integration.id);
+                        }, 500);
+                    } else {
+                        window.location.reload();
+                    }
+                } else {
+                    let errorMessage = 'Unknown error';
+                    try {
+                        const error = await response.json();
+                        errorMessage = error.detail || error.message || 'Failed to add integration';
+                    } catch (e) {
+                        // If response is not JSON, try to get text
+                        errorMessage = await response.text() || `HTTP ${response.status} error`;
+                    }
+                    showNotification(`Failed to add UniFi Protect: ${errorMessage}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error adding UniFi Protect:', error);
+                showNotification('Error adding UniFi Protect integration', 'error');
+            }
+        });
+    }
 });
 
 // UniFi Protect configuration
@@ -539,50 +599,5 @@ async function testTalkback(integrationId, deviceId) {
     }
 }
 
-document.getElementById('unifi-config-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const config = {
-        host: formData.get('host'),
-        api_key: formData.get('api_key')
-    };
-    
-    try {
-        // Create the integration with configuration
-        const response = await apiFetch('/api/integrations', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                integration_type: 'unifi_protect',
-                name: 'UniFi Protect',
-                config: config
-            })
-        });
-        
-        if (response.ok) {
-            const integration = await response.json();
-            document.getElementById('unifi-config-modal').close();
-            
-            // For UniFi integrations, automatically open camera selection
-            if (integration.integration_type === 'unifi_protect') {
-                // Wait a moment for the modal to close
-                setTimeout(() => {
-                    showCameraSelectionModal(integration.id);
-                }, 500);
-            } else {
-                window.location.reload();
-            }
-        } else {
-            const error = await response.json();
-            showNotification(`Failed to add UniFi Protect: ${error.detail || 'Unknown error'}`, 'error');
-        }
-    } catch (error) {
-        console.error('Error adding UniFi Protect:', error);
-        showNotification('Error adding UniFi Protect integration', 'error');
-    }
-});
 </script>
 {% endblock %}

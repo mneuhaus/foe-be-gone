@@ -14,7 +14,7 @@ class DeviceInterface(ABC):
         self.last_seen = datetime.utcnow()
     
     @abstractmethod
-    def get_snapshot(self) -> Optional[bytes]:
+    async def get_snapshot(self) -> Optional[bytes]:
         """Get a snapshot from the device (image data as bytes)."""
         pass
     

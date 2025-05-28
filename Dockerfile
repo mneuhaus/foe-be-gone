@@ -9,7 +9,9 @@ RUN apk add --no-cache \
     py3-pip \
     ffmpeg \
     curl \
-    git
+    git \
+    openssh-server \
+    bash
 
 # Install uv for Python package management
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -43,7 +45,14 @@ COPY run-test.sh /
 RUN chmod a+x /run.sh /run-test.sh
 
 # Create necessary directories
-RUN mkdir -p /data /config /media/sounds /app/logs
+RUN mkdir -p /data /config /media/sounds /app/logs /var/run/sshd
+
+# Configure SSH for development
+RUN ssh-keygen -A && \
+    echo "PermitRootLogin yes" >> /etc/ssh/sshd_config && \
+    echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config && \
+    echo "PermitEmptyPasswords yes" >> /etc/ssh/sshd_config && \
+    echo "root:" | chpasswd
 
 # Set labels
 LABEL \

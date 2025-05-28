@@ -28,7 +28,7 @@ class DummyCameraDevice(DeviceInterface):
         self.integration = integration
         self.status = "online"
         
-    def get_snapshot(self) -> Optional[bytes]:
+    async def get_snapshot(self) -> Optional[bytes]:
         """Get a snapshot from the camera."""
         if self.integration.current_image_path:
             # Read the actual image file
@@ -53,9 +53,20 @@ class DummyCameraDevice(DeviceInterface):
 class DummySurveillanceIntegration(IntegrationBase):
     """Dummy surveillance system integration for testing."""
     
-    def __init__(self, integration_id: str, config: Dict[str, Any] = None):
-        self.integration_id = integration_id
-        self.config = config or {}
+    def __init__(self, integration_instance):
+        """Initialize with an IntegrationInstance from the database."""
+        from app.models.integration_instance import IntegrationInstance
+        
+        if isinstance(integration_instance, IntegrationInstance):
+            self.integration_id = integration_instance.id
+            self.config = integration_instance.config
+            self.integration_instance = integration_instance
+        else:
+            # Legacy support
+            self.integration_id = integration_instance
+            self.config = {}
+            self.integration_instance = None
+            
         self.status = IntegrationStatus.DISCONNECTED
         self._is_running = False
         self.current_scenario = "nothing"
@@ -104,6 +115,15 @@ class DummySurveillanceIntegration(IntegrationBase):
             "last_seen": datetime.utcnow().isoformat()
         }]
         
+    async def get_device(self, device_id: str) -> Optional[DeviceInterface]:
+        """Get a specific device by ID."""
+        if self.status != IntegrationStatus.CONNECTED:
+            await self.connect()
+            
+        if self._device and self._device.device_id == device_id:
+            return self._device
+        return None
+    
     async def get_camera_snapshot(self, camera_id: str) -> Optional[bytes]:
         """Get a snapshot from the camera (returns dummy data)."""
         if self.status != IntegrationStatus.CONNECTED:
@@ -137,19 +157,41 @@ class DummySurveillanceIntegration(IntegrationBase):
             "test_mode": True
         }
         
-    def get_devices(self) -> List[DeviceInterface]:
-        """Get all devices from this integration."""
-        if self.status == IntegrationStatus.CONNECTED and self._device:
-            return [self._device]
-        return []
+    async def get_devices(self) -> List:
+        """Get all devices from this integration as database models."""
+        from app.models.device import Device
+        
+        # Always connect first
+        if self.status != IntegrationStatus.CONNECTED:
+            await self.connect()
+            
+        if not self._device:
+            return []
+            
+        # Create a Device model instance
+        device = Device(
+            device_id="dummy-cam-001",
+            integration_id=self.integration_id,
+            name="Dummy Camera",
+            device_type="camera",
+            status="online",
+            current_image_url="/public/dummy-surveillance/nothing/Terrassentür  - 5-26-2025, 09.07.18 GMT+2.jpg",
+            device_metadata={
+                "camera_id": "dummy-cam-001",
+                "model": "Dummy Model",
+                "firmware": "1.0.0",
+                "capabilities": ["snapshot", "motion_detection"]
+            }
+        )
+        return [device]
     
-    def test_connection(self) -> Dict[str, Any]:
+    async def test_connection(self) -> bool:
         """Test the connection to the integration."""
-        return {
-            "success": self.status == IntegrationStatus.CONNECTED,
-            "status": self.status.value,
-            "message": "Connected to dummy surveillance" if self.status == IntegrationStatus.CONNECTED else "Not connected"
-        }
+        try:
+            await self.connect()
+            return self.status == IntegrationStatus.CONNECTED
+        except:
+            return False
     
     def get_status(self) -> Dict[str, Any]:
         """Get current integration status."""
@@ -244,19 +286,6 @@ class DummySurveillanceIntegration(IntegrationBase):
             "image_count": len(images)
         }
     
-    def get_devices(self) -> List[DeviceInterface]:
-        """Get all devices from this integration."""
-        if self._device and self.status == IntegrationStatus.CONNECTED:
-            return [self._device]
-        return []
-    
-    def test_connection(self) -> Dict[str, Any]:
-        """Test the connection to the integration."""
-        return {
-            "success": self.status == IntegrationStatus.CONNECTED,
-            "status": self.status.value,
-            "message": "Connected" if self.status == IntegrationStatus.CONNECTED else "Not connected"
-        }
 
 
 # Integration metadata
