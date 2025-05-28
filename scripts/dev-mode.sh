@@ -16,7 +16,7 @@ case "$1" in
     echo "Starting development server with hot-reload..."
     echo "Server will restart automatically when you edit files"
     echo ""
-    cd /app
+    cd /opt/foe-be-gone
     exec uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --log-level debug
     ;;
     
@@ -25,7 +25,7 @@ case "$1" in
     pkill -f 'uvicorn app.main:app'
     
     echo "Restarting production server..."
-    cd /app
+    cd /opt/foe-be-gone
     exec /run.sh
     ;;
     

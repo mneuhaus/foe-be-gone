@@ -28,8 +28,23 @@ RUN npm install -g pnpm @anthropic-ai/claude-code
 ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="$PNPM_HOME:${PATH}"
 
-# Set working directory
-WORKDIR /app
+# Create application directory structure following Linux FHS
+RUN mkdir -p \
+    /opt/foe-be-gone/app \
+    /opt/foe-be-gone/alembic \
+    /opt/foe-be-gone/public \
+    /opt/foe-be-gone/scripts \
+    /var/lib/foe-be-gone/dev-workspace \
+    /var/lib/foe-be-gone/data \
+    /var/log/foe-be-gone \
+    /etc/foe-be-gone \
+    /usr/local/bin \
+    /var/run/sshd \
+    /root/.config \
+    /root/.claude
+
+# Set working directory to application root
+WORKDIR /opt/foe-be-gone
 
 # Copy dependency files
 COPY pyproject.toml ./
@@ -40,23 +55,40 @@ RUN uv pip install --system --break-system-packages \
     --index-url https://pypi.org/simple \
     -r pyproject.toml
 
-# Copy application code
+# Copy application code to proper locations
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY app ./app
 COPY public ./public
 
-# Copy addon run scripts
-COPY run.sh /
-COPY run-test.sh /
-COPY dev-init.sh /
-COPY dev-mode.sh /
+# Create compatibility symlinks for existing code
+RUN ln -s /opt/foe-be-gone /app && \
+    ln -s /var/lib/foe-be-gone/dev-workspace /dev-workspace && \
+    ln -s /var/lib/foe-be-gone/data /data
 
-# Make run scripts executable
-RUN chmod a+x /run.sh /run-test.sh /dev-init.sh /dev-mode.sh
+# Copy addon run scripts to proper locations
+# Main run script for Home Assistant S6 overlay
+COPY scripts/run.sh /usr/local/bin/foe-be-gone-start
+# Development scripts in /opt/foe-be-gone/scripts
+COPY scripts/run-test.sh /opt/foe-be-gone/scripts/
+COPY scripts/dev-init.sh /opt/foe-be-gone/scripts/
+COPY scripts/dev-mode.sh /opt/foe-be-gone/scripts/
 
-# Create necessary directories
-RUN mkdir -p /data /config /media/sounds /app/logs /var/run/sshd /dev-workspace
+# Make scripts executable
+RUN chmod a+x /usr/local/bin/foe-be-gone-start \
+    /opt/foe-be-gone/scripts/run-test.sh \
+    /opt/foe-be-gone/scripts/dev-init.sh \
+    /opt/foe-be-gone/scripts/dev-mode.sh
+
+# Create convenience symlinks in /usr/local/bin for dev scripts
+RUN ln -s /opt/foe-be-gone/scripts/dev-init.sh /usr/local/bin/foe-dev-init && \
+    ln -s /opt/foe-be-gone/scripts/dev-mode.sh /usr/local/bin/foe-dev-mode
+
+# For Home Assistant compatibility, create symlink at old location
+RUN ln -s /usr/local/bin/foe-be-gone-start /run.sh
+
+# Create empty claude settings file if it doesn't exist (for volume mounting)
+RUN touch /root/.claude.json
 
 # Configure SSH for development
 RUN ssh-keygen -A && \

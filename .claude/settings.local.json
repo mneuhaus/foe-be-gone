@@ -57,5 +57,6 @@
       "Bash(./test-addon-local.sh:*)"
     ],
     "deny": []
-  }
+  },
+  "enableAllProjectMcpServers": false
 }
