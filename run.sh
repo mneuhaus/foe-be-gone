@@ -48,13 +48,13 @@ cd /app
 
 # Run database migrations
 bashio::log.info "Running database migrations..."
-python -m alembic upgrade head
+python3 -m alembic upgrade head
 
 # Start the application
 bashio::log.info "Starting Foe Be Gone application..."
 if [ "${DEV_MODE}" = "true" ]; then
     bashio::log.info "Starting with hot-reload enabled for development"
-    exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-include '*.py' --reload-include '*.html' --reload-include '*.js'
+    exec python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-include '*.py' --reload-include '*.html' --reload-include '*.js'
 else
-    exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+    exec python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 fi
