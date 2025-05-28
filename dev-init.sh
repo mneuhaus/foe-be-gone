@@ -26,7 +26,7 @@ uv pip install --system --break-system-packages -r pyproject.toml
 
 # Claude Code is now installed globally
 echo ""
-echo "Claude Code installed: $(which claude-code || echo 'installation pending')"
+echo "Claude Code installed: $(which claude || echo 'installation pending')"
 
 # Set up git config for development
 echo ""
@@ -70,7 +70,7 @@ echo "Git repository: /dev-workspace"
 echo ""
 echo "Quick commands:"
 echo "  cd /dev-workspace    # Go to development workspace"
-echo "  claude-code .        # Start Claude Code in workspace"
+echo "  claude .             # Start Claude Code in workspace"
 echo "  git status           # Check git status"
 echo "  uv run pytest        # Run tests"
 echo "  dev start            # Alias for /dev-mode.sh start"

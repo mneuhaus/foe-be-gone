@@ -70,8 +70,7 @@ RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master
     sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="agnoster"/' ~/.zshrc && \
     echo 'export PATH="/root/.local/bin:$PATH"' >> ~/.zshrc && \
     echo 'alias ll="ls -la"' >> ~/.zshrc && \
-    echo 'alias dev="/dev-mode.sh"' >> ~/.zshrc && \
-    echo 'alias claude="claude-code"' >> ~/.zshrc
+    echo 'alias dev="/dev-mode.sh"' >> ~/.zshrc
 
 # Set labels
 LABEL \
