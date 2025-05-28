@@ -12,6 +12,7 @@ RUN apk add --no-cache \
     git \
     openssh-server \
     bash \
+    zsh \
     nodejs \
     npm
 
@@ -19,8 +20,8 @@ RUN apk add --no-cache \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:${PATH}"
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install pnpm and claude-code
+RUN npm install -g pnpm @anthropic-ai/claude-code
 ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="$PNPM_HOME:${PATH}"
 
@@ -49,9 +50,10 @@ COPY run.sh /
 COPY run-test.sh /
 COPY dev-init.sh /
 COPY dev-mode.sh /
+COPY claude-wrapper.sh /usr/local/bin/claude
 
 # Make run scripts executable
-RUN chmod a+x /run.sh /run-test.sh /dev-init.sh /dev-mode.sh
+RUN chmod a+x /run.sh /run-test.sh /dev-init.sh /dev-mode.sh /usr/local/bin/claude
 
 # Create necessary directories
 RUN mkdir -p /data /config /media/sounds /app/logs /var/run/sshd /dev-workspace
@@ -63,11 +65,18 @@ RUN ssh-keygen -A && \
     echo "PermitEmptyPasswords yes" >> /etc/ssh/sshd_config && \
     echo "root:" | chpasswd
 
+# Install oh-my-zsh
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended && \
+    sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="agnoster"/' ~/.zshrc && \
+    echo 'export PATH="/root/.local/bin:$PATH"' >> ~/.zshrc && \
+    echo 'alias ll="ls -la"' >> ~/.zshrc && \
+    echo 'alias dev="/dev-mode.sh"' >> ~/.zshrc
+
 # Set labels
 LABEL \
     io.hass.name="Foe Be Gone" \
     io.hass.description="AI-powered wildlife detection and deterrent system" \
-    io.hass.version="1.0.13" \
+    io.hass.version="1.0.14" \
     io.hass.type="addon" \
     io.hass.arch="amd64|aarch64"
 

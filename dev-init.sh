@@ -24,9 +24,9 @@ echo "Installing development dependencies..."
 cd /dev-workspace
 uv pip install --system --break-system-packages -r pyproject.toml
 
-# Note: claude-code should be installed on your local machine
+# Claude Code is now installed globally
 echo ""
-echo "Note: To use Claude Code, install it on your local machine and use SSH"
+echo "Claude Code installed: $(which claude-code || echo 'installation pending')"
 
 # Set up git config for development
 echo ""
@@ -57,6 +57,11 @@ if [ ! -f "/data/foe-be-gone-dev.db" ]; then
     cp /data/foe-be-gone.db /data/foe-be-gone-dev.db 2>/dev/null || echo "No production database to copy"
 fi
 
+# Configure zsh as default shell
+echo ""
+echo "Setting zsh as default shell..."
+chsh -s /bin/zsh
+
 # Display helpful information
 echo ""
 echo "=== Development Environment Ready ==="
@@ -65,8 +70,10 @@ echo "Git repository: /dev-workspace"
 echo ""
 echo "Quick commands:"
 echo "  cd /dev-workspace    # Go to development workspace"
+echo "  claude .             # Start Claude Code in workspace"
 echo "  git status           # Check git status"
 echo "  uv run pytest        # Run tests"
+echo "  dev start            # Alias for /dev-mode.sh start"
 echo ""
 echo "To debug the Home Assistant addon:"
 echo "  /dev-mode.sh start   # Switch to development mode with hot-reload"
