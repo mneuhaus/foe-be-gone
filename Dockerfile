@@ -58,7 +58,7 @@ RUN ssh-keygen -A && \
 LABEL \
     io.hass.name="Foe Be Gone" \
     io.hass.description="AI-powered wildlife detection and deterrent system" \
-    io.hass.version="1.0.8" \
+    io.hass.version="1.0.9" \
     io.hass.type="addon" \
     io.hass.arch="amd64|aarch64"
 

@@ -52,7 +52,8 @@
       "Bash(gh api:*)",
       "Bash(git pull:*)",
       "Bash(git stash:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(git rm:*)"
     ],
     "deny": []
   }
