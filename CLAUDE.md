@@ -274,40 +274,45 @@ When adding new integrations:
 
 ### Release Process - IMPORTANT!
 
-**⚠️ CRITICAL: Follow these steps IN ORDER to create a proper release:**
+**⚠️ CRITICAL: Version numbers must be synchronized in TWO places!**
 
-1. **Update version in config.yaml FIRST**
+1. **Update version in BOTH files:**
    ```bash
-   # Edit config.yaml and update the version field
-   # Example: version: "1.0.2" -> version: "1.0.3"
+   # In config.yaml
+   version: "1.0.X"
+   
+   # In Dockerfile (LABEL section around line 61)
+   io.hass.version="1.0.X"
    ```
 
-2. **Commit the version update**
+2. **Commit version changes:**
    ```bash
-   git add config.yaml
-   git commit -m "Bump version to X.Y.Z"
+   git add config.yaml Dockerfile
+   git commit -m "Bump version to 1.0.X
+
+   - Brief description of changes
+   
+   🤖 Generated with Claude Code
+   
+   Co-Authored-By: Claude <noreply@anthropic.com>"
+   ```
+
+3. **Push and create release:**
+   ```bash
    git push
+   git tag v1.0.X
+   git push origin v1.0.X
    ```
 
-3. **Create and push tag**
-   ```bash
-   git tag vX.Y.Z -m "vX.Y.Z - Release Title"
-   git push origin vX.Y.Z
-   ```
-
-4. **Create GitHub release**
-   ```bash
-   gh release create vX.Y.Z --title "vX.Y.Z - Release Title" --notes "Release notes..."
-   ```
-
-**Why this order matters:**
-- The Home Assistant builder reads the version from `config.yaml` at build time
-- If you create the tag before updating config.yaml, it will build with the OLD version
-- This has caused v1.0.1 to be built when we intended v1.0.2
+4. **Monitor build:**
+   - Check GitHub Actions: https://github.com/mneuhaus/foe-be-gone/actions
+   - Wait for build completion (~5-10 minutes)
+   - Update addon in Home Assistant
 
 **Common mistakes to avoid:**
-- ❌ Creating tag before updating config.yaml
-- ❌ Forgetting to push the config.yaml change before tagging
-- ❌ Using different version numbers in tag vs config.yaml
+- ❌ Forgetting to update Dockerfile label (causes wrong version in HA)
+- ❌ Version mismatch between config.yaml and Dockerfile
+- ❌ Creating tag before updating version files
+- ❌ Old duplicate config files (e.g., foe-be-gone/config.yaml)
 
 Awaiting user direction for next development phase.
