@@ -1,12 +1,13 @@
 # syntax=docker/dockerfile:1
-# Home Assistant Add-on Dockerfile
-ARG BUILD_FROM
+# Home Assistant Add-on Dockerfile - Debian based
+ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-debian:bookworm
 FROM $BUILD_FROM
 
 # Install system dependencies
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     python3 \
-    py3-pip \
+    python3-pip \
+    python3-venv \
     ffmpeg \
     curl \
     git \
@@ -14,7 +15,9 @@ RUN apk add --no-cache \
     bash \
     zsh \
     nodejs \
-    npm
+    npm \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install uv for Python package management
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -33,10 +36,8 @@ COPY pyproject.toml ./
 COPY uv.lock* ./
 
 # Install Python dependencies
-# Use PyPI index and allow packages from any index to fix HA's limited musllinux index
 RUN uv pip install --system --break-system-packages \
     --index-url https://pypi.org/simple \
-    --index-strategy unsafe-best-match \
     -r pyproject.toml
 
 # Copy application code
@@ -50,10 +51,9 @@ COPY run.sh /
 COPY run-test.sh /
 COPY dev-init.sh /
 COPY dev-mode.sh /
-COPY claude-wrapper.sh /usr/local/bin/claude
 
 # Make run scripts executable
-RUN chmod a+x /run.sh /run-test.sh /dev-init.sh /dev-mode.sh /usr/local/bin/claude
+RUN chmod a+x /run.sh /run-test.sh /dev-init.sh /dev-mode.sh
 
 # Create necessary directories
 RUN mkdir -p /data /config /media/sounds /app/logs /var/run/sshd /dev-workspace
@@ -70,7 +70,8 @@ RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master
     sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="agnoster"/' ~/.zshrc && \
     echo 'export PATH="/root/.local/bin:$PATH"' >> ~/.zshrc && \
     echo 'alias ll="ls -la"' >> ~/.zshrc && \
-    echo 'alias dev="/dev-mode.sh"' >> ~/.zshrc
+    echo 'alias dev="/dev-mode.sh"' >> ~/.zshrc && \
+    echo 'alias claude="claude-code"' >> ~/.zshrc
 
 # Set labels
 LABEL \
