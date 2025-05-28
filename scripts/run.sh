@@ -41,10 +41,20 @@ if [ "${DEV_MODE}" = "true" ]; then
     /usr/sbin/sshd -D &
     SSH_PID=$!
     bashio::log.info "SSH server started with PID ${SSH_PID}"
+    
+    # Initialize dev workspace if not already done
+    if [ ! -f "/var/lib/foe-be-gone/dev-workspace/.initialized" ]; then
+        bashio::log.info "Initializing development workspace..."
+        /opt/foe-be-gone/scripts/dev-init.sh
+        touch /var/lib/foe-be-gone/dev-workspace/.initialized
+        bashio::log.info "Development workspace initialized"
+    else
+        bashio::log.info "Development workspace already initialized"
+    fi
 fi
 
-# Change to app directory
-cd /app
+# Change to application directory
+cd /opt/foe-be-gone
 
 # Run database migrations
 bashio::log.info "Running database migrations..."

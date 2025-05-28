@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  foe-be-gone:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///data/foe_be_gone.db
+      - DEV_MODE=true
+    volumes:
+      # Production volumes (using symlinks for compatibility)
+      - ./data:/var/lib/foe-be-gone/data
+      - ./public/sounds:/opt/foe-be-gone/public/sounds:ro
+      
+      # Development persistence volumes
+      - dev-workspace:/var/lib/foe-be-gone/dev-workspace
+      - claude-config:/root/.config
+      - claude-cache:/root/.claude
+      - claude-settings:/root/.claude.json
+      
+      # Live code mounting for hot-reload (optional - uncomment if desired)
+      # - ./app:/opt/foe-be-gone/app
+      # - ./alembic:/opt/foe-be-gone/alembic
+      
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  dev-workspace:
+    name: foe-be-gone-dev-workspace
+  claude-config:
+    name: foe-be-gone-claude-config
+  claude-cache:
+    name: foe-be-gone-claude-cache
+  claude-settings:
+    name: foe-be-gone-claude-settings

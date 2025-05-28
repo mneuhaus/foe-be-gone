@@ -15,4 +15,4 @@ services:
       - CAPTURE_ALL_SNAPSHOTS=false
       - PHASH_THRESHOLD=15
       - DATABASE_URL=sqlite:////data/foe_be_gone.db
-    command: ["/run-test.sh"]
+    command: ["/opt/foe-be-gone/scripts/run-test.sh"]

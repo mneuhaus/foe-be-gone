@@ -18,7 +18,7 @@ This guide explains how to set up a development environment inside the Home Assi
 
 2. **Initialize development environment**:
    ```bash
-   /dev-init.sh
+   foe-dev-init
    ```
    This will:
    - Clone the git repository to `/dev-workspace`
@@ -28,7 +28,7 @@ This guide explains how to set up a development environment inside the Home Assi
 
 3. **Switch to development mode**:
    ```bash
-   /dev-mode.sh start
+   foe-dev-mode start
    ```
    This stops the production server and starts it with hot-reload enabled.
 
@@ -63,9 +63,9 @@ claude-code ssh://root@<addon-ip>/dev-workspace
 
 ### Switching Between Modes
 
-- **Development mode**: `/dev-mode.sh start`
-- **Production mode**: `/dev-mode.sh stop`
-- **Check status**: `/dev-mode.sh status`
+- **Development mode**: `foe-dev-mode start`
+- **Production mode**: `foe-dev-mode stop`
+- **Check status**: `foe-dev-mode status`
 
 ## Important Notes
 
