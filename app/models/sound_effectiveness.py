@@ -1,10 +1,13 @@
 """Models for tracking deterrent sound effectiveness."""
 
 from sqlmodel import Field, SQLModel, Relationship, Column
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from enum import Enum
 from sqlalchemy import Float, Integer, ForeignKey
+
+if TYPE_CHECKING:
+    from app.models.detection import Detection
 
 
 class DeterrentResult(str, Enum):

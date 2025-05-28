@@ -1,9 +1,13 @@
 """Detection-related models."""
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, TYPE_CHECKING
 from sqlalchemy import Float
 from datetime import datetime
 from enum import Enum
+
+if TYPE_CHECKING:
+    from app.models.device import Device
+    from app.models.sound_effectiveness import SoundEffectiveness
 
 
 class FoeType(str, Enum):
@@ -29,7 +33,7 @@ class Foe(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     foe_type: FoeType = Field(description="Type of foe detected")
     confidence: float = Field(ge=0.0, le=1.0, description="Detection confidence (0-1)")
-    bounding_box: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
+    bounding_box: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
     detection_id: int = Field(foreign_key="detections.id")
     
     # Relationship
@@ -79,7 +83,7 @@ class DeterrentAction(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     detection_id: int = Field(foreign_key="detections.id")
     action_type: str = Field(description="Type of deterrent action (sound, light, etc.)")
-    action_details: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
+    action_details: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
     triggered_at: datetime = Field(default_factory=datetime.utcnow)
     success: bool = Field(default=False)
     
@@ -87,9 +91,3 @@ class DeterrentAction(SQLModel, table=True):
     detection: Optional["Detection"] = Relationship(back_populates="deterrent_actions")
 
 
-# Update forward references
-from app.models.device import Device
-from app.models.sound_effectiveness import SoundEffectiveness
-Detection.model_rebuild()
-Foe.model_rebuild()
-DeterrentAction.model_rebuild()
