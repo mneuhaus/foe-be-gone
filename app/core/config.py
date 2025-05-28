@@ -35,6 +35,21 @@ class Config:
     SNAPSHOTS_DIR: Path = Path("data/snapshots")
     SNAPSHOT_RETENTION_DAYS: int = 7
     
+    # AI Model configuration  
+    AI_MODEL: str = os.getenv("AI_MODEL", "gpt-4o")  # LiteLLM model name
+    AI_TEMPERATURE: float = float(os.getenv("AI_TEMPERATURE", "0.1"))
+    AI_MAX_TOKENS: int = int(os.getenv("AI_MAX_TOKENS", "2000"))
+    
+    # Network settings
+    RTSP_PORT: int = int(os.getenv("RTSP_PORT", "7447"))  # UniFi Protect RTSP port
+    
+    # Video capture settings
+    VIDEO_CAPTURE_DURATION: int = int(os.getenv("VIDEO_CAPTURE_DURATION", "15"))  # seconds
+    
+    # Statistics timeframes
+    STATS_DEFAULT_DAYS: int = int(os.getenv("STATS_DEFAULT_DAYS", "30"))
+    STATS_RECENT_ACTIVITY_MINUTES: int = int(os.getenv("STATS_RECENT_ACTIVITY_MINUTES", "15"))
+    
     @classmethod
     def validate(cls) -> None:
         """Validate required environment variables at startup.

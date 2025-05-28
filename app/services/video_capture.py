@@ -25,7 +25,7 @@ class VideoCapture:
         self, 
         rtsp_url: str, 
         camera_name: str,
-        duration: int = 15,
+        duration: int = config.VIDEO_CAPTURE_DURATION,
         detection_id: Optional[int] = None
     ) -> Optional[Path]:
         """
@@ -34,7 +34,7 @@ class VideoCapture:
         Args:
             rtsp_url: RTSP URL of the camera stream
             camera_name: Name of the camera (for filename)
-            duration: Duration to record in seconds (default: 15)
+            duration: Duration to record in seconds (default: from config)
             detection_id: Optional detection ID to link video to
             
         Returns:
@@ -134,7 +134,7 @@ class VideoCapture:
             host = camera_metadata["host"]
             camera_id = camera_metadata["camera_id"]
             # Default to high quality stream
-            return f"rtsp://{host}:7447/{camera_id}"
+            return f"rtsp://{host}:{config.RTSP_PORT}/{camera_id}"
         
         return None
     

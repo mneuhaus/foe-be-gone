@@ -38,6 +38,9 @@ class Foe(SQLModel, table=True):
     
     # Relationship
     detection: Optional["Detection"] = Relationship(back_populates="foes")
+    
+    def __repr__(self) -> str:
+        return f"Foe(id={self.id}, foe_type={self.foe_type}, confidence={self.confidence:.2f})"
 
 
 class Detection(SQLModel, table=True):
@@ -74,6 +77,9 @@ class Detection(SQLModel, table=True):
     foes: List["Foe"] = Relationship(back_populates="detection", cascade_delete=True)
     deterrent_actions: List["DeterrentAction"] = Relationship(back_populates="detection", cascade_delete=True)
     effectiveness_tests: List["SoundEffectiveness"] = Relationship(back_populates="detection", cascade_delete=True)
+    
+    def __repr__(self) -> str:
+        return f"Detection(id={self.id}, device_id={self.device_id}, timestamp={self.timestamp}, status={self.status})"
 
 
 class DeterrentAction(SQLModel, table=True):
@@ -89,5 +95,8 @@ class DeterrentAction(SQLModel, table=True):
     
     # Relationship
     detection: Optional["Detection"] = Relationship(back_populates="deterrent_actions")
+    
+    def __repr__(self) -> str:
+        return f"DeterrentAction(id={self.id}, detection_id={self.detection_id}, action_type={self.action_type}, success={self.success})"
 
 

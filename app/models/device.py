@@ -65,3 +65,6 @@ class Device(SQLModel, table=True):
         self.status = status
         self.last_seen = datetime.utcnow()
         self.updated_at = datetime.utcnow()
+    
+    def __repr__(self) -> str:
+        return f"Device(id={self.id}, name={self.name}, device_type={self.device_type}, status={self.status})"

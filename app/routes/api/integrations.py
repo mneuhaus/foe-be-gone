@@ -8,6 +8,7 @@ from datetime import datetime
 import json
 
 from app.core.database import get_session
+from app.core.responses import success_response, error_response
 from app.models.integration_instance import IntegrationInstance
 from app.models.device import Device
 from app.integrations.dummy_surveillance import DummySurveillanceIntegration
@@ -57,7 +58,7 @@ async def create_integration(
     if not integration_class:
         raise HTTPException(status_code=400, detail="Invalid integration type")
     
-    print(f"Creating integration with config: {integration.config}")
+    logger.info(f"Creating integration '{integration.name}' of type '{integration.integration_type}'")
     
     # Create integration instance
     db_integration = IntegrationInstance(
@@ -83,12 +84,31 @@ async def create_integration(
                 session.add(device)
         else:
             db_integration.update_status("error", "Failed to connect")
+        
+        session.add(db_integration)
+        session.commit()
+        session.refresh(db_integration)
+    except ValueError as e:
+        logger.error(f"Invalid configuration for integration {db_integration.name}: {e}")
+        session.rollback()
+        db_integration.update_status("error", f"Configuration error: {str(e)}")
+        session.add(db_integration)
+        session.commit()
+        session.refresh(db_integration)
+    except ConnectionError as e:
+        logger.error(f"Connection failed for integration {db_integration.name}: {e}")
+        session.rollback()
+        db_integration.update_status("error", f"Connection failed: {str(e)}")
+        session.add(db_integration)
+        session.commit()
+        session.refresh(db_integration)
     except Exception as e:
-        db_integration.update_status("error", str(e))
-    
-    session.add(db_integration)
-    session.commit()
-    session.refresh(db_integration)
+        logger.exception(f"Unexpected error creating integration {db_integration.name}")
+        session.rollback()
+        db_integration.update_status("error", f"Unexpected error: {str(e)}")
+        session.add(db_integration)
+        session.commit()
+        session.refresh(db_integration)
     
     return db_integration
 
@@ -111,7 +131,7 @@ async def delete_integration(
     session.delete(integration)
     session.commit()
     
-    return {"success": True}
+    return success_response("Integration deleted successfully")
 
 
 @router.post("/{integration_id}/test")
@@ -126,10 +146,7 @@ async def test_integration(
     
     integration_class = get_integration_class(integration.integration_type)
     if not integration_class:
-        return {
-            "success": False,
-            "message": "Unknown integration type"
-        }
+        return error_response(f"Unknown integration type: {integration.integration_type}")
     
     integration_instance = integration_class(integration)
     
@@ -154,20 +171,24 @@ async def test_integration(
             session.add(integration)
             session.commit()
             
-            return {
-                "success": True,
-                "message": f"Connected successfully. Found {len(devices)} device(s)."
-            }
+            return success_response(
+                f"Connected successfully. Found {len(devices)} device(s).",
+                {"device_count": len(devices)}
+            )
         else:
-            return {
-                "success": False,
-                "message": "Failed to connect to integration"
-            }
+            return error_response("Failed to connect to integration")
+    except ValueError as e:
+        logger.error(f"Invalid configuration for integration {integration.name}: {e}")
+        session.rollback()
+        return error_response(f"Configuration error: {str(e)}")
+    except ConnectionError as e:
+        logger.error(f"Connection failed for integration {integration.name}: {e}")
+        session.rollback()
+        return error_response(f"Connection failed: {str(e)}")
     except Exception as e:
-        return {
-            "success": False,
-            "message": f"Connection error: {str(e)}"
-        }
+        logger.exception(f"Unexpected error testing integration {integration.name}")
+        session.rollback()
+        return error_response(f"Unexpected error: {str(e)}")
 
 
 @router.get("/{integration_id}/test-scenarios")
@@ -308,7 +329,7 @@ async def update_camera_selection(
     
     session.commit()
     
-    return {"success": True, "message": f"Updated camera selection. {len(devices)} camera(s) enabled."}
+    return success_response(f"Updated camera selection. {len(devices)} camera(s) enabled.", {"device_count": len(devices)})
 
 
 @router.post("/{integration_id}/devices/{device_id}/talkback")
@@ -360,23 +381,23 @@ async def test_device_talkback(
                         break
                 
                 if not camera_id:
-                    return {"success": False, "message": "Camera ID not found. Please test the integration connection first."}
+                    return error_response("Camera ID not found. Please test the integration connection first.")
             
             # Get the device interface
             device_interface = await integration_instance.get_device(camera_id)
             if not device_interface:
-                return {"success": False, "message": "Camera not found in UniFi system"}
+                return error_response("Camera not found in UniFi system")
             
             # Test talkback
             success = await device_interface.test_talkback()
             
             if success:
-                return {"success": True, "message": "Talkback test initiated"}
+                return success_response("Talkback test initiated")
             else:
-                return {"success": False, "message": "Failed to initiate talkback"}
+                return error_response("Failed to initiate talkback")
     
     except Exception as e:
-        return {"success": False, "message": f"Talkback error: {str(e)}"}
+        return error_response(f"Talkback error: {str(e)}")
 
 
 @router.get("/{integration_id}/devices/{device_id}/snapshot")
