@@ -19,8 +19,8 @@ RUN apk add --no-cache \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:${PATH}"
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install pnpm and claude-code
+RUN npm install -g pnpm claude-code
 ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="$PNPM_HOME:${PATH}"
 
@@ -47,12 +47,14 @@ COPY public ./public
 # Copy addon run scripts
 COPY run.sh /
 COPY run-test.sh /
+COPY dev-init.sh /
+COPY dev-mode.sh /
 
 # Make run scripts executable
-RUN chmod a+x /run.sh /run-test.sh
+RUN chmod a+x /run.sh /run-test.sh /dev-init.sh /dev-mode.sh
 
 # Create necessary directories
-RUN mkdir -p /data /config /media/sounds /app/logs /var/run/sshd
+RUN mkdir -p /data /config /media/sounds /app/logs /var/run/sshd /dev-workspace
 
 # Configure SSH for development
 RUN ssh-keygen -A && \
@@ -65,7 +67,7 @@ RUN ssh-keygen -A && \
 LABEL \
     io.hass.name="Foe Be Gone" \
     io.hass.description="AI-powered wildlife detection and deterrent system" \
-    io.hass.version="1.0.10" \
+    io.hass.version="1.0.11" \
     io.hass.type="addon" \
     io.hass.arch="amd64|aarch64"
 
