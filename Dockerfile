@@ -19,8 +19,8 @@ RUN apk add --no-cache \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:${PATH}"
 
-# Install pnpm and claude-code
-RUN npm install -g pnpm claude-code
+# Install pnpm
+RUN npm install -g pnpm
 ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="$PNPM_HOME:${PATH}"
 
@@ -67,7 +67,7 @@ RUN ssh-keygen -A && \
 LABEL \
     io.hass.name="Foe Be Gone" \
     io.hass.description="AI-powered wildlife detection and deterrent system" \
-    io.hass.version="1.0.12" \
+    io.hass.version="1.0.13" \
     io.hass.type="addon" \
     io.hass.arch="amd64|aarch64"
 

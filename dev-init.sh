@@ -24,10 +24,9 @@ echo "Installing development dependencies..."
 cd /dev-workspace
 uv pip install --system --break-system-packages -r pyproject.toml
 
-# Install claude-code globally
+# Note: claude-code should be installed on your local machine
 echo ""
-echo "Installing claude-code..."
-npm install -g claude-code
+echo "Note: To use Claude Code, install it on your local machine and use SSH"
 
 # Set up git config for development
 echo ""
@@ -63,11 +62,9 @@ echo ""
 echo "=== Development Environment Ready ==="
 echo ""
 echo "Git repository: /dev-workspace"
-echo "Claude Code: $(which claude-code || echo 'not found')"
 echo ""
 echo "Quick commands:"
 echo "  cd /dev-workspace    # Go to development workspace"
-echo "  claude-code .        # Start Claude Code session"
 echo "  git status           # Check git status"
 echo "  uv run pytest        # Run tests"
 echo ""
