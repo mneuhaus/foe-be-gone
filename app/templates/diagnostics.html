@@ -15,7 +15,7 @@
 <script>
 async function loadDiagnostics() {
     try {
-        const response = await fetch('/detections/api/diagnostics/cameras');
+        const response = await apiFetch('/detections/api/diagnostics/cameras');
         const data = await response.json();
         
         let html = `
@@ -112,7 +112,7 @@ async function loadDiagnostics() {
 
 async function showCameraErrors(cameraId, cameraName) {
     try {
-        const response = await fetch(`/detections/api/diagnostics/camera/${cameraId}/errors?limit=20`);
+        const response = await apiFetch(`/detections/api/diagnostics/camera/${cameraId}/errors?limit=20`);
         const data = await response.json();
         
         let modalHtml = `

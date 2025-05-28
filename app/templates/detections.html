@@ -408,7 +408,7 @@ async function updateInterval(value) {
     
     updateTimeout = setTimeout(async () => {
         try {
-            const response = await fetch('/detections/api/interval', {
+            const response = await fetch(apiUrl('/detections/api/interval'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ interval: parseInt(value) })
@@ -439,7 +439,7 @@ async function updateInterval(value) {
 
 async function updateCaptureAllSnapshots(enabled) {
     try {
-        const response = await fetch('/detections/api/settings/capture-all', {
+        const response = await fetch(apiUrl('/detections/api/settings/capture-all'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ enabled: enabled })
@@ -473,7 +473,7 @@ async function updatePhashThreshold(value) {
     
     phashUpdateTimeout = setTimeout(async () => {
         try {
-            const response = await fetch('/detections/api/settings/phash-threshold', {
+            const response = await fetch(apiUrl('/detections/api/settings/phash-threshold'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ threshold: parseInt(value) })
@@ -641,7 +641,7 @@ function getFoeBadgeClass(foeType) {
 // Load statistics when modal is opened
 statsModal.addEventListener('show', async () => {
     try {
-        const response = await fetch('/detections/api/effectiveness/summary');
+        const response = await fetch(apiUrl('/detections/api/effectiveness/summary'));
         const data = await response.json();
         
         let content = '<div class="space-y-6">';
@@ -750,7 +750,7 @@ function stopAutoRefresh() {
 
 async function checkForNewDetections() {
     try {
-        const response = await fetch(`/detections/api/detections?since=${lastCheckTime}`);
+        const response = await fetch(apiUrl(`/detections/api/detections?since=${lastCheckTime}`));
         if (!response.ok) return;
         
         const newDetections = await response.json();

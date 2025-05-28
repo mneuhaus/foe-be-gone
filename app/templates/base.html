@@ -16,6 +16,9 @@
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ static_url(request, '/public/favicon.ico') }}">
     
+    <!-- Base URL for JavaScript -->
+    <meta name="base-url" content="{{ get_base_url(request) }}">
+    
     {% block extra_head %}{% endblock %}
 </head>
 <body class="min-h-screen bg-base-100">
@@ -84,6 +87,9 @@
 
 
 
+    <!-- API utilities -->
+    <script src="{{ static_url(request, '/static/js/api-utils.js') }}"></script>
+    
     {% block scripts %}{% endblock %}
 </body>
 </html>

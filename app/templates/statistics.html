@@ -527,7 +527,7 @@ new Chart(costsCtx, {
 
 // Auto-refresh every 30 seconds
 setInterval(() => {
-    fetch('/statistics/api/live-data')
+    apiFetch('/statistics/api/live-data')
         .then(r => r.json())
         .then(data => {
             // Update live indicators

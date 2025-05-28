@@ -44,7 +44,7 @@
     </svg>
     <p class="text-lg mb-2">No cameras available</p>
     <p class="text-sm opacity-70 mb-4">Add and connect an integration to see live camera feeds</p>
-    <a href="/settings/integrations" class="btn btn-primary">Setup Integrations</a>
+    <a href="{{ url_for(request, 'settings_integrations') }}" class="btn btn-primary">Setup Integrations</a>
 </div>
 {% endif %}
 {% endblock %}

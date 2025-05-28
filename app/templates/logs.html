@@ -135,16 +135,6 @@
 
 {% block scripts %}
 <script>
-// Get base URL for API calls
-const BASE_URL = '{{ get_base_url(request) }}';
-
-function apiUrl(path) {
-    // Ensure path starts with /
-    if (!path.startsWith('/')) {
-        path = '/' + path;
-    }
-    return BASE_URL + path;
-}
 let autoRefresh = false;
 let refreshInterval = null;
 let currentOffset = 0;

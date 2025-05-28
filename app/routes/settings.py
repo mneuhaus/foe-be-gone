@@ -67,7 +67,7 @@ async def general_settings_page(
     )
 
 
-@router.post("/", response_class=RedirectResponse)
+@router.post("/", response_class=RedirectResponse, name="update_general_settings")
 async def update_general_settings(
     request: Request,
     session: Session = Depends(get_session)
@@ -81,7 +81,7 @@ async def update_general_settings(
             value = form_data[key]
             set_setting_value(session, key, str(value))
     
-    return RedirectResponse(url="/settings/", status_code=303)
+    return RedirectResponse(url=request.url_for("settings_general"), status_code=303)
 
 
 @router.get("/integrations", response_class=HTMLResponse, name="settings_integrations")
