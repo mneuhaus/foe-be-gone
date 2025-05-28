@@ -8,6 +8,7 @@ import json
 
 if TYPE_CHECKING:
     from app.models.detection import Detection
+    from app.models.integration_instance import IntegrationInstance
 
 
 class Device(SQLModel, table=True):

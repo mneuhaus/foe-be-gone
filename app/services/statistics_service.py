@@ -82,9 +82,9 @@ class StatisticsService:
         """Get daily detection and success trends."""
         start_date = datetime.now() - timedelta(days=days)
         
-        # Use raw SQL for complex aggregation
+        # Use parameterized query for security
         daily_stats = self.session.execute(
-            text(f"""
+            text("""
             SELECT 
                 DATE(created_at) as date,
                 COUNT(*) as total,
@@ -92,10 +92,11 @@ class StatisticsService:
                 SUM(CASE WHEN detected_foe IS NOT NULL THEN 1 ELSE 0 END) as foes,
                 SUM(CASE WHEN detected_foe IS NULL THEN 1 ELSE 0 END) as friends
             FROM detections
-            WHERE created_at >= '{start_date.isoformat()}'
+            WHERE created_at >= :start_date
             GROUP BY DATE(created_at)
             ORDER BY date
-            """)
+            """),
+            {"start_date": start_date}
         ).all()
         
         dates = []
@@ -319,16 +320,18 @@ class StatisticsService:
     def get_cost_analytics(self) -> Dict[str, Any]:
         """Analyze AI processing costs."""
         # Daily costs
+        start_date_30_days = datetime.now() - timedelta(days=30)
         daily_costs = self.session.execute(
-            text(f"""
+            text("""
             SELECT 
                 DATE(created_at) as date,
                 SUM(ai_cost) as cost
             FROM detections
-            WHERE created_at >= '{(datetime.now() - timedelta(days=30)).isoformat()}'
+            WHERE created_at >= :start_date
             GROUP BY DATE(created_at)
             ORDER BY date
-            """)
+            """),
+            {"start_date": start_date_30_days}
         ).all()
         
         # Cost per successful deterrent
@@ -408,15 +411,16 @@ class StatisticsService:
         
         # Time-based effectiveness
         hourly_effectiveness = self.session.execute(
-            text(f"""
+            text("""
             SELECT 
                 CAST(strftime('%H', created_at) AS INTEGER) as hour,
                 COUNT(*) as total,
                 SUM(CASE WHEN deterrent_effective = 1 THEN 1 ELSE 0 END) as effective
             FROM detections
-            WHERE detected_foe = '{foe_type}'
+            WHERE detected_foe = :foe_type
             GROUP BY hour
-            """)
+            """),
+            {"foe_type": foe_type}
         ).all()
         
         return {
@@ -490,17 +494,19 @@ class StatisticsService:
     def _get_friend_trend(self) -> Dict[str, Any]:
         """Analyze friend detection trends over time."""
         # Daily friend counts for last 30 days
+        start_date_30_days = datetime.now() - timedelta(days=30)
         friend_counts = self.session.execute(
-            text(f"""
+            text("""
             SELECT 
                 DATE(created_at) as date,
                 COUNT(*) as count
             FROM detections
             WHERE detected_foe IS NULL
-            AND created_at >= '{(datetime.now() - timedelta(days=30)).isoformat()}'
+            AND created_at >= :start_date
             GROUP BY DATE(created_at)
             ORDER BY date
-            """)
+            """),
+            {"start_date": start_date_30_days}
         ).all()
         
         return {
