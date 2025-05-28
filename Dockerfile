@@ -11,11 +11,18 @@ RUN apk add --no-cache \
     curl \
     git \
     openssh-server \
-    bash
+    bash \
+    nodejs \
+    npm
 
 # Install uv for Python package management
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:${PATH}"
+
+# Install pnpm
+RUN npm install -g pnpm
+ENV PNPM_HOME="/root/.local/share/pnpm"
+ENV PATH="$PNPM_HOME:${PATH}"
 
 # Set working directory
 WORKDIR /app
@@ -58,7 +65,7 @@ RUN ssh-keygen -A && \
 LABEL \
     io.hass.name="Foe Be Gone" \
     io.hass.description="AI-powered wildlife detection and deterrent system" \
-    io.hass.version="1.0.9" \
+    io.hass.version="1.0.10" \
     io.hass.type="addon" \
     io.hass.arch="amd64|aarch64"
 

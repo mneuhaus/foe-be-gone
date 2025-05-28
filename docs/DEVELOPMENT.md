@@ -77,6 +77,27 @@ apk add nano vim curl wget jq
 pip install ipdb rich
 ```
 
+### Pre-installed Development Tools
+
+The container comes with these tools pre-installed:
+- **Node.js**: Latest available in Alpine repos
+- **npm**: Node package manager
+- **pnpm**: Fast, disk space efficient package manager
+- **uv**: Lightning-fast Python package manager
+- **git**: Version control
+- **ffmpeg**: Media processing
+
+You can use these to install and run additional tools like:
+```bash
+# Install claude-code globally
+pnpm install -g claude-code
+
+# Or install project-specific tools
+cd /app
+pnpm init
+pnpm add -D typescript eslint prettier
+```
+
 ### Debugging Tips
 
 1. **Add debug prints**: Since hot-reload is enabled, you can add print statements and see them immediately
