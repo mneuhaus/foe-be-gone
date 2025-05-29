@@ -13,17 +13,17 @@
                     <!-- Live Indicator -->
                     <div class="flex items-center gap-2">
                         <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-                        <span class="text-sm text-base-content/70">Live monitoring</span>
+                        <span class="text-sm text-base-content/70">{{ t('detections.live_monitoring', request) }}</span>
                     </div>
                 </div>
                 <!-- Summary Stats -->
                 <div class="flex flex-wrap items-center gap-4 text-sm text-base-content/70">
-                    <span>Showing <span id="detection-count" class="font-semibold text-base-content">{{ detections|length }}</span> detection(s)</span>
+                    <span>{{ t('detections.showing_detections', request, count=detections|length) }}</span>
                     <span>•</span>
-                    <span>Every <span id="worker-interval" class="font-semibold text-primary">{{ current_interval }}</span> seconds</span>
+                    <span>{{ t('detections.every_seconds', request, seconds=current_interval) }}</span>
                     {% if detections %}
                     <span>•</span>
-                    <span>Latest: {{ detections[0].timestamp.strftime('%H:%M:%S') }}</span>
+                    <span>{{ t('detections.latest', request) }}: {{ detections[0].timestamp.strftime('%H:%M:%S') }}</span>
                     {% endif %}
                 </div>
             </div>
@@ -67,7 +67,7 @@
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                             </svg>
-                            <span class="hidden sm:inline">More</span>
+                            <span class="hidden sm:inline">{{ t('detections.more', request) }}</span>
                         </label>
                         <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-300">
                             <!-- Auto-refresh Toggle -->
@@ -122,7 +122,7 @@
         <!-- Collapsible Advanced Settings -->
         <div id="advanced-settings" class="hidden animate-fadeIn">
             <div class="bg-base-200/50 rounded-xl p-6 border border-base-300/50">
-                <h3 class="text-lg font-semibold mb-4 text-base-content">Advanced Settings</h3>
+                <h3 class="text-lg font-semibold mb-4 text-base-content">{{ t('common.advanced_settings', request) }}</h3>
                 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Detection Interval Control -->
@@ -146,14 +146,14 @@
                                 oninput="updateInterval(this.value)"
                             >
                             <div class="flex justify-between text-xs text-base-content/60 px-2">
-                                <span>Fast (1s)</span>
-                                <span>Balanced (15s)</span>
-                                <span>Slow (30s)</span>
+                                <span>{{ t('detections.fast', request) }} (1s)</span>
+                                <span>{{ t('detections.balanced', request) }} (15s)</span>
+                                <span>{{ t('detections.slow', request) }} (30s)</span>
                             </div>
                         </div>
                         
                         <p class="text-sm text-base-content/70">
-                            <span id="interval-status">Checking every {{ current_interval }} seconds</span>
+                            <span id="interval-status">{{ t('detections.checking_every', request, seconds=current_interval) }}</span>
                         </p>
                     </div>
                     
@@ -162,7 +162,7 @@
                         <!-- Snapshot Capture Level -->
                         <div class="space-y-2">
                             <div class="flex items-center justify-between">
-                                <label class="label-text font-medium">Snapshot Capture Level</label>
+                                <label class="label-text font-medium">{{ t('detections.snapshot_capture_level', request) }}</label>
                                 <span class="text-sm text-primary font-medium" id="capture-level-label">{{ capture_level_label }}</span>
                             </div>
                             <input 
@@ -176,10 +176,10 @@
                                 onchange="updateSnapshotCaptureLevel(this.value)"
                             >
                             <div class="w-full flex justify-between text-xs px-2">
-                                <span>Foe<br>Deterred</span>
-                                <span>AI<br>Detection</span>
-                                <span>Threshold<br>Crossed</span>
-                                <span>All<br>Snapshots</span>
+                                <span>{{ t('detections.foe_deterred', request)|replace(' ', '<br>')|safe }}</span>
+                                <span>{{ t('detections.ai_detection', request)|replace(' ', '<br>')|safe }}</span>
+                                <span>{{ t('detections.threshold_crossed', request)|replace(' ', '<br>')|safe }}</span>
+                                <span>{{ t('detections.all_snapshots', request)|replace(' ', '<br>')|safe }}</span>
                             </div>
                         </div>
                         
@@ -200,9 +200,9 @@
                                 oninput="updatePhashThreshold(this.value)"
                             >
                             <div class="flex justify-between text-xs text-base-content/60 px-2">
-                                <span>Very Sensitive</span>
-                                <span>Normal</span>
-                                <span>Less Sensitive</span>
+                                <span>{{ t('detections.very_sensitive', request) }}</span>
+                                <span>{{ t('detections.normal', request) }}</span>
+                                <span>{{ t('detections.less_sensitive', request) }}</span>
                             </div>
                         </div>
                     </div>
@@ -269,8 +269,8 @@
                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
-                        <span class="hidden group-hover:inline">Hover to play</span>
-                        <span class="group-hover:hidden">Video</span>
+                        <span class="hidden group-hover:inline">{{ t('detections.hover_to_play', request) }}</span>
+                        <span class="group-hover:hidden">{{ t('detections.video', request) }}</span>
                     </span>
                 </div>
                 {% endif %}
@@ -280,7 +280,7 @@
             <div class="card-body p-4">
                 <!-- Camera Name -->
                 <h3 class="font-semibold text-base mb-2 truncate">
-                    {{ detection.device.name if detection.device else 'Unknown Camera' }}
+                    {{ detection.device.name if detection.device else t('detections.unknown_camera', request) }}
                 </h3>
                 
                 <!-- Simple Timestamp -->
@@ -296,7 +296,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
-                    View Details
+                    {{ t('detections.view_details', request) }}
                 </button>
             </div>
         </div>
@@ -330,7 +330,7 @@
                     <span class="text-sm font-medium text-success">System Active</span>
                 </div>
                 <p class="text-xs text-base-content/60">
-                    Checking cameras every <span class="font-semibold text-primary">{{ current_interval }} seconds</span>
+                    {{ t('detections.checking_cameras_every', request, seconds=current_interval) }}
                 </p>
             </div>
             
@@ -364,7 +364,7 @@
         <div class="sticky top-0 z-10 bg-base-100 border-b border-base-300 px-6 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <h3 class="font-bold text-xl">Detection Details</h3>
+                    <h3 class="font-bold text-xl">{{ t('detections.detection_details', request) }}</h3>
                     <div id="modal-detection-badges" class="flex gap-2">
                         <!-- Dynamic badges will be inserted here -->
                     </div>
@@ -397,10 +397,10 @@
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                         </svg>
-                        Previous
+                        {{ t('common.previous', request) }}
                     </button>
                     <button id="modal-next-btn" class="btn btn-outline btn-sm" onclick="navigateDetection('next')">
-                        Next
+                        {{ t('common.next', request) }}
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                         </svg>
@@ -420,7 +420,7 @@
 <!-- Statistics Modal -->
 <dialog id="statsModal" class="modal">
     <div class="modal-box max-w-3xl">
-        <h3 class="font-bold text-lg mb-4">Effectiveness Statistics</h3>
+        <h3 class="font-bold text-lg mb-4">{{ t('detections.effectiveness_statistics', request) }}</h3>
         <div id="statsContent" class="space-y-4">
             <div class="text-center py-8">
                 <span class="loading loading-spinner loading-lg"></span>
@@ -572,7 +572,7 @@ try {
 async function updateInterval(value) {
     // Update UI immediately
     document.getElementById('interval-display').textContent = value + 's';
-    document.getElementById('interval-status').textContent = `Current: Every ${value} seconds`;
+    document.getElementById('interval-status').textContent = `{{ t('detections.current_every', request, seconds='') }}`.replace('{seconds}', value);
     document.getElementById('worker-interval').textContent = value;
     
     // Debounce API calls
@@ -698,7 +698,7 @@ function showDetectionModal(detectionId) {
             <!-- Foes Detected (Primary Focus) -->
             ${detection.foes && detection.foes.length > 0 ? `
             <div>
-                <h4 class="text-lg font-bold mb-4">Detected Threats</h4>
+                <h4 class="text-lg font-bold mb-4">{{ t('common.detected_threats', request) }}</h4>
                 <div class="grid gap-3">
                     ${detection.foes.map(foe => `
                     <div class="flex items-center justify-between p-4 bg-gradient-to-r from-error/5 to-warning/5 rounded-lg border-l-4 ${getFoeBorderClass(foe.foe_type)}">
@@ -715,14 +715,14 @@ function showDetectionModal(detectionId) {
             </div>` : `
             <div class="text-center py-12">
                 <div class="text-6xl mb-4">✅</div>
-                <h4 class="text-lg font-bold text-success mb-2">All Clear</h4>
-                <p class="text-base-content/70">No threats detected in this scan</p>
+                <h4 class="text-lg font-bold text-success mb-2">{{ t('common.all_clear', request) }}</h4>
+                <p class="text-base-content/70">{{ t('common.no_threats_detected', request) }}</p>
             </div>`}
             
             <!-- Deterrent Action (If Any) -->
             ${detection.effectiveness ? `
             <div>
-                <h4 class="text-lg font-bold mb-4">Deterrent Action</h4>
+                <h4 class="text-lg font-bold mb-4">{{ t('common.deterrent_action', request) }}</h4>
                 <div class="bg-gradient-to-r from-success/5 to-info/5 rounded-lg p-6 border border-success/20">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
@@ -770,25 +770,25 @@ function showDetectionModal(detectionId) {
             
             <!-- Technical Details (Collapsed by Default) -->
             <details class="collapse collapse-arrow bg-base-200">
-                <summary class="collapse-title font-medium">Technical Details</summary>
+                <summary class="collapse-title font-medium">{{ t('common.technical_details', request) }}</summary>
                 <div class="collapse-content space-y-4">
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                            <span class="font-medium">Camera:</span>
+                            <span class="font-medium">{{ t('common.camera', request) }}:</span>
                             <span class="ml-2">${detection.device ? detection.device.name : 'Unknown'}</span>
                         </div>
                         <div>
-                            <span class="font-medium">Status:</span>
+                            <span class="font-medium">{{ t('common.status', request) }}:</span>
                             <span class="badge badge-xs ${getStatusBadgeClass(detection.status)} ml-2">${detection.status}</span>
                         </div>
                         ${detection.ai_response && detection.ai_response.hash_distance !== null ? `
                         <div>
-                            <span class="font-medium">Change Level:</span>
+                            <span class="font-medium">{{ t('common.change_level', request) }}:</span>
                             <span class="ml-2">${detection.ai_response.hash_distance}</span>
                         </div>` : ''}
                         ${detection.ai_cost_usd ? `
                         <div>
-                            <span class="font-medium">AI Cost:</span>
+                            <span class="font-medium">{{ t('common.ai_cost', request) }}:</span>
                             <span class="ml-2 font-mono">$${detection.ai_cost_usd.toFixed(4)}</span>
                         </div>` : ''}
                     </div>
@@ -1110,8 +1110,8 @@ function createDetectionCard(detection) {
                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
-                        <span class="hidden group-hover:inline">Hover to play</span>
-                        <span class="group-hover:hidden">Video</span>
+                        <span class="hidden group-hover:inline">{{ t('detections.hover_to_play', request) }}</span>
+                        <span class="group-hover:hidden">{{ t('detections.video', request) }}</span>
                     </span>
                 </div>
                 ` : ''}
@@ -1191,7 +1191,7 @@ function createDetectionCard(detection) {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
-                    View Details
+                    {{ t('detections.view_details', request) }}
                 </button>
             </div>
         </div>

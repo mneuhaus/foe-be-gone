@@ -31,7 +31,7 @@
                             {% if foe_type == "crows" %}🐦{% elif foe_type == "rats" %}🐀{% elif foe_type == "cats" %}🐱{% elif foe_type == "herons" %}🦆{% elif foe_type == "pigeons" %}🕊️{% endif %}
                         </div>
                         <div>
-                            <h2 class="text-2xl font-bold">{{ foe_type|capitalize }} Sounds</h2>
+                            <h2 class="text-2xl font-bold">{{ foe_type|capitalize }} {{ t('sounds.sounds_suffix', request) }}</h2>
                             <p class="text-sm text-base-content/60">{{ t('sounds.sounds_available', request, count=sounds_by_type[foe_type].count) }}</p>
                         </div>
                     </div>
@@ -99,7 +99,7 @@
                     </svg>
                     <p class="text-lg text-base-content/60 mb-4">No sounds uploaded yet</p>
                     <button class="btn btn-primary" onclick="openUploadModal('{{ foe_type }}')">
-                        Upload First Sound
+                        {{ t('sounds.upload_first_sound', request) }}
                     </button>
                 </div>
                 {% endif %}
@@ -112,14 +112,14 @@
 <!-- Upload Modal -->
 <dialog id="uploadModal" class="modal">
     <div class="modal-box">
-        <h3 class="font-bold text-lg mb-4">Upload Sound File</h3>
+        <h3 class="font-bold text-lg mb-4">{{ t('sounds.upload_sound_file', request) }}</h3>
         
         <form id="uploadForm" enctype="multipart/form-data" onsubmit="handleUpload(event)">
             <input type="hidden" id="uploadFoeType" name="foe_type" value="">
             
             <div class="form-control w-full">
                 <label class="label">
-                    <span class="label-text">Select sound file (MP3 or WAV)</span>
+                    <span class="label-text">{{ t('sounds.select_sound_file', request) }}</span>
                 </label>
                 <input 
                     type="file" 
@@ -131,8 +131,8 @@
             </div>
             
             <div class="modal-action">
-                <button type="submit" class="btn btn-primary">Upload</button>
-                <button type="button" class="btn" onclick="uploadModal.close()">Cancel</button>
+                <button type="submit" class="btn btn-primary">{{ t('common.upload', request) }}</button>
+                <button type="button" class="btn" onclick="uploadModal.close()">{{ t('common.cancel', request) }}</button>
             </div>
         </form>
     </div>
@@ -162,7 +162,7 @@ async function handleUpload(event) {
     
     try {
         btn.disabled = true;
-        btn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Uploading...';
+        btn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> {{ t("sounds.uploading", request) }}';
         
         const response = await fetch('/settings/sounds/upload', {
             method: 'POST',

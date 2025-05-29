@@ -25,7 +25,7 @@
     <div class="stat-card" onclick="showDetailModal('detections')">
         <div class="stat-label">{{ t('dashboard.total_detections', request) }}</div>
         <div class="stat-value text-primary">{{ stats.total_detections or 0 }}</div>
-        <div class="stat-subtext">{{ stats.detections_today or 0 }} today</div>
+        <div class="stat-subtext">{{ stats.detections_today or 0 }} {{ t('common.today', request) }}</div>
     </div>
     
     <div class="stat-card" onclick="showDetailModal('effectiveness')">
@@ -37,7 +37,7 @@
     <div class="stat-card" onclick="showDetailModal('foes')">
         <div class="stat-label">{{ t('dashboard.most_common_foe', request) }}</div>
         <div class="stat-value text-error">{{ stats.most_common_foe or 'None' }}</div>
-        <div class="stat-subtext">{{ stats.most_common_foe_count or 0 }} detections</div>
+        <div class="stat-subtext">{{ stats.most_common_foe_count or 0 }} {{ t('common.detections', request) }}</div>
     </div>
     
     <div class="stat-card" onclick="showDetailModal('activity')">
@@ -76,7 +76,7 @@
             <!-- Live indicator -->
             <div class="absolute top-2 right-2 flex items-center gap-1 bg-black/50 px-2 py-1 rounded">
                 <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                <span class="text-xs text-white">LIVE</span>
+                <span class="text-xs text-white">{{ t('common.live', request) }}</span>
             </div>
         </figure>
         

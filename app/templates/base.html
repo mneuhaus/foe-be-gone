@@ -208,7 +208,7 @@
         
         // Clear all data functionality
         function clearAllData() {
-            if (confirm('Are you sure you want to clear all detection data? This action cannot be undone.')) {
+            if (confirm('{{ t("common.are_you_sure", request) }} {{ t("common.this_action_cannot_be_undone", request) }}')) {
                 // Use form submission to handle the POST request properly
                 const form = document.createElement('form');
                 form.method = 'POST';
