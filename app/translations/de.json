@@ -227,6 +227,21 @@
       "cost_per_success": "Kosten pro Erfolg",
       "monthly_projection": "Monatsprognose"
     },
+    "logs": {
+      "title": "Anwendungsprotokolle",
+      "auto_refresh_off": "Automatisch aktualisieren: AUS",
+      "auto_refresh_on": "Automatisch aktualisieren: EIN",
+      "clear_logs": "Protokolle löschen",
+      "lines_to_show": "Anzuzeigende Zeilen",
+      "log_level": "Protokollebene",
+      "all_levels": "Alle Ebenen",
+      "search": "Suchen",
+      "search_in_logs": "In Protokollen suchen...",
+      "loading_logs": "Protokolle werden geladen...",
+      "no_logs_found": "Keine Protokolle gefunden",
+      "clear_logs_confirm": "Sind Sie sicher, dass Sie alle Protokolle löschen möchten?",
+      "failed_to_clear_logs": "Protokolle konnten nicht gelöscht werden"
+    },
     "integrations": {
       "title": "Kamera-Integrationen",
       "subtitle": "Verbindungen zu Kamerasystemen verwalten",

@@ -227,6 +227,21 @@
       "cost_per_success": "Cost per Success",
       "monthly_projection": "Monthly Projection"
     },
+    "logs": {
+      "title": "Application Logs",
+      "auto_refresh_off": "Auto-refresh: OFF",
+      "auto_refresh_on": "Auto-refresh: ON", 
+      "clear_logs": "Clear Logs",
+      "lines_to_show": "Lines to show",
+      "log_level": "Log Level",
+      "all_levels": "All Levels",
+      "search": "Search",
+      "search_in_logs": "Search in logs...",
+      "loading_logs": "Loading logs...",
+      "no_logs_found": "No logs found",
+      "clear_logs_confirm": "Are you sure you want to clear all logs?",
+      "failed_to_clear_logs": "Failed to clear logs"
+    },
     "integrations": {
       "title": "Camera Integrations",
       "subtitle": "Manage connections to camera systems",
