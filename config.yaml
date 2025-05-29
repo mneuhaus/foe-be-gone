@@ -1,6 +1,6 @@
 name: "Foe Be Gone"
 description: "AI-powered wildlife detection and deterrent system"
-version: "1.0.20"
+version: "1.0.21"
 slug: "foe-be-gone"
 init: false
 arch:
