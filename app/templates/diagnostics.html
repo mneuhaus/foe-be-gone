@@ -2,12 +2,12 @@
 
 {% block content %}
 <div class="container mx-auto px-4 pt-0 pb-2 max-w-7xl">
-    <h1 class="text-3xl font-bold mb-6">Camera Diagnostics</h1>
+    <h1 class="text-3xl font-bold mb-6">{{ t('diagnostics.title', request) }}</h1>
     
     <div id="diagnosticsContent">
         <div class="text-center py-8">
             <span class="loading loading-spinner loading-lg"></span>
-            <p class="mt-4">Loading camera diagnostics...</p>
+            <p class="mt-4">{{ t('diagnostics.loading_diagnostics', request) }}</p>
         </div>
     </div>
 </div>
@@ -21,15 +21,15 @@ async function loadDiagnostics() {
         let html = `
             <div class="stats shadow w-full mb-6">
                 <div class="stat">
-                    <div class="stat-title">Total Cameras</div>
+                    <div class="stat-title">{{ t('diagnostics.total_cameras', request) }}</div>
                     <div class="stat-value">${data.total_cameras}</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-title">Healthy</div>
+                    <div class="stat-title">{{ t('diagnostics.healthy', request) }}</div>
                     <div class="stat-value text-success">${data.healthy_cameras}</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-title">Issues</div>
+                    <div class="stat-title">{{ t('diagnostics.issues', request) }}</div>
                     <div class="stat-value text-error">${data.unhealthy_cameras}</div>
                 </div>
             </div>
@@ -50,15 +50,15 @@ async function loadDiagnostics() {
                         </h3>
                         <div class="text-sm space-y-1">
                             <div class="flex justify-between">
-                                <span class="text-base-content/70">Status:</span>
+                                <span class="text-base-content/70">{{ t('diagnostics.status', request) }}:</span>
                                 <span>${camera.status}</span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="text-base-content/70">Integration:</span>
+                                <span class="text-base-content/70">{{ t('diagnostics.integration', request) }}:</span>
                                 <span>${camera.integration}</span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="text-base-content/70">Recent Errors:</span>
+                                <span class="text-base-content/70">{{ t('diagnostics.recent_errors', request) }}:</span>
                                 <span class="${camera.recent_error_count > 0 ? 'text-error' : 'text-success'}">
                                     ${camera.recent_error_count}
                                 </span>
@@ -78,7 +78,7 @@ async function loadDiagnostics() {
                         ${!camera.is_healthy ? `
                             <button onclick="showCameraErrors('${camera.id}', '${camera.name}')" 
                                     class="btn btn-sm btn-outline btn-error mt-3">
-                                View Error Details
+                                {{ t('diagnostics.view_error_details', request) }}
                             </button>
                         ` : ''}
                     </div>
@@ -92,7 +92,7 @@ async function loadDiagnostics() {
             html += `
                 <div class="alert alert-warning mt-6">
                     <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                    <span>${data.unhealthy_cameras} camera(s) are experiencing issues. Click "View Error Details" for troubleshooting suggestions.</span>
+                    <span>${data.unhealthy_cameras} {{ t('diagnostics.cameras_experiencing_issues', request) }}</span>
                 </div>
             `;
         }
@@ -104,7 +104,7 @@ async function loadDiagnostics() {
         document.getElementById('diagnosticsContent').innerHTML = `
             <div class="alert alert-error">
                 <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                <span>Failed to load diagnostics</span>
+                <span>{{ t('diagnostics.failed_to_load_diagnostics', request) }}</span>
             </div>
         `;
     }
@@ -118,12 +118,12 @@ async function showCameraErrors(cameraId, cameraName) {
         let modalHtml = `
             <dialog id="errorModal" class="modal modal-open">
                 <div class="modal-box max-w-3xl">
-                    <h3 class="font-bold text-lg mb-4">${cameraName} - Error Details</h3>
+                    <h3 class="font-bold text-lg mb-4">${cameraName} - {{ t('diagnostics.error_details', request) }}</h3>
                     
                     <div class="space-y-4">
                         <div class="alert alert-info">
                             <div>
-                                <h4 class="font-medium">Suggested Fixes:</h4>
+                                <h4 class="font-medium">{{ t('diagnostics.suggested_fixes', request) }}:</h4>
                                 <ul class="list-disc list-inside mt-2 text-sm">
                                     ${data.suggestions.map(s => `<li>${s}</li>`).join('')}
                                 </ul>
@@ -131,14 +131,14 @@ async function showCameraErrors(cameraId, cameraName) {
                         </div>
                         
                         <div>
-                            <h4 class="font-medium mb-2">Recent Errors (${data.error_count} total):</h4>
+                            <h4 class="font-medium mb-2">{{ t('diagnostics.recent_errors', request) }} (${data.error_count} total):</h4>
                             <div class="overflow-x-auto">
                                 <table class="table table-sm table-zebra">
                                     <thead>
                                         <tr>
-                                            <th>Time</th>
-                                            <th>Error Type</th>
-                                            <th>Details</th>
+                                            <th>{{ t('diagnostics.time', request) }}</th>
+                                            <th>{{ t('diagnostics.error_type', request) }}</th>
+                                            <th>{{ t('diagnostics.details', request) }}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -156,11 +156,11 @@ async function showCameraErrors(cameraId, cameraName) {
                     </div>
                     
                     <div class="modal-action">
-                        <button onclick="document.getElementById('errorModal').close()" class="btn">Close</button>
+                        <button onclick="document.getElementById('errorModal').close()" class="btn">{{ t('common.close', request) }}</button>
                     </div>
                 </div>
                 <form method="dialog" class="modal-backdrop" onclick="document.getElementById('errorModal').close()">
-                    <button>close</button>
+                    <button>{{ t('common.close', request) }}</button>
                 </form>
             </dialog>
         `;
@@ -176,7 +176,7 @@ async function showCameraErrors(cameraId, cameraName) {
         
     } catch (error) {
         console.error('Error loading camera errors:', error);
-        alert('Failed to load error details');
+        alert('{{ t('diagnostics.failed_to_load_error_details', request) }}');
     }
 }
 

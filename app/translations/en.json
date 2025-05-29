@@ -242,6 +242,26 @@
       "clear_logs_confirm": "Are you sure you want to clear all logs?",
       "failed_to_clear_logs": "Failed to clear logs"
     },
+    "diagnostics": {
+      "title": "Camera Diagnostics",
+      "loading_diagnostics": "Loading camera diagnostics...",
+      "total_cameras": "Total Cameras",
+      "healthy": "Healthy",
+      "issues": "Issues", 
+      "status": "Status",
+      "integration": "Integration",
+      "recent_errors": "Recent Errors",
+      "view_error_details": "View Error Details",
+      "cameras_experiencing_issues": "camera(s) are experiencing issues. Click \"View Error Details\" for troubleshooting suggestions.",
+      "failed_to_load_diagnostics": "Failed to load diagnostics",
+      "error_details": "Error Details",
+      "suggested_fixes": "Suggested Fixes",
+      "recent_errors_total": "Recent Errors ({count} total)",
+      "time": "Time",
+      "error_type": "Error Type",
+      "details": "Details",
+      "failed_to_load_error_details": "Failed to load error details"
+    },
     "integrations": {
       "title": "Camera Integrations",
       "subtitle": "Manage connections to camera systems",

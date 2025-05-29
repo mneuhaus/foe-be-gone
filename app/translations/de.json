@@ -242,6 +242,26 @@
       "clear_logs_confirm": "Sind Sie sicher, dass Sie alle Protokolle löschen möchten?",
       "failed_to_clear_logs": "Protokolle konnten nicht gelöscht werden"
     },
+    "diagnostics": {
+      "title": "Kamera-Diagnose",
+      "loading_diagnostics": "Kamera-Diagnose wird geladen...",
+      "total_cameras": "Kameras insgesamt",
+      "healthy": "Gesund",
+      "issues": "Probleme",
+      "status": "Status", 
+      "integration": "Integration",
+      "recent_errors": "Aktuelle Fehler",
+      "view_error_details": "Fehlerdetails anzeigen",
+      "cameras_experiencing_issues": "Kamera(s) haben Probleme. Klicken Sie auf \"Fehlerdetails anzeigen\" für Lösungsvorschläge.",
+      "failed_to_load_diagnostics": "Diagnose konnte nicht geladen werden",
+      "error_details": "Fehlerdetails",
+      "suggested_fixes": "Lösungsvorschläge",
+      "recent_errors_total": "Aktuelle Fehler ({count} insgesamt)",
+      "time": "Zeit",
+      "error_type": "Fehlertyp",
+      "details": "Details",
+      "failed_to_load_error_details": "Fehlerdetails konnten nicht geladen werden"
+    },
     "integrations": {
       "title": "Kamera-Integrationen",
       "subtitle": "Verbindungen zu Kamerasystemen verwalten",
