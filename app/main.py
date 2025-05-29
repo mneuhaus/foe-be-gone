@@ -147,6 +147,7 @@ async def ingress_security_middleware(request: Request, call_next):
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.mount("/public", StaticFiles(directory="public"), name="public")
 app.mount("/data", StaticFiles(directory="data"), name="data")
+app.mount("/sounds", StaticFiles(directory="public/sounds"), name="sounds")
 
 # Import shared templates
 from app.core.templates import templates

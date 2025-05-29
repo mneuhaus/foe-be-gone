@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Sound Management{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-base-content">Sound Management</h1>
+            <p class="text-base-content/70 mt-2">Manage deterrent sounds for each foe type</p>
+        </div>
+    </div>
+
+    <!-- Foe Type Tabs -->
+    <div role="tablist" class="tabs tabs-lifted tabs-lg">
+        {% for foe_type in foe_types %}
+        <input 
+            type="radio" 
+            name="foe_tabs" 
+            role="tab" 
+            class="tab" 
+            aria-label="{{ foe_type|capitalize }}" 
+            {% if loop.first %}checked="checked"{% endif %} 
+        />
+        <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+            <div class="space-y-6">
+                <!-- Header with icon and upload button -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="text-4xl">
+                            {% if foe_type == "crows" %}🐦{% elif foe_type == "rats" %}🐀{% elif foe_type == "cats" %}🐱{% endif %}
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold">{{ foe_type|capitalize }} Sounds</h2>
+                            <p class="text-sm text-base-content/60">{{ sounds_by_type[foe_type].count }} sound(s) available</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Upload button -->
+                    <button class="btn btn-primary" onclick="openUploadModal('{{ foe_type }}')">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        Upload Sound
+                    </button>
+                </div>
+
+                <!-- Sound files list -->
+                {% if sounds_by_type[foe_type].count > 0 %}
+                <div class="grid gap-3">
+                    {% for filename in sounds_by_type[foe_type].files %}
+                    <div class="card bg-base-200 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <svg class="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                                    </svg>
+                                    <div>
+                                        <p class="font-medium">{{ filename }}</p>
+                                        <p class="text-sm text-base-content/60">{{ filename.split('.')[-1].upper() }} file</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center gap-2">
+                                    <!-- Play button -->
+                                    <button 
+                                        class="btn btn-sm btn-circle btn-ghost"
+                                        onclick="playSound('{{ foe_type }}', '{{ filename }}')"
+                                        title="Play sound"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    
+                                    <!-- Delete button -->
+                                    <button 
+                                        class="btn btn-sm btn-circle btn-error btn-outline"
+                                        onclick="deleteSound('{{ foe_type }}', '{{ filename }}')"
+                                        title="Delete sound"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <!-- Empty state -->
+                <div class="text-center py-12">
+                    <svg class="w-24 h-24 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    <p class="text-lg text-base-content/60 mb-4">No sounds uploaded yet</p>
+                    <button class="btn btn-primary" onclick="openUploadModal('{{ foe_type }}')">
+                        Upload First Sound
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<dialog id="uploadModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Upload Sound File</h3>
+        
+        <form id="uploadForm" enctype="multipart/form-data" onsubmit="handleUpload(event)">
+            <input type="hidden" id="uploadFoeType" name="foe_type" value="">
+            
+            <div class="form-control w-full">
+                <label class="label">
+                    <span class="label-text">Select sound file (MP3 or WAV)</span>
+                </label>
+                <input 
+                    type="file" 
+                    name="file" 
+                    accept=".mp3,.wav" 
+                    class="file-input file-input-bordered w-full" 
+                    required
+                />
+            </div>
+            
+            <div class="modal-action">
+                <button type="submit" class="btn btn-primary">Upload</button>
+                <button type="button" class="btn" onclick="uploadModal.close()">Cancel</button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<!-- Audio element for playing sounds -->
+<audio id="soundPlayer" style="display: none;"></audio>
+
+<script>
+const uploadModal = document.getElementById('uploadModal');
+const soundPlayer = document.getElementById('soundPlayer');
+
+function openUploadModal(foeType) {
+    document.getElementById('uploadFoeType').value = foeType;
+    uploadModal.showModal();
+}
+
+async function handleUpload(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const btn = event.target.querySelector('button[type="submit"]');
+    const originalText = btn.textContent;
+    
+    try {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Uploading...';
+        
+        const response = await fetch('/settings/sounds/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showNotification(result.message, 'success');
+            uploadModal.close();
+            // Reload page to show new sound
+            setTimeout(() => location.reload(), 500);
+        } else {
+            showNotification(result.detail || 'Upload failed', 'error');
+        }
+    } catch (error) {
+        showNotification('Network error: ' + error.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
+}
+
+async function deleteSound(foeType, filename) {
+    if (!confirm(`Are you sure you want to delete "${filename}"?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/settings/sounds/${foeType}/${encodeURIComponent(filename)}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showNotification(result.message, 'success');
+            // Reload page to update list
+            setTimeout(() => location.reload(), 500);
+        } else {
+            showNotification(result.detail || 'Delete failed', 'error');
+        }
+    } catch (error) {
+        showNotification('Network error: ' + error.message, 'error');
+    }
+}
+
+function playSound(foeType, filename) {
+    const soundUrl = `/sounds/${foeType}/${encodeURIComponent(filename)}`;
+    soundPlayer.src = soundUrl;
+    soundPlayer.play().catch(error => {
+        showNotification('Failed to play sound: ' + error.message, 'error');
+    });
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} fixed top-4 right-4 z-50 max-w-sm shadow-lg`;
+    notification.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${type === 'success' ? 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' : 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z'}"></path>
+        </svg>
+        <span>${message}</span>
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+</script>
+{% endblock %}

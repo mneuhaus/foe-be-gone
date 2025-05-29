@@ -1,16 +1,22 @@
 """Settings page routes."""
 
-from fastapi import APIRouter, Request, Depends, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Request, Depends, Form, UploadFile, File, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
+from typing import Dict, Any, List
+import os
+import shutil
+from pathlib import Path
 
 from app.core.database import get_session
 from app.core.templates import templates
 from app.core.url_helpers import url_for
+from app.core.responses import success_response, error_response
 from app.models.integration_instance import IntegrationInstance
 from app.models.device import Device
 from app.models.setting import Setting
+from app.services.sound_player import sound_player
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -106,3 +112,91 @@ async def integrations_page(
             "integrations": integrations
         }
     )
+
+
+@router.get("/sounds", response_class=HTMLResponse, name="settings_sounds")
+async def sounds_page(
+    request: Request,
+    session: Session = Depends(get_session)
+):
+    """Display sound management page."""
+    # Get available sounds organized by foe type
+    sounds_by_type = sound_player.list_sounds_by_type()
+    
+    # Get the foe types we support
+    foe_types = ["crows", "rats", "cats"]  # Hardcoded as requested
+    
+    # Ensure all foe types are in the dict even if they have no sounds
+    for foe_type in foe_types:
+        if foe_type not in sounds_by_type:
+            sounds_by_type[foe_type] = {"count": 0, "files": []}
+    
+    return templates.TemplateResponse(
+        "settings/sounds.html",
+        {
+            "request": request,
+            "page": "settings",
+            "sounds_by_type": sounds_by_type,
+            "foe_types": foe_types
+        }
+    )
+
+
+@router.post("/sounds/upload", response_model=Dict[str, Any], name="upload_sound")
+async def upload_sound(
+    foe_type: str = Form(...),
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session)
+):
+    """Upload a new sound file for a specific foe type."""
+    # Validate foe type
+    valid_foe_types = ["crows", "rats", "cats"]
+    if foe_type not in valid_foe_types:
+        raise HTTPException(status_code=400, detail=f"Invalid foe type: {foe_type}")
+    
+    # Validate file extension
+    allowed_extensions = [".mp3", ".wav"]
+    file_ext = Path(file.filename).suffix.lower()
+    if file_ext not in allowed_extensions:
+        raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: {', '.join(allowed_extensions)}")
+    
+    # Create directory if it doesn't exist
+    sounds_dir = Path("public/sounds") / foe_type
+    sounds_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Save the file
+    file_path = sounds_dir / file.filename
+    try:
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        return success_response(f"Sound '{file.filename}' uploaded successfully for {foe_type}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+
+
+@router.delete("/sounds/{foe_type}/{filename}", response_model=Dict[str, Any], name="delete_sound")
+async def delete_sound(
+    foe_type: str,
+    filename: str,
+    session: Session = Depends(get_session)
+):
+    """Delete a sound file."""
+    # Validate foe type
+    valid_foe_types = ["crows", "rats", "cats"]
+    if foe_type not in valid_foe_types:
+        raise HTTPException(status_code=400, detail=f"Invalid foe type: {foe_type}")
+    
+    # Construct file path
+    file_path = Path("public/sounds") / foe_type / filename
+    
+    # Check if file exists
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"Sound file not found: {filename}")
+    
+    # Delete the file
+    try:
+        file_path.unlink()
+        return success_response(f"Sound '{filename}' deleted successfully")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
