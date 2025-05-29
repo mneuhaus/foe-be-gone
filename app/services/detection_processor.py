@@ -186,15 +186,15 @@ class DetectionProcessor:
                     
                     # Add detected foes
                     for detected_foe in result.foes:
-                        # Map string to enum
-                        try:
-                            foe_type = FoeType(detected_foe.foe_type)
-                        except ValueError:
-                            foe_type = FoeType.unknown
+                        # Normalize foe type to uppercase string
+                        foe_type_str = detected_foe.foe_type.upper()
+                        # Validate it's a known type
+                        if foe_type_str not in ["RATS", "CROWS", "CATS", "UNKNOWN"]:
+                            foe_type_str = "UNKNOWN"
                         
                         foe = Foe(
                             detection=detection,
-                            foe_type=foe_type,
+                            foe_type=foe_type_str,  # Store as string
                             confidence=detected_foe.confidence,
                             bounding_box=detected_foe.bounding_box,
                             description=detected_foe.description
@@ -258,10 +258,10 @@ class DetectionProcessor:
                     if not fresh_detection or not fresh_detection.foes:
                         return None
                     primary_foe = max(fresh_detection.foes, key=lambda f: f.confidence)
-                    return primary_foe.foe_type.value
+                    return primary_foe.foe_type  # Already a string now
             else:
                 primary_foe = max(detection.foes, key=lambda f: f.confidence)
-                return primary_foe.foe_type.value
+                return primary_foe.foe_type  # Already a string now
         except Exception as e:
             logger.error(f"Error getting primary foe type: {e}")
             return None

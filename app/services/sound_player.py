@@ -18,7 +18,8 @@ class SoundPlayer:
         
     def get_available_sounds(self, foe_type: str) -> List[Path]:
         """Get list of available sound files for a foe type."""
-        foe_dir = self.sounds_dir / foe_type
+        # Convert to lowercase for directory matching (directories are lowercase)
+        foe_dir = self.sounds_dir / foe_type.lower()
         
         if not foe_dir.exists():
             logger.warning(f"Sound directory not found: {foe_dir}")
@@ -40,6 +41,7 @@ class SoundPlayer:
     
     def play_random_sound(self, foe_type: str) -> bool:
         """Play a random deterrent sound for the detected foe type."""
+        # Convert to uppercase to match FoeType enum, but get_available_sounds will convert to lowercase
         available_sounds = self.get_available_sounds(foe_type)
         
         if not available_sounds:

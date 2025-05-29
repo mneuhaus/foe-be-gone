@@ -21,7 +21,7 @@ litellm.set_verbose = False
 
 class DetectedFoe(BaseModel):
     """Structured output for a detected foe."""
-    foe_type: str = Field(description="Type of foe: rats, crows, cats, or unknown (must match exactly)")
+    foe_type: str = Field(description="Type of foe: RATS, CROWS, CATS, or UNKNOWN (must match exactly, uppercase)")
     confidence: float = Field(description="Confidence score between 0 and 1", ge=0.0, le=1.0)
     bounding_box: Optional[Dict[str, int]] = Field(
         default=None,
@@ -105,9 +105,9 @@ class AIDetector:
             system_prompt = """You are an expert wildlife detection system. Analyze the image and detect any of these foe types:
 
 **Target Foes:**
-- **rats**: Any rodents (rats, mice, shrews, voles)
-- **crows**: Any corvids (crows, ravens, magpies, jackdaws, jays)  
-- **cats**: Domestic cats (not wildcats or large cats)
+- **RATS**: Any rodents (rats, mice, shrews, voles)
+- **CROWS**: Any corvids (crows, ravens, magpies, jackdaws, jays)  
+- **CATS**: Domestic cats (not wildcats or large cats)
 
 **What to IGNORE (these are friends, not foes):**
 - Small birds (sparrows, finches, tits, robins, wrens, etc.)
@@ -119,14 +119,14 @@ class AIDetector:
 
 Return a JSON object with:
 - foes_detected: boolean
-- foes: array of detected foes with foe_type, confidence (0-1), optional bounding_box, and description
+- foes: array of detected foes with foe_type (UPPERCASE: RATS, CROWS, CATS, or UNKNOWN), confidence (0-1), optional bounding_box, and description
 - scene_description: brief overall scene description
 
-Only detect the specific foe types listed above. Be conservative - if unsure, classify as unknown or don't detect."""
+Only detect the specific foe types listed above. Be conservative - if unsure, classify as UNKNOWN or don't detect. IMPORTANT: foe_type must be in UPPERCASE."""
 
-            user_prompt = f"""Analyze this image for the target foe types (rats, crows, cats only).{location_context}
+            user_prompt = f"""Analyze this image for the target foe types (RATS, CROWS, CATS only).{location_context}
             
-Return structured JSON with your analysis. Be precise and only detect the specified foe types."""
+Return structured JSON with your analysis. Be precise and only detect the specified foe types. Remember: foe_type must be UPPERCASE."""
 
             # Make API call using LiteLLM
             response = await litellm.acompletion(
@@ -163,11 +163,11 @@ Return structured JSON with your analysis. Be precise and only detect the specif
                 foes = []
                 if detection_data.get("foes"):
                     for foe_data in detection_data["foes"]:
-                        # Validate foe type
-                        foe_type = foe_data.get("foe_type", "").lower()
-                        if foe_type not in ["rats", "crows", "cats", "unknown"]:
-                            logger.warning(f"Invalid foe type detected: {foe_type}, setting to unknown")
-                            foe_type = "unknown"
+                        # Validate foe type - ensure uppercase
+                        foe_type = foe_data.get("foe_type", "").upper()
+                        if foe_type not in ["RATS", "CROWS", "CATS", "UNKNOWN"]:
+                            logger.warning(f"Invalid foe type detected: {foe_type}, setting to UNKNOWN")
+                            foe_type = "UNKNOWN"
                         
                         foes.append(DetectedFoe(
                             foe_type=foe_type,

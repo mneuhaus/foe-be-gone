@@ -12,10 +12,10 @@ if TYPE_CHECKING:
 
 class FoeType(str, Enum):
     """Types of foes we can detect (matches sound directory names)."""
-    RATS = "rats"      # All rodents (rats, mice)
-    CROWS = "crows"    # All corvids (crows, ravens, magpies, jackdaws)
-    CATS = "cats"      # Domestic cats
-    UNKNOWN = "unknown"
+    RATS = "RATS"      # All rodents (rats, mice)
+    CROWS = "CROWS"    # All corvids (crows, ravens, magpies, jackdaws)
+    CATS = "CATS"      # Domestic cats
+    UNKNOWN = "UNKNOWN"
 
 
 class DetectionStatus(str, Enum):
@@ -31,13 +31,21 @@ class Foe(SQLModel, table=True):
     __tablename__ = "foes"
     
     id: Optional[int] = Field(default=None, primary_key=True)
-    foe_type: FoeType = Field(description="Type of foe detected")
+    foe_type: str = Field(description="Type of foe detected")  # Changed from FoeType to str
     confidence: float = Field(ge=0.0, le=1.0, description="Detection confidence (0-1)")
     bounding_box: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
     detection_id: int = Field(foreign_key="detections.id")
     
     # Relationship
     detection: Optional["Detection"] = Relationship(back_populates="foes")
+    
+    @property
+    def foe_type_enum(self) -> FoeType:
+        """Get foe_type as enum, with fallback to UNKNOWN."""
+        try:
+            return FoeType(self.foe_type.upper())
+        except (ValueError, AttributeError):
+            return FoeType.UNKNOWN
     
     def __repr__(self) -> str:
         return f"Foe(id={self.id}, foe_type={self.foe_type}, confidence={self.confidence:.2f})"
