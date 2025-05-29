@@ -174,6 +174,8 @@ async def dashboard(request: Request, session: Session = Depends(get_session)) -
     
     Shows active cameras and recent detection activity.
     """
+    from app.services.statistics_service import StatisticsService
+    from datetime import datetime, timedelta
     
     # Get all camera devices from connected integrations
     cameras = session.exec(
@@ -184,11 +186,52 @@ async def dashboard(request: Request, session: Session = Depends(get_session)) -
         .where(IntegrationInstance.enabled == True)
     ).all()
     
+    # Get basic statistics for overview cards
+    stats_service = StatisticsService(session)
+    overview_stats = stats_service.get_overview_stats()
+    
+    # Calculate activity status
+    activity_status = "Quiet"
+    last_detection_time = "No recent activity"
+    
+    if overview_stats.get('detections_today', 0) > 0:
+        # Get last detection time
+        from app.models.detection import Detection
+        last_detection = session.exec(
+            select(Detection).order_by(Detection.timestamp.desc()).limit(1)
+        ).first()
+        
+        if last_detection:
+            time_diff = datetime.utcnow() - last_detection.timestamp
+            if time_diff < timedelta(hours=1):
+                activity_status = "Active"
+                minutes_ago = int(time_diff.total_seconds() / 60)
+                last_detection_time = f"{minutes_ago}m ago" if minutes_ago > 0 else "Just now"
+            elif time_diff < timedelta(hours=6):
+                activity_status = "Recent"
+                hours_ago = int(time_diff.total_seconds() / 3600)
+                last_detection_time = f"{hours_ago}h ago"
+            else:
+                last_detection_time = last_detection.timestamp.strftime("%m/%d %H:%M")
+    
+    # Prepare stats for template
+    stats = {
+        'total_detections': overview_stats.get('total_detections', 0),
+        'detections_today': overview_stats.get('detections_today', 0),
+        'success_rate': overview_stats.get('success_rate', 0),
+        'successful_deterrents': overview_stats.get('successful_deterrents', 0),
+        'most_common_foe': overview_stats.get('most_common_foe', 'None'),
+        'most_common_foe_count': overview_stats.get('most_common_foe_count', 0),
+        'activity_status': activity_status,
+        'last_detection_time': last_detection_time
+    }
+    
     context = {
         "request": request,
         "title": "Dashboard",
-        "page": "dashboard",
-        "cameras": cameras
+        "current_page": "dashboard",
+        "cameras": cameras,
+        "stats": stats
     }
     return templates.TemplateResponse(request, "dashboard.html", context)
 

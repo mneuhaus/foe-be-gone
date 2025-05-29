@@ -2,9 +2,54 @@
 
 {% block title %}Dashboard{% endblock %}
 
-{% block content %}
+{% block extra_head %}
+<style>
+    .stat-card {
+        @apply bg-base-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer;
+    }
+    .stat-value {
+        @apply text-2xl font-bold;
+    }
+    .stat-label {
+        @apply text-sm opacity-70;
+    }
+    .stat-subtext {
+        @apply text-xs opacity-60 mt-1;
+    }
+</style>
+{% endblock %}
 
+{% block content %}
+<!-- Stats Overview -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="stat-card" onclick="showDetailModal('detections')">
+        <div class="stat-label">Total Detections</div>
+        <div class="stat-value text-primary">{{ stats.total_detections or 0 }}</div>
+        <div class="stat-subtext">{{ stats.detections_today or 0 }} today</div>
+    </div>
+    
+    <div class="stat-card" onclick="showDetailModal('effectiveness')">
+        <div class="stat-label">Success Rate</div>
+        <div class="stat-value text-success">{{ stats.success_rate or 0 }}%</div>
+        <div class="stat-subtext">{{ stats.successful_deterrents or 0 }} successful</div>
+    </div>
+    
+    <div class="stat-card" onclick="showDetailModal('foes')">
+        <div class="stat-label">Most Common Foe</div>
+        <div class="stat-value text-error">{{ stats.most_common_foe or 'None' }}</div>
+        <div class="stat-subtext">{{ stats.most_common_foe_count or 0 }} detections</div>
+    </div>
+    
+    <div class="stat-card" onclick="showDetailModal('activity')">
+        <div class="stat-label">Activity Status</div>
+        <div class="stat-value text-info">{{ stats.activity_status or 'Quiet' }}</div>
+        <div class="stat-subtext">{{ stats.last_detection_time or 'No recent activity' }}</div>
+    </div>
+</div>
+
+<!-- Camera Feeds -->
 {% if cameras %}
+<h2 class="text-xl font-bold mb-4">Live Camera Feeds</h2>
 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
     {% for camera in cameras %}
     <div class="card bg-base-200 shadow-sm overflow-hidden">
@@ -51,4 +96,99 @@
     <a href="{{ url_for(request, 'settings_integrations') }}" class="btn btn-primary">Setup Integrations</a>
 </div>
 {% endif %}
+
+<!-- Detail Modals -->
+<dialog id="detail-modal" class="modal">
+    <div class="modal-box w-11/12 max-w-4xl">
+        <h3 class="font-bold text-lg mb-4" id="modal-title">Details</h3>
+        <div id="modal-content">
+            <!-- Dynamic content will be loaded here -->
+        </div>
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Close</button>
+            </form>
+        </div>
+    </div>
+</dialog>
+
+<script>
+function showDetailModal(type) {
+    const modal = document.getElementById('detail-modal');
+    const title = document.getElementById('modal-title');
+    const content = document.getElementById('modal-content');
+    
+    switch(type) {
+        case 'detections':
+            title.textContent = 'Detection Analytics';
+            content.innerHTML = '<div class="loading loading-spinner loading-lg mx-auto"></div>';
+            modal.showModal();
+            loadDetectionDetails();
+            break;
+        case 'effectiveness':
+            title.textContent = 'Success Rate Analytics';
+            content.innerHTML = '<div class="loading loading-spinner loading-lg mx-auto"></div>';
+            modal.showModal();
+            loadEffectivenessDetails();
+            break;
+        case 'foes':
+            title.textContent = 'Foe Analytics';
+            content.innerHTML = '<div class="loading loading-spinner loading-lg mx-auto"></div>';
+            modal.showModal();
+            loadFoeDetails();
+            break;
+        case 'activity':
+            title.textContent = 'Activity Patterns';
+            content.innerHTML = '<div class="loading loading-spinner loading-lg mx-auto"></div>';
+            modal.showModal();
+            loadActivityDetails();
+            break;
+    }
+}
+
+function loadDetectionDetails() {
+    // Placeholder for now - will load from statistics API
+    document.getElementById('modal-content').innerHTML = `
+        <div class="space-y-4">
+            <div class="stats stats-vertical lg:stats-horizontal shadow">
+                <div class="stat">
+                    <div class="stat-title">This Week</div>
+                    <div class="stat-value">{{ stats.weekly_detections or 0 }}</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-title">This Month</div>
+                    <div class="stat-value">{{ stats.monthly_detections or 0 }}</div>
+                </div>
+            </div>
+            <p class="text-sm opacity-70">Detailed charts and trends coming soon...</p>
+        </div>
+    `;
+}
+
+function loadEffectivenessDetails() {
+    document.getElementById('modal-content').innerHTML = `
+        <div class="space-y-4">
+            <p class="text-sm opacity-70">Sound effectiveness analysis and detailed metrics coming soon...</p>
+        </div>
+    `;
+}
+
+function loadFoeDetails() {
+    document.getElementById('modal-content').innerHTML = `
+        <div class="space-y-4">
+            <p class="text-sm opacity-70">Foe type analysis and behavior patterns coming soon...</p>
+        </div>
+    `;
+}
+
+function loadActivityDetails() {
+    document.getElementById('modal-content').innerHTML = `
+        <div class="space-y-4">
+            <p class="text-sm opacity-70">Activity timeline and pattern analysis coming soon...</p>
+        </div>
+    `;
+}
+
+// Auto-refresh is now handled globally in the navbar
+</script>
 {% endblock %}

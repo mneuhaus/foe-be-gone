@@ -23,7 +23,7 @@
 </head>
 <body class="min-h-screen bg-base-100">
     <!-- Navigation -->
-    <nav class="bg-base-200">
+    <nav class="bg-base-200 relative z-50">
       <div class="navbar container mx-auto px-4 max-w-7xl min-h-0 h-14">
         <div class="navbar-start">
             <div class="dropdown">
@@ -32,18 +32,19 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16"></path>
                     </svg>
                 </div>
-                <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded z-[1] mt-3 w-52 p-2 shadow">
+                <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[9999] mt-3 w-52 p-2 shadow-lg border border-base-300">
                     <li><a href="{{ url_for(request, 'dashboard') }}">Dashboard</a></li>
                     <li><a href="{{ url_for(request, 'view_detections') }}">Detections</a></li>
-                    <li><a href="{{ url_for(request, 'view_statistics') }}">Statistics</a></li>
                     <li><a href="{{ url_for(request, 'view_logs') }}">Logs</a></li>
-                    <li>
-                        <a>Settings</a>
-                        <ul class="p-2">
-                            <li><a href="{{ url_for(request, 'settings_general') }}">General</a></li>
-                            <li><a href="{{ url_for(request, 'settings_integrations') }}">Integrations</a></li>
-                        </ul>
+                    <li class="menu-title">
+                        <span>Settings</span>
                     </li>
+                    <li><a href="{{ url_for(request, 'settings_general') }}">General</a></li>
+                    <li><a href="{{ url_for(request, 'settings_integrations') }}">Integrations</a></li>
+                    <li class="menu-title">
+                        <span>Data</span>
+                    </li>
+                    <li><a href="{{ url_for(request, 'view_statistics') }}">Full Analytics</a></li>
                 </ul>
             </div>
             <a href="{{ url_for(request, 'dashboard') }}" class="btn btn-ghost text-lg font-bold h-auto min-h-0 py-2">
@@ -55,24 +56,65 @@
             <ul class="menu menu-horizontal px-1">
                 <li><a href="{{ url_for(request, 'dashboard') }}" class="{% if current_page == 'dashboard' %}btn-active{% endif %}">Dashboard</a></li>
                 <li><a href="{{ url_for(request, 'view_detections') }}" class="{% if current_page == 'detections' %}btn-active{% endif %}">Detections</a></li>
-                <li><a href="{{ url_for(request, 'view_statistics') }}" class="{% if current_page == 'statistics' %}btn-active{% endif %}">Statistics</a></li>
                 <li><a href="{{ url_for(request, 'view_logs') }}" class="{% if current_page == 'logs' %}btn-active{% endif %}">Logs</a></li>
             </ul>
         </div>
         
-        <div class="navbar-end">
+        <div class="navbar-end flex gap-2">
+            <!-- Auto-refresh toggle -->
+            <label class="swap swap-rotate btn btn-ghost btn-circle btn-sm" title="Auto-refresh">
+                <input type="checkbox" id="auto-refresh-toggle" checked />
+                <svg class="swap-off fill-current w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M18,11H13L14.5,9.5C14.5,9.5 14.6,9.4 14.6,9.4L13.2,8C13.1,7.9 13,7.9 12.9,7.9C10.7,7.9 8.9,9.7 8.9,11.9C8.9,14.1 10.7,15.9 12.9,15.9C14.8,15.9 16.4,14.6 16.9,12.8H18.9C18.4,15.7 15.8,17.9 12.7,17.9C9.6,17.9 7,15.3 7,12.2C7,9.1 9.6,6.5 12.7,6.5C14.2,6.5 15.6,7.1 16.6,8.1L18,6.7V11Z"/>
+                </svg>
+                <svg class="swap-on fill-current w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M15,7L17,9H13.5A2.5,2.5 0 0,0 11,11.5A2.5,2.5 0 0,0 13.5,14H17L15,16L17.5,18.5L22,14L17.5,9.5L15,7M2,12A10,10 0 0,1 12,2V4A8,8 0 0,0 4,12V16L6,14H9.5A2.5,2.5 0 0,1 12,11.5A2.5,2.5 0 0,1 9.5,9H6L8,7L5.5,4.5L1,9L5.5,13.5L8,11H9.5A4.5,4.5 0 0,0 14,15.5A4.5,4.5 0 0,0 9.5,20H6L8,18L5.5,20.5L1,16L5.5,11.5L8,14H6V12"/>
+                </svg>
+            </label>
+            
+            <!-- Actions dropdown -->
             <div class="dropdown dropdown-end">
                 <div tabindex="0" role="button" class="btn btn-ghost btn-circle btn-sm">
-                    <!-- Heroicon cog-6-tooth -->
+                    <!-- Heroicon ellipsis-vertical -->
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" />
                     </svg>
                 </div>
-                <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded z-[1] w-48 p-2 shadow">
-                    <li><a href="{{ url_for(request, 'settings_general') }}">General</a></li>
-                    <li><a href="{{ url_for(request, 'settings_integrations') }}">Integrations</a></li>
-                    <li><a href="{{ url_for(request, 'view_logs') }}">System Logs</a></li>
+                <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[9999] w-48 p-2 shadow-lg border border-base-300">
+                    <li class="menu-title">
+                        <span>Settings</span>
+                    </li>
+                    <li><a href="{{ url_for(request, 'settings_general') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                        </svg>
+                        General
+                    </a></li>
+                    <li><a href="{{ url_for(request, 'settings_integrations') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+                        </svg>
+                        Integrations
+                    </a></li>
+                    <li class="menu-title">
+                        <span>Data</span>
+                    </li>
+                    <li><a href="{{ url_for(request, 'view_statistics') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+                        </svg>
+                        Full Analytics
+                    </a></li>
+                    <li class="menu-title">
+                        <span>System</span>
+                    </li>
+                    <li><a href="{{ url_for(request, 'view_logs') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                        </svg>
+                        System Logs
+                    </a></li>
                 </ul>
             </div>
         </div>
@@ -88,6 +130,58 @@
 
     <!-- API utilities -->
     <script src="{{ static_url(request, '/static/js/api-utils.js') }}"></script>
+    
+    <!-- Global functionality -->
+    <script>
+        // Auto-refresh functionality
+        let autoRefreshInterval;
+        const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
+        
+        function startAutoRefresh() {
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            autoRefreshInterval = setInterval(() => {
+                // Only refresh on dashboard and detections pages
+                const currentPath = window.location.pathname;
+                if (currentPath === '/' || currentPath.includes('/detections')) {
+                    location.reload();
+                }
+            }, 30000); // 30 seconds
+        }
+        
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+        
+        // Initialize auto-refresh based on toggle state
+        if (autoRefreshToggle) {
+            if (autoRefreshToggle.checked) {
+                startAutoRefresh();
+            }
+            
+            autoRefreshToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    startAutoRefresh();
+                } else {
+                    stopAutoRefresh();
+                }
+            });
+        }
+        
+        // Clear all data functionality
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all detection data? This action cannot be undone.')) {
+                // Use form submission to handle the POST request properly
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/detections/clear-all';
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    </script>
     
     {% block scripts %}{% endblock %}
 </body>

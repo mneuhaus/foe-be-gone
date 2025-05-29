@@ -1,125 +1,199 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mx-auto px-4 pt-0 pb-2 max-w-7xl">
-    <!-- Header with Filters -->
-    <div class="flex flex-col gap-4 mb-6">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <h1 class="text-3xl font-bold">Detections</h1>
-            
-            <!-- Filters -->
-            <form method="get" class="flex flex-wrap items-center gap-3">
-                <select name="hours" class="select select-bordered select-sm">
-                    <option value="1" {% if hours == 1 %}selected{% endif %}>Last Hour</option>
-                    <option value="6" {% if hours == 6 %}selected{% endif %}>Last 6 Hours</option>
-                    <option value="24" {% if hours == 24 %}selected{% endif %}>Last 24 Hours</option>
-                    <option value="72" {% if hours == 72 %}selected{% endif %}>Last 3 Days</option>
-                    <option value="168" {% if hours == 168 %}selected{% endif %}>Last Week</option>
-                </select>
-                
-                <select name="foe_type" class="select select-bordered select-sm">
-                    <option value="">All Types</option>
-                    <option value="rats" {% if foe_type == "rats" %}selected{% endif %}>Rats</option>
-                    <option value="crows" {% if foe_type == "crows" %}selected{% endif %}>Crows</option>
-                    <option value="cats" {% if foe_type == "cats" %}selected{% endif %}>Cats</option>
-                    <option value="unknown" {% if foe_type == "unknown" %}selected{% endif %}>Unknown</option>
-                </select>
-                
-                <button type="submit" class="btn btn-primary btn-sm">Apply Filters</button>
-                
-                <!-- Statistics Button -->
-                <button type="button" onclick="statsModal.showModal()" class="btn btn-outline btn-sm">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    Statistics
-                </button>
-                
-                <!-- Auto-refresh Toggle -->
-                <label class="label cursor-pointer gap-2">
-                    <span class="label-text text-sm">Auto-refresh</span>
-                    <input 
-                        type="checkbox" 
-                        id="auto-refresh-toggle" 
-                        class="checkbox checkbox-primary checkbox-sm"
-                        onchange="toggleAutoRefresh(this.checked)"
-                    >
-                </label>
-            </form>
-        </div>
-        
-        <!-- Detection Interval Control -->
-        <div class="card bg-base-100 shadow-sm">
-            <div class="card-body p-4">
-                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+<div class="container mx-auto px-4 pt-0 pb-8 max-w-7xl">
+    <!-- Enhanced Header Section -->
+    <div class="mb-8">
+        <!-- Main Header with Better Visual Hierarchy -->
+        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-6">
+            <!-- Title and Key Info -->
+            <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                    <h1 class="text-3xl font-bold text-base-content">Detections</h1>
+                    <!-- Live Indicator -->
                     <div class="flex items-center gap-2">
-                        <svg class="w-5 h-5 text-base-content/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span class="font-medium">Detection Interval:</span>
-                        <span id="interval-display" class="text-primary font-bold">{{ current_interval }}s</span>
+                        <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                        <span class="text-sm text-base-content/70">Live monitoring</span>
                     </div>
-                    
-                    <div class="flex-1 max-w-xs">
-                        <input 
-                            type="range" 
-                            id="interval-slider" 
-                            min="1" 
-                            max="30" 
-                            value="{{ current_interval }}" 
-                            class="range range-primary range-sm"
-                            oninput="updateInterval(this.value)"
-                        >
-                        <div class="w-full flex justify-between text-xs px-2 mt-1">
-                            <span>1s</span>
-                            <span>15s</span>
-                            <span>30s</span>
-                        </div>
+                </div>
+                <!-- Summary Stats -->
+                <div class="flex flex-wrap items-center gap-4 text-sm text-base-content/70">
+                    <span>Showing <span id="detection-count" class="font-semibold text-base-content">{{ detections|length }}</span> detection(s)</span>
+                    <span>•</span>
+                    <span>Every <span id="worker-interval" class="font-semibold text-primary">{{ current_interval }}</span> seconds</span>
+                    {% if detections %}
+                    <span>•</span>
+                    <span>Latest: {{ detections[0].timestamp.strftime('%H:%M:%S') }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Primary Actions -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Quick Filters -->
+                <form method="get" class="flex flex-wrap items-center gap-2">
+                    <div class="join">
+                        <select name="hours" class="select select-bordered select-sm join-item min-w-32">
+                            <option value="1" {% if hours == 1 %}selected{% endif %}>Last Hour</option>
+                            <option value="6" {% if hours == 6 %}selected{% endif %}>6 Hours</option>
+                            <option value="24" {% if hours == 24 %}selected{% endif %}>24 Hours</option>
+                            <option value="72" {% if hours == 72 %}selected{% endif %}>3 Days</option>
+                            <option value="168" {% if hours == 168 %}selected{% endif %}>Week</option>
+                        </select>
+                        
+                        <select name="foe_type" class="select select-bordered select-sm join-item min-w-28">
+                            <option value="">All Foes</option>
+                            <option value="rats" {% if foe_type == "rats" %}selected{% endif %}>🐀 Rats</option>
+                            <option value="crows" {% if foe_type == "crows" %}selected{% endif %}>🐦 Crows</option>
+                            <option value="cats" {% if foe_type == "cats" %}selected{% endif %}>🐱 Cats</option>
+                            <option value="unknown" {% if foe_type == "unknown" %}selected{% endif %}>❓ Unknown</option>
+                        </select>
+                        
+                        <button type="submit" class="btn btn-primary btn-sm join-item">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </button>
                     </div>
-                    
-                    <div class="text-sm text-base-content/70">
-                        <span id="interval-status">Current: Every {{ current_interval }} seconds</span>
+                </form>
+                
+                <!-- Action Buttons -->
+                <div class="flex items-center gap-2">
+                    <!-- More Actions Dropdown -->
+                    <div class="dropdown dropdown-end">
+                        <label tabindex="0" class="btn btn-ghost btn-sm gap-2" title="More actions">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                            </svg>
+                            <span class="hidden sm:inline">More</span>
+                        </label>
+                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-300">
+                            <!-- Auto-refresh Toggle -->
+                            <li>
+                                <label class="cursor-pointer justify-between" title="Enable automatic refresh of new detections">
+                                    <span class="flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        Auto-refresh
+                                    </span>
+                                    <input 
+                                        type="checkbox" 
+                                        id="auto-refresh-toggle" 
+                                        class="checkbox checkbox-sm"
+                                        onchange="toggleAutoRefresh(this.checked)"
+                                    >
+                                </label>
+                            </li>
+                            
+                            <li><hr class="my-1"></li>
+                            
+                            <!-- Settings -->
+                            <li>
+                                <a onclick="toggleAdvancedSettings()" id="settings-toggle-menu" class="gap-2">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    Advanced Settings
+                                </a>
+                            </li>
+                            
+                            <!-- Clear All (only when detections exist) -->
+                            {% if detections %}
+                            <li><hr class="my-1"></li>
+                            <li>
+                                <a onclick="clearAllModal.showModal()" class="gap-2 text-error hover:bg-error/10">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    Clear All Detections
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Additional Detection Settings -->
-        <div class="card bg-base-100 shadow-sm mt-4">
-            <div class="card-body p-4">
-                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                    <!-- Capture All Snapshots Toggle -->
-                    <div class="flex items-center gap-2">
-                        <label class="label cursor-pointer">
-                            <span class="label-text mr-2">Capture all snapshots (even without foes):</span>
+        <!-- Collapsible Advanced Settings -->
+        <div id="advanced-settings" class="hidden animate-fadeIn">
+            <div class="bg-base-200/50 rounded-xl p-6 border border-base-300/50">
+                <h3 class="text-lg font-semibold mb-4 text-base-content">Advanced Settings</h3>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Detection Interval Control -->
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="font-medium">Detection Interval</span>
+                            <span id="interval-display" class="badge badge-primary badge-sm">{{ current_interval }}s</span>
+                        </div>
+                        
+                        <div class="space-y-2">
                             <input 
-                                type="checkbox" 
-                                id="capture-all-snapshots" 
-                                class="checkbox checkbox-primary"
-                                onchange="updateCaptureAllSnapshots(this.checked)"
-                                {% if capture_all_snapshots %}checked{% endif %}
+                                type="range" 
+                                id="interval-slider" 
+                                min="1" 
+                                max="30" 
+                                value="{{ current_interval }}" 
+                                class="range range-primary range-sm"
+                                oninput="updateInterval(this.value)"
                             >
-                        </label>
+                            <div class="flex justify-between text-xs text-base-content/60 px-2">
+                                <span>Fast (1s)</span>
+                                <span>Balanced (15s)</span>
+                                <span>Slow (30s)</span>
+                            </div>
+                        </div>
+                        
+                        <p class="text-sm text-base-content/70">
+                            <span id="interval-status">Checking every {{ current_interval }} seconds</span>
+                        </p>
                     </div>
                     
-                    <!-- pHash Threshold Slider -->
-                    <div class="flex items-center gap-2 flex-1">
-                        <span class="font-medium">Change threshold:</span>
-                        <span id="phash-display" class="text-primary font-bold">{{ phash_threshold }}</span>
-                        <div class="flex-1 max-w-xs">
+                    <!-- Advanced Detection Settings -->
+                    <div class="space-y-4">
+                        <!-- Capture All Snapshots -->
+                        <div class="form-control">
+                            <label class="label cursor-pointer justify-start gap-3">
+                                <input 
+                                    type="checkbox" 
+                                    id="capture-all-snapshots" 
+                                    class="checkbox checkbox-primary"
+                                    onchange="updateCaptureAllSnapshots(this.checked)"
+                                    {% if capture_all_snapshots %}checked{% endif %}
+                                >
+                                <div>
+                                    <span class="label-text font-medium">Capture all snapshots</span>
+                                    <div class="text-xs text-base-content/60">Save images even when no foes detected</div>
+                                </div>
+                            </label>
+                        </div>
+                        
+                        <!-- Change Detection Threshold -->
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium text-sm">Change Detection Sensitivity</span>
+                                <span id="phash-display" class="badge badge-secondary badge-sm">{{ phash_threshold }}</span>
+                            </div>
+                            
                             <input 
                                 type="range" 
                                 id="phash-slider" 
                                 min="1" 
                                 max="30" 
                                 value="{{ phash_threshold }}" 
-                                class="range range-primary range-sm"
+                                class="range range-secondary range-sm"
                                 oninput="updatePhashThreshold(this.value)"
                             >
-                            <div class="w-full flex justify-between text-xs px-2 mt-1">
-                                <span>1</span>
-                                <span>15</span>
-                                <span>30</span>
+                            <div class="flex justify-between text-xs text-base-content/60 px-2">
+                                <span>Very Sensitive</span>
+                                <span>Normal</span>
+                                <span>Less Sensitive</span>
                             </div>
                         </div>
                     </div>
@@ -128,36 +202,41 @@
         </div>
     </div>
     
-    <!-- Action Buttons -->
-    {% if detections %}
-    <div class="flex justify-end mb-4">
-        <button onclick="clearAllModal.showModal()" class="btn btn-error btn-sm">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            Clear All
-        </button>
-    </div>
-    {% endif %}
-    
     <!-- Detections Grid -->
     {% if detections %}
-    <div id="detections-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div id="detections-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {% for detection in detections %}
-        <div class="card bg-base-100 shadow-lg hover:shadow-xl transition-all">
-            <!-- Detection Image -->
+        <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all duration-300 border border-base-300/50 hover:border-primary/20 overflow-hidden">
+            <!-- Detection Image/Video -->
             {% if detection.image_path %}
-            <figure class="aspect-[4/3] bg-base-200 relative">
+            <figure class="aspect-[4/3] bg-base-200 relative group"
+                    onmouseenter="toggleMedia({{ detection.id }}, 'enter')"
+                    onmouseleave="toggleMedia({{ detection.id }}, 'leave')"
+                    onclick="showDetectionModal({{ detection.id }})">
+                <!-- Static Image -->
                 <img 
+                    id="image-{{ detection.id }}"
                     src="{{ get_base_url(request) }}/{{ detection.image_path }}" 
                     alt="Detection {{ detection.id }}"
-                    class="w-full h-full object-cover cursor-pointer"
-                    onclick="showDetectionModal({{ detection.id }})"
+                    class="w-full h-full object-cover cursor-pointer transition-opacity duration-300"
                     onerror="this.onerror=null;this.src='{{ get_base_url(request) }}/static/img/no-image.png';"
                 />
+                
+                <!-- Video (hidden by default) -->
+                {% if detection.video_path %}
+                <video 
+                    id="video-{{ detection.id }}"
+                    class="w-full h-full object-cover cursor-pointer absolute top-0 left-0 opacity-0 transition-opacity duration-300"
+                    muted
+                    loop
+                    preload="metadata">
+                    <source src="{{ get_base_url(request) }}/detections/video/{{ detection.id }}" type="video/mp4">
+                </video>
+                {% endif %}
+                
                 <!-- Foe badges overlay -->
                 {% if detection.foes %}
-                <div class="absolute top-2 left-2 flex flex-wrap gap-1">
+                <div class="absolute top-2 left-2 flex flex-wrap gap-1 z-10">
                     {% for foe in detection.foes %}
                     <span class="badge 
                         {% if foe.foe_type == 'rats' %}badge-error
@@ -172,14 +251,15 @@
                 </div>
                 {% endif %}
                 
-                <!-- Video indicator -->
+                <!-- Video indicator with hover hint -->
                 {% if detection.video_path %}
-                <div class="absolute bottom-2 right-2">
-                    <span class="badge badge-info badge-sm gap-1">
+                <div class="absolute bottom-2 right-2 z-10">
+                    <span class="badge badge-info badge-sm gap-1 group-hover:badge-secondary transition-colors">
                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
-                        Video
+                        <span class="hidden group-hover:inline">Hover to play</span>
+                        <span class="group-hover:hidden">Video</span>
                     </span>
                 </div>
                 {% endif %}
@@ -187,74 +267,24 @@
             {% endif %}
             
             <div class="card-body p-4">
-                <!-- Camera Info -->
-                <h3 class="font-semibold text-lg mb-1">
+                <!-- Camera Name -->
+                <h3 class="font-semibold text-base mb-2 truncate">
                     {{ detection.device.name if detection.device else 'Unknown Camera' }}
                 </h3>
                 
-                <!-- Timestamp -->
-                <p class="text-sm text-base-content/70 mb-3">
-                    {{ detection.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
-                    {% if detection.ai_response and detection.ai_response.hash_distance is not none %}
-                    <span class="ml-2 text-xs text-base-content/50">
-                        (Change: {{ detection.ai_response.hash_distance }})
-                    </span>
-                    {% endif %}
-                </p>
-                
-                <!-- Effectiveness Result -->
-                {% if detection.effectiveness %}
-                <div class="bg-base-200 rounded-lg p-3 mb-3">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm font-medium">Deterrent Result:</span>
-                        <span class="badge 
-                            {% if detection.effectiveness.result == 'success' %}badge-success
-                            {% elif detection.effectiveness.result == 'partial' %}badge-warning
-                            {% else %}badge-error{% endif %}">
-                            {{ detection.effectiveness.result.title() }}
-                        </span>
-                    </div>
-                    
-                    <div class="text-xs space-y-1">
-                        <div class="flex justify-between">
-                            <span class="text-base-content/70">Sound:</span>
-                            <span class="font-medium truncate max-w-[150px]" title="{{ detection.effectiveness.sound_file }}">
-                                {{ detection.effectiveness.sound_file.split('/')[-1] }}
-                            </span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-base-content/70">Effectiveness:</span>
-                            <span class="font-medium">{{ "%.0f%%" | format(detection.effectiveness.effectiveness_score * 100) }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-base-content/70">Before/After:</span>
-                            <span class="font-medium">{{ detection.effectiveness.foes_before }} → {{ detection.effectiveness.foes_after }}</span>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-                
-                <!-- Status Badge -->
-                <div class="flex items-center justify-between">
-                    <span class="badge badge-sm 
-                        {% if detection.status == 'processed' %}badge-success
-                        {% elif detection.status == 'pending' %}badge-warning
-                        {% elif detection.status == 'deterred' %}badge-info
-                        {% else %}badge-error{% endif %}">
-                        {{ detection.status }}
-                    </span>
-                    
-                    {% if detection.ai_cost_usd %}
-                    <span class="text-xs text-base-content/50">
-                        AI Cost: ${{ "%.4f" | format(detection.ai_cost_usd) }}
-                    </span>
-                    {% endif %}
+                <!-- Simple Timestamp -->
+                <div class="text-xs text-base-content/60 mb-3">
+                    {{ detection.timestamp.strftime('%b %d, %H:%M:%S') }}
                 </div>
                 
                 <!-- View Details Button -->
                 <button 
                     onclick="showDetectionModal({{ detection.id }})" 
-                    class="btn btn-sm btn-outline w-full mt-3">
+                    class="btn btn-sm btn-primary btn-outline w-full gap-2 group">
+                    <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
                     View Details
                 </button>
             </div>
@@ -262,42 +292,113 @@
         {% endfor %}
     </div>
     {% else %}
-    <!-- Empty State -->
-    <div class="card bg-base-100 shadow-sm">
-        <div class="card-body text-center py-16">
-            <div class="max-w-md mx-auto">
-                <svg class="w-24 h-24 mx-auto mb-4 text-base-content/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v1a3 3 0 003 3h0a3 3 0 003-3v-1m-6 0h6m-6 0H6a2 2 0 01-2-2V7a2 2 0 012-2h1m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-1m-8 0V3a1 1 0 011-1h4a1 1 0 011 1v2m-6 0h6" />
+    <!-- Enhanced Empty State -->
+    <div class="flex flex-col items-center justify-center py-24 px-6">
+        <div class="relative mb-8">
+            <!-- Animated Background Circle -->
+            <div class="w-32 h-32 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-full animate-pulse"></div>
+            
+            <!-- Icon -->
+            <div class="absolute inset-0 flex items-center justify-center">
+                <svg class="w-16 h-16 text-primary/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                <h3 class="text-lg font-semibold mb-2">No Detections Found</h3>
-                <p class="text-base-content/70 mb-4">
-                    No foes have been detected in the selected time range.
+            </div>
+        </div>
+        
+        <div class="text-center max-w-md">
+            <h3 class="text-2xl font-bold text-base-content mb-2">No Detections Yet</h3>
+            <p class="text-base-content/60 mb-6">
+                No foes have been detected in the selected time range. The system is actively monitoring all cameras.
+            </p>
+            
+            <!-- Status Info -->
+            <div class="bg-base-200/50 rounded-xl p-4 mb-6">
+                <div class="flex items-center justify-center gap-2 mb-2">
+                    <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                    <span class="text-sm font-medium text-success">System Active</span>
+                </div>
+                <p class="text-xs text-base-content/60">
+                    Checking cameras every <span class="font-semibold text-primary">{{ current_interval }} seconds</span>
                 </p>
-                <p class="text-sm text-base-content/50">
-                    The detection worker runs every <span id="worker-interval">{{ current_interval }}</span> seconds to check all active cameras.
-                </p>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="flex flex-wrap justify-center gap-3">
+                <button onclick="location.reload()" class="btn btn-sm btn-outline gap-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                </button>
+                
+                <button onclick="toggleAdvancedSettings()" class="btn btn-sm btn-ghost gap-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Settings
+                </button>
             </div>
         </div>
     </div>
     {% endif %}
     
-    <!-- Detection count -->
-    <div class="text-center mt-6 text-sm text-base-content/70">
-        Showing <span id="detection-count">{{ detections|length }}</span> detection(s)
-    </div>
 </div>
 
-<!-- Detection Detail Modal -->
+<!-- Enhanced Detection Detail Modal -->
 <dialog id="detectionModal" class="modal">
-    <div class="modal-box max-w-4xl">
-        <h3 class="font-bold text-lg mb-4">Detection Details</h3>
-        <div id="modalContent">
-            <!-- Content will be loaded dynamically -->
+    <div class="modal-box max-w-6xl h-[90vh] p-0 overflow-hidden">
+        <!-- Modal Header -->
+        <div class="sticky top-0 z-10 bg-base-100 border-b border-base-300 px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <h3 class="font-bold text-xl">Detection Details</h3>
+                    <div id="modal-detection-badges" class="flex gap-2">
+                        <!-- Dynamic badges will be inserted here -->
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div id="modal-timestamp" class="text-sm text-base-content/70"></div>
+                    <form method="dialog">
+                        <button class="btn btn-ghost btn-circle btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
-        <div class="modal-action">
-            <form method="dialog">
-                <button class="btn">Close</button>
-            </form>
+        
+        <!-- Modal Content -->
+        <div class="overflow-y-auto h-full pb-20">
+            <div id="modalContent" class="p-6">
+                <!-- Content will be loaded dynamically -->
+            </div>
+        </div>
+        
+        <!-- Modal Footer -->
+        <div class="absolute bottom-0 left-0 right-0 bg-base-100 border-t border-base-300 p-4">
+            <div class="flex justify-between items-center">
+                <div class="flex gap-2">
+                    <button id="modal-prev-btn" class="btn btn-outline btn-sm" onclick="navigateDetection('prev')">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                        </svg>
+                        Previous
+                    </button>
+                    <button id="modal-next-btn" class="btn btn-outline btn-sm" onclick="navigateDetection('next')">
+                        Next
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                    </button>
+                </div>
+                <form method="dialog">
+                    <button class="btn btn-primary">Close</button>
+                </form>
+            </div>
         </div>
     </div>
     <form method="dialog" class="modal-backdrop">
@@ -353,12 +454,72 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
+
+/* Custom animations for enhanced UX */
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(-10px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Enhanced hover effects */
+.card:hover {
+    transform: translateY(-2px);
+}
+
+/* Better focus states for accessibility */
+.btn:focus,
+.select:focus,
+.checkbox:focus,
+.range:focus {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+}
+
+/* Smooth state transitions */
+.btn {
+    transition: all 0.2s ease;
+}
+
+/* Loading state for auto-refresh */
+@keyframes pulse-glow {
+    0%, 100% { 
+        opacity: 1; 
+        box-shadow: 0 0 5px currentColor; 
+    }
+    50% { 
+        opacity: 0.7; 
+        box-shadow: 0 0 10px currentColor; 
+    }
+}
+
+.live-indicator {
+    animation: pulse-glow 2s infinite;
+}
 </style>
 
 <script>
 let updateTimeout;
 // Store detection data for modal use - manually build to avoid datetime issues
 const detectionData = {};
+
+// Modal utility functions
+function getDetectionModal() {
+    return document.getElementById('detectionModal');
+}
+
+function getStatsModal() {
+    return document.getElementById('statsModal');
+}
 {% for detection in detections %}
 try {
     detectionData[{{ detection.id }}] = {
@@ -393,7 +554,7 @@ try {
         ai_response: {{ detection.ai_response | tojson | safe if detection.ai_response else 'null' }}
     };
 } catch (error) {
-    console.error('Error loading detection {{ detection.id }}:', error);
+    console.error('Error loading detection data:', error);
 }
 {% endfor %}
 
@@ -494,109 +655,179 @@ async function updatePhashThreshold(value) {
     }, 500);
 }
 
+let currentDetectionId = null;
+let detectionIds = [];
+
 function showDetectionModal(detectionId) {
     const detection = detectionData[detectionId];
     if (!detection) return;
     
+    // Set current detection and get list of all detection IDs for navigation
+    currentDetectionId = detectionId;
+    detectionIds = Object.keys(detectionData).map(id => parseInt(id)).sort((a, b) => b - a);
+    
+    // Update modal header
+    updateModalHeader(detection);
+    
+    // Update navigation buttons
+    updateNavigationButtons();
+    
     let content = `
-        <div class="space-y-4">
-            <!-- Images -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                ${detection.image_path ? `
-                <div>
-                    <h4 class="font-medium mb-2">Initial Detection</h4>
-                    <img src="${getBaseUrl()}/${detection.image_path}" class="w-full rounded-lg" />
-                </div>` : ''}
-                
-                ${detection.effectiveness && detection.effectiveness.follow_up_image_path ? `
-                <div>
-                    <h4 class="font-medium mb-2">Follow-up (After ${detection.effectiveness.wait_duration}s)</h4>
-                    <img src="${getBaseUrl()}/${detection.effectiveness.follow_up_image_path}" class="w-full rounded-lg" />
-                </div>` : ''}
+        <!-- Quick Stats Overview -->
+        <div class="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-xl p-6 border border-primary/10 mb-8">
+            <h4 class="font-semibold mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+                </svg>
+                Detection Summary
+            </h4>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-primary">${detection.foes ? detection.foes.length : 0}</div>
+                    <div class="text-sm text-base-content/70">Foes Detected</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-secondary">${detection.effectiveness ? (detection.effectiveness.effectiveness_score * 100).toFixed(0) + '%' : 'N/A'}</div>
+                    <div class="text-sm text-base-content/70">Effectiveness</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-info">${detection.status}</div>
+                    <div class="text-sm text-base-content/70">Status</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-accent">${detection.device ? detection.device.name : 'Unknown'}</div>
+                    <div class="text-sm text-base-content/70">Camera</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Detailed Information Tabs -->
+        <div class="tabs tabs-lifted">
+            <input type="radio" name="modal_tabs" role="tab" class="tab" aria-label="Detection Info" checked />
+            <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Basic Info -->
+                    <div class="space-y-4">
+                        <h5 class="font-semibold text-lg border-b border-base-300 pb-2">Detection Information</h5>
+                        <div class="grid grid-cols-1 gap-3">
+                            <div class="flex items-center justify-between py-2 px-4 bg-base-200 rounded-lg">
+                                <span class="font-medium">Camera</span>
+                                <span class="text-primary">${detection.device ? detection.device.name : 'Unknown'}</span>
+                            </div>
+                            <div class="flex items-center justify-between py-2 px-4 bg-base-200 rounded-lg">
+                                <span class="font-medium">Status</span>
+                                <span class="badge ${getStatusBadgeClass(detection.status)}">${detection.status}</span>
+                            </div>
+                            ${detection.ai_response && detection.ai_response.hash_distance !== null ? `
+                            <div class="flex items-center justify-between py-2 px-4 bg-base-200 rounded-lg">
+                                <span class="font-medium">Change Level</span>
+                                <span>${detection.ai_response.hash_distance} <span class="text-xs opacity-60">(threshold: ${detection.ai_response.phash_threshold || 10})</span></span>
+                            </div>` : ''}
+                            ${detection.ai_cost_usd ? `
+                            <div class="flex items-center justify-between py-2 px-4 bg-base-200 rounded-lg">
+                                <span class="font-medium">AI Cost</span>
+                                <span class="font-mono text-sm">$${detection.ai_cost_usd.toFixed(4)}</span>
+                            </div>` : ''}
+                        </div>
+                    </div>
+                    
+                    <!-- Foes Detected -->
+                    ${detection.foes && detection.foes.length > 0 ? `
+                    <div class="space-y-4">
+                        <h5 class="font-semibold text-lg border-b border-base-300 pb-2">Foes Detected</h5>
+                        <div class="space-y-3">
+                            ${detection.foes.map(foe => `
+                            <div class="flex items-center justify-between p-4 bg-base-200 rounded-lg border-l-4 ${getFoeBorderClass(foe.foe_type)}">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-2xl">${getFoeEmoji(foe.foe_type)}</span>
+                                    <div>
+                                        <div class="font-medium capitalize">${foe.foe_type}</div>
+                                        <div class="text-sm text-base-content/70">Detected foe</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-lg font-bold">${(foe.confidence * 100).toFixed(0)}%</div>
+                                    <div class="text-xs text-base-content/70">Confidence</div>
+                                </div>
+                            </div>`).join('')}
+                        </div>
+                    </div>` : `
+                    <div class="space-y-4">
+                        <h5 class="font-semibold text-lg border-b border-base-300 pb-2">Foes Detected</h5>
+                        <div class="text-center py-8 text-base-content/50">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto mb-2 opacity-30">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.182 16.318A4.486 4.486 0 0 0 12.016 15a4.486 4.486 0 0 0-3.198 1.318M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75Zm-.375 0h.008v.008H9.375V9.75Zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75Zm-.375 0h.008v.008h-.008V9.75Z" />
+                            </svg>
+                            <p>No foes detected in this image</p>
+                        </div>
+                    </div>`}
+                </div>
             </div>
             
-            <!-- Video Player -->
-            ${detection.video_path ? `
-            <div>
-                <h4 class="font-medium mb-2">Captured Video</h4>
-                <video controls class="w-full rounded-lg bg-black">
-                    <source src="/detections/video/${detection.id}" type="video/mp4">
-                    Your browser does not support video playback.
-                </video>
-            </div>` : ''}
-            
-            <!-- Detection Info -->
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <h4 class="font-medium mb-2">Detection Info</h4>
-                    <dl class="space-y-1 text-sm">
-                        <div class="flex justify-between">
-                            <dt class="text-base-content/70">Camera:</dt>
-                            <dd>${detection.device ? detection.device.name : 'Unknown'}</dd>
+            ${detection.effectiveness ? `
+            <input type="radio" name="modal_tabs" role="tab" class="tab" aria-label="Effectiveness" />
+            <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+                <div class="space-y-6">
+                    <!-- Effectiveness Overview -->
+                    <div class="bg-gradient-to-r from-success/10 to-info/10 rounded-xl p-6 border border-success/20">
+                        <div class="flex items-center justify-between mb-4">
+                            <h5 class="font-semibold text-lg">Deterrent Effectiveness</h5>
+                            <span class="badge badge-lg ${getResultBadgeClass(detection.effectiveness.result)}">${detection.effectiveness.result}</span>
                         </div>
-                        <div class="flex justify-between">
-                            <dt class="text-base-content/70">Time:</dt>
-                            <dd>${new Date(detection.timestamp).toLocaleString()}</dd>
+                        <div class="grid grid-cols-3 gap-4 text-center">
+                            <div>
+                                <div class="text-2xl font-bold text-info">${detection.effectiveness.foes_before}</div>
+                                <div class="text-sm text-base-content/70">Before</div>
+                            </div>
+                            <div class="flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-primary">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-success">${detection.effectiveness.foes_after}</div>
+                                <div class="text-sm text-base-content/70">After</div>
+                            </div>
                         </div>
-                        <div class="flex justify-between">
-                            <dt class="text-base-content/70">Status:</dt>
-                            <dd><span class="badge badge-xs ${getStatusBadgeClass(detection.status)}">${detection.status}</span></dd>
+                    </div>
+                    
+                    <!-- Sound Details -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <h6 class="font-medium">Sound Played</h6>
+                            <div class="bg-base-200 rounded-lg p-4">
+                                <div class="flex items-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-primary">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.5c-.69 0-1.25-.56-1.25-1.25V9.5c0-.69.56-1.25 1.25-1.25H6.75Z" />
+                                    </svg>
+                                    <div class="flex-1">
+                                        <div class="font-medium truncate" title="${detection.effectiveness.sound_file}">${detection.effectiveness.sound_file.split('/').pop()}</div>
+                                        <div class="text-sm text-base-content/70">via ${detection.effectiveness.playback_method}</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        ${detection.ai_response && detection.ai_response.hash_distance !== null && detection.ai_response.hash_distance !== undefined ? `
-                        <div class="flex justify-between">
-                            <dt class="text-base-content/70">Change detected:</dt>
-                            <dd>${detection.ai_response.hash_distance} <span class="text-xs text-base-content/50">(threshold: ${detection.ai_response.phash_threshold || 10})</span></dd>
-                        </div>` : ''}
-                        ${detection.ai_cost_usd ? `
-                        <div class="flex justify-between">
-                            <dt class="text-base-content/70">AI Cost:</dt>
-                            <dd>$${detection.ai_cost_usd.toFixed(4)}</dd>
-                        </div>` : ''}
-                    </dl>
-                </div>
-                
-                ${detection.effectiveness ? `
-                <div>
-                    <h4 class="font-medium mb-2">Effectiveness</h4>
-                    <dl class="space-y-1 text-sm">
-                        <div class="flex justify-between">
-                            <dt class="text-base-content/70">Result:</dt>
-                            <dd><span class="badge badge-xs ${getResultBadgeClass(detection.effectiveness.result)}">${detection.effectiveness.result}</span></dd>
+                        
+                        <div class="space-y-3">
+                            <h6 class="font-medium">Timing</h6>
+                            <div class="bg-base-200 rounded-lg p-4">
+                                <div class="flex items-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-secondary">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                    </svg>
+                                    <div>
+                                        <div class="font-medium">${detection.effectiveness.wait_duration}s wait</div>
+                                        <div class="text-sm text-base-content/70">Before follow-up check</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="flex justify-between">
-                            <dt class="text-base-content/70">Sound:</dt>
-                            <dd class="truncate max-w-[150px]" title="${detection.effectiveness.sound_file}">${detection.effectiveness.sound_file.split('/').pop()}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-base-content/70">Method:</dt>
-                            <dd>${detection.effectiveness.playback_method}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-base-content/70">Score:</dt>
-                            <dd>${(detection.effectiveness.effectiveness_score * 100).toFixed(0)}%</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-base-content/70">Foes:</dt>
-                            <dd>${detection.effectiveness.foes_before} → ${detection.effectiveness.foes_after}</dd>
-                        </div>
-                    </dl>
-                </div>` : ''}
-            </div>
-            
-            <!-- Foes Detected -->
-            ${detection.foes && detection.foes.length > 0 ? `
-            <div>
-                <h4 class="font-medium mb-2">Foes Detected</h4>
-                <div class="space-y-2">
-                    ${detection.foes.map(foe => `
-                    <div class="flex items-center justify-between p-2 bg-base-200 rounded">
-                        <span class="badge ${getFoeBadgeClass(foe.foe_type)}">${foe.foe_type}</span>
-                        <span class="text-sm">Confidence: ${(foe.confidence * 100).toFixed(0)}%</span>
-                    </div>`).join('')}
+                    </div>
                 </div>
             </div>` : ''}
+        </div>
             
-            <!-- Played Sounds -->
+        <!-- Played Sounds -->
             ${detection.played_sounds && detection.played_sounds.length > 0 ? `
             <div>
                 <h4 class="font-medium mb-2">Played Sounds</h4>
@@ -609,7 +840,10 @@ function showDetectionModal(detectionId) {
     `;
     
     document.getElementById('modalContent').innerHTML = content;
-    detectionModal.showModal();
+    const modal = getDetectionModal();
+    if (modal) {
+        modal.showModal();
+    }
 }
 
 function getStatusBadgeClass(status) {
@@ -639,7 +873,10 @@ function getFoeBadgeClass(foeType) {
 }
 
 // Load statistics when modal is opened
-statsModal.addEventListener('show', async () => {
+document.addEventListener('DOMContentLoaded', function() {
+    const statsModal = getStatsModal();
+    if (statsModal) {
+        statsModal.addEventListener('show', async () => {
     try {
         const response = await fetch(apiUrl('/detections/api/effectiveness/summary'));
         const data = await response.json();
@@ -714,14 +951,16 @@ statsModal.addEventListener('show', async () => {
         content += '</div>';
         document.getElementById('statsContent').innerHTML = content;
         
-    } catch (error) {
-        console.error('Error loading statistics:', error);
-        document.getElementById('statsContent').innerHTML = '<div class="alert alert-error">Failed to load statistics</div>';
+        } catch (error) {
+            console.error('Error loading statistics:', error);
+            document.getElementById('statsContent').innerHTML = '<div class="alert alert-error">Failed to load statistics</div>';
+        }
+        });
     }
 });
 
 // Auto-refresh functionality
-let autoRefreshInterval = null;
+let detectionsAutoRefresh = null;
 // Initialize with the most recent detection timestamp from current page
 let lastCheckTime = {% if detections %}new Date("{{ detections[0].timestamp }}").toISOString(){% else %}new Date().toISOString(){% endif %};
 let newDetectionsCount = 0;
@@ -736,14 +975,14 @@ function toggleAutoRefresh(enabled) {
 
 function startAutoRefresh() {
     // Check for new detections every 5 seconds
-    autoRefreshInterval = setInterval(checkForNewDetections, 5000);
+    detectionsAutoRefresh = setInterval(checkForNewDetections, 5000);
     console.log('Auto-refresh started');
 }
 
 function stopAutoRefresh() {
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-        autoRefreshInterval = null;
+    if (detectionsAutoRefresh) {
+        clearInterval(detectionsAutoRefresh);
+        detectionsAutoRefresh = null;
         console.log('Auto-refresh stopped');
     }
 }
@@ -867,17 +1106,35 @@ function createDetectionCard(detection) {
     const hashDistance = detection.ai_response?.hash_distance;
     
     return `
-        <div class="card bg-base-100 shadow-lg hover:shadow-xl transition-all">
+        <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all duration-300 border border-base-300/50 hover:border-primary/20 overflow-hidden">
             ${detection.image_path ? `
-            <figure class="relative h-48 bg-base-200">
+            <figure class="aspect-[4/3] bg-base-200 relative group"
+                    onmouseenter="toggleMedia(${detection.id}, 'enter')"
+                    onmouseleave="toggleMedia(${detection.id}, 'leave')"
+                    onclick="showDetectionModal(${detection.id})">
+                <!-- Static Image -->
                 <img 
+                    id="image-${detection.id}"
                     src="${getBaseUrl()}/${detection.image_path}" 
-                    alt="Detection snapshot" 
-                    class="w-full h-full object-cover"
+                    alt="Detection ${detection.id}"
+                    class="w-full h-full object-cover cursor-pointer transition-opacity duration-300"
                     loading="lazy"
                 />
+                
+                <!-- Video (hidden by default) -->
+                ${detection.video_path ? `
+                <video 
+                    id="video-${detection.id}"
+                    class="w-full h-full object-cover cursor-pointer absolute top-0 left-0 opacity-0 transition-opacity duration-300"
+                    muted
+                    loop
+                    preload="metadata">
+                    <source src="${getBaseUrl()}/detections/video/${detection.id}" type="video/mp4">
+                </video>
+                ` : ''}
+                <!-- Foe badges overlay -->
                 ${detection.foes.length > 0 ? `
-                <div class="absolute top-2 left-2 flex flex-wrap gap-1">
+                <div class="absolute top-2 left-2 flex flex-wrap gap-1 z-10">
                     ${detection.foes.map(foe => `
                     <span class="badge ${getFoeBadgeClass(foe.foe_type)} badge-sm">
                         ${foe.foe_type}
@@ -886,32 +1143,46 @@ function createDetectionCard(detection) {
                     `).join('')}
                 </div>
                 ` : ''}
+                <!-- Video indicator with hover hint -->
                 ${detection.video_path ? `
-                <div class="absolute bottom-2 right-2">
-                    <span class="badge badge-info badge-sm gap-1">
+                <div class="absolute bottom-2 right-2 z-10">
+                    <span class="badge badge-info badge-sm gap-1 group-hover:badge-secondary transition-colors">
                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
-                        Video
+                        <span class="hidden group-hover:inline">Hover to play</span>
+                        <span class="group-hover:hidden">Video</span>
                     </span>
                 </div>
                 ` : ''}
             </figure>
             ` : ''}
             
-            <div class="card-body p-4">
-                <h3 class="font-semibold text-lg mb-1">
-                    ${detection.device?.name || 'Unknown Camera'}
-                </h3>
+            <div class="card-body p-5">
+                <!-- Camera Info with Icon -->
+                <div class="flex items-center gap-2 mb-2">
+                    <svg class="w-4 h-4 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <h3 class="font-semibold text-base truncate">
+                        ${detection.device?.name || 'Unknown Camera'}
+                    </h3>
+                </div>
                 
-                <p class="text-sm text-base-content/70 mb-3">
-                    ${new Date(detection.timestamp).toLocaleString()}
-                    ${hashDistance !== null && hashDistance !== undefined ? `
-                    <span class="ml-2 text-xs text-base-content/50">
-                        (Change: ${hashDistance})
-                    </span>
-                    ` : ''}
-                </p>
+                <!-- Timestamp with Better Formatting -->
+                <div class="flex items-center gap-2 mb-4">
+                    <svg class="w-3 h-3 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div class="text-xs text-base-content/70">
+                        <div>${new Date(detection.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${new Date(detection.timestamp).toLocaleTimeString('en-US', { hour12: false })}</div>
+                        ${hashDistance !== null && hashDistance !== undefined ? `
+                        <div class="text-base-content/50">
+                            Change score: ${hashDistance}
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
                 
                 ${detection.effectiveness ? `
                 <div class="bg-base-200 rounded-lg p-3 mb-3">
@@ -955,7 +1226,11 @@ function createDetectionCard(detection) {
                 
                 <button 
                     onclick="showDetectionModal(${detection.id})" 
-                    class="btn btn-sm btn-outline w-full mt-3">
+                    class="btn btn-sm btn-primary btn-outline w-full mt-4 gap-2 group">
+                    <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
                     View Details
                 </button>
             </div>
@@ -963,12 +1238,152 @@ function createDetectionCard(detection) {
     `;
 }
 
+// Media toggle functionality for hover effects
+function toggleMedia(detectionId, action) {
+    const image = document.getElementById(`image-${detectionId}`);
+    const video = document.getElementById(`video-${detectionId}`);
+    
+    if (!image || !video) return;
+    
+    if (action === 'enter') {
+        // Fade out image, fade in video, and start playing
+        image.style.opacity = '0';
+        video.style.opacity = '1';
+        video.play().catch(e => {
+            console.log('Video autoplay failed:', e);
+        });
+    } else {
+        // Fade out video, fade in image, and pause video
+        image.style.opacity = '1';
+        video.style.opacity = '0';
+        video.pause();
+        video.currentTime = 0; // Reset to beginning
+    }
+}
+
+// Modal functions use direct DOM queries, no initialization needed
+
 // Helper function to get base URL for images
 function getBaseUrl() {
     return document.querySelector('meta[name="base-url"]')?.content || '';
 }
 
+// Advanced Settings Toggle
+function toggleAdvancedSettings() {
+    const settingsPanel = document.getElementById('advanced-settings');
+    const toggleButton = document.getElementById('settings-toggle');
+    
+    if (settingsPanel.classList.contains('hidden')) {
+        settingsPanel.classList.remove('hidden');
+        toggleButton.classList.add('btn-active');
+        // Smooth scroll to settings
+        settingsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+        settingsPanel.classList.add('hidden');
+        toggleButton.classList.remove('btn-active');
+    }
+}
+
 // Auto-refresh is now disabled by default
 // User can enable it via the toggle
+
+// Additional helper functions for enhanced modal
+function updateModalHeader(detection) {
+    // Update timestamp
+    const timestampEl = document.getElementById('modal-timestamp');
+    if (timestampEl) {
+        timestampEl.textContent = new Date(detection.timestamp).toLocaleString();
+    }
+    
+    // Update badges
+    const badgesEl = document.getElementById('modal-detection-badges');
+    if (badgesEl && detection.foes && detection.foes.length > 0) {
+        badgesEl.innerHTML = detection.foes.map(foe => 
+            `<span class="badge ${getFoeBadgeClass(foe.foe_type)} badge-sm">${foe.foe_type}</span>`
+        ).join('');
+    } else if (badgesEl) {
+        badgesEl.innerHTML = '<span class="badge badge-neutral badge-sm">No foes</span>';
+    }
+}
+
+function updateNavigationButtons() {
+    const currentIndex = detectionIds.indexOf(currentDetectionId);
+    const prevBtn = document.getElementById('modal-prev-btn');
+    const nextBtn = document.getElementById('modal-next-btn');
+    
+    if (prevBtn) {
+        prevBtn.disabled = currentIndex <= 0;
+        prevBtn.classList.toggle('btn-disabled', currentIndex <= 0);
+    }
+    
+    if (nextBtn) {
+        nextBtn.disabled = currentIndex >= detectionIds.length - 1;
+        nextBtn.classList.toggle('btn-disabled', currentIndex >= detectionIds.length - 1);
+    }
+}
+
+function navigateDetection(direction) {
+    const currentIndex = detectionIds.indexOf(currentDetectionId);
+    let newIndex;
+    
+    if (direction === 'prev' && currentIndex > 0) {
+        newIndex = currentIndex - 1;
+    } else if (direction === 'next' && currentIndex < detectionIds.length - 1) {
+        newIndex = currentIndex + 1;
+    } else {
+        return; // No navigation possible
+    }
+    
+    const newDetectionId = detectionIds[newIndex];
+    showDetectionModal(newDetectionId);
+}
+
+function getFoeBorderClass(foeType) {
+    switch(foeType) {
+        case 'rats': return 'border-error';
+        case 'crows': return 'border-warning';
+        case 'cats': return 'border-success';
+        default: return 'border-neutral';
+    }
+}
+
+function getFoeEmoji(foeType) {
+    switch(foeType) {
+        case 'rats': return '🐀';
+        case 'crows': return '🐦';
+        case 'cats': return '🐱';
+        case 'magpie': return '🪶';
+        case 'small-bird': return '🐦‍⬛';
+        case 'squirrel': return '🐿️';
+        case 'hedgehog': return '🦔';
+        default: return '❓';
+    }
+}
+
+function openImageModal(imageSrc) {
+    // Create a simple image modal for full-size viewing
+    const modal = document.createElement('dialog');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-box max-w-7xl">
+            <img src="${imageSrc}" class="w-full h-auto" />
+            <div class="modal-action">
+                <form method="dialog">
+                    <button class="btn">Close</button>
+                </form>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    `;
+    document.body.appendChild(modal);
+    modal.showModal();
+    
+    // Remove modal when closed
+    modal.addEventListener('close', () => {
+        document.body.removeChild(modal);
+    });
+}
 </script>
 {% endblock %}
