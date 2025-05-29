@@ -3,10 +3,8 @@
 ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-debian:bookworm
 FROM $BUILD_FROM
 
-# Install system dependencies with cache mount for faster rebuilds
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y \
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
@@ -25,9 +23,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:${PATH}"
 
-# Install pnpm and claude-code with npm cache
-RUN --mount=type=cache,target=/root/.npm \
-    npm install -g pnpm @anthropic-ai/claude-code
+# Install pnpm and claude-code
+RUN npm install -g pnpm @anthropic-ai/claude-code
 ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="$PNPM_HOME:${PATH}"
 
@@ -53,9 +50,8 @@ WORKDIR /opt/foe-be-gone
 COPY pyproject.toml ./
 COPY uv.lock* ./
 
-# Install Python dependencies with cache mount
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system --break-system-packages \
+# Install Python dependencies
+RUN uv pip install --system --break-system-packages \
     --index-url https://pypi.org/simple \
     -r pyproject.toml
 
@@ -112,7 +108,7 @@ RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master
 LABEL \
     io.hass.name="Foe Be Gone" \
     io.hass.description="AI-powered wildlife detection and deterrent system" \
-    io.hass.version="1.0.22" \
+    io.hass.version="1.0.23" \
     io.hass.type="addon" \
     io.hass.arch="amd64|aarch64"
 
