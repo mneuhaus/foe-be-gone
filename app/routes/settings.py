@@ -200,3 +200,27 @@ async def delete_sound(
         return success_response(f"Sound '{filename}' deleted successfully")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+
+
+@router.post("/language", response_model=Dict[str, Any], name="set_language")
+async def set_language(
+    language: str = Form(...),
+    session: Session = Depends(get_session)
+):
+    """Set the user's language preference."""
+    # Validate language
+    valid_languages = ["en", "de"]
+    if language not in valid_languages:
+        raise HTTPException(status_code=400, detail=f"Invalid language: {language}")
+    
+    # Store language preference in settings
+    setting = session.get(Setting, 'user_language')
+    if setting:
+        setting.value = language
+    else:
+        setting = Setting(key='user_language', value=language)
+        session.add(setting)
+    
+    session.commit()
+    
+    return success_response(f"Language set to {language}")

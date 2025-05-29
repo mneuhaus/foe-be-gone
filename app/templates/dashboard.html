@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}{{ t('dashboard.title', request) }}{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -23,33 +23,33 @@
 <!-- Stats Overview -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
     <div class="stat-card" onclick="showDetailModal('detections')">
-        <div class="stat-label">Total Detections</div>
+        <div class="stat-label">{{ t('dashboard.total_detections', request) }}</div>
         <div class="stat-value text-primary">{{ stats.total_detections or 0 }}</div>
         <div class="stat-subtext">{{ stats.detections_today or 0 }} today</div>
     </div>
     
     <div class="stat-card" onclick="showDetailModal('effectiveness')">
-        <div class="stat-label">Success Rate</div>
+        <div class="stat-label">{{ t('dashboard.success_rate', request) }}</div>
         <div class="stat-value text-success">{{ stats.success_rate or 0 }}%</div>
-        <div class="stat-subtext">{{ stats.successful_deterrents or 0 }} successful</div>
+        <div class="stat-subtext">{{ stats.successful_deterrents or 0 }} {{ t('dashboard.successful', request) }}</div>
     </div>
     
     <div class="stat-card" onclick="showDetailModal('foes')">
-        <div class="stat-label">Most Common Foe</div>
+        <div class="stat-label">{{ t('dashboard.most_common_foe', request) }}</div>
         <div class="stat-value text-error">{{ stats.most_common_foe or 'None' }}</div>
         <div class="stat-subtext">{{ stats.most_common_foe_count or 0 }} detections</div>
     </div>
     
     <div class="stat-card" onclick="showDetailModal('activity')">
-        <div class="stat-label">Activity Status</div>
-        <div class="stat-value text-info">{{ stats.activity_status or 'Quiet' }}</div>
-        <div class="stat-subtext">{{ stats.last_detection_time or 'No recent activity' }}</div>
+        <div class="stat-label">{{ t('dashboard.activity_status', request) }}</div>
+        <div class="stat-value text-info">{{ stats.activity_status or t('dashboard.quiet', request) }}</div>
+        <div class="stat-subtext">{{ stats.last_detection_time or t('dashboard.no_recent_activity', request) }}</div>
     </div>
 </div>
 
 <!-- Camera Feeds -->
 {% if cameras %}
-<h2 class="text-xl font-bold mb-4">Live Camera Feeds</h2>
+<h2 class="text-xl font-bold mb-4">{{ t('dashboard.live_camera_feeds', request) }}</h2>
 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
     {% for camera in cameras %}
     <div class="card bg-base-200 shadow-sm overflow-hidden">
@@ -91,22 +91,22 @@
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-16 h-16 mx-auto mb-4 opacity-50">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
     </svg>
-    <p class="text-lg mb-2">No cameras available</p>
-    <p class="text-sm opacity-70 mb-4">Add and connect an integration to see live camera feeds</p>
-    <a href="{{ url_for(request, 'settings_integrations') }}" class="btn btn-primary">Setup Integrations</a>
+    <p class="text-lg mb-2">{{ t('dashboard.no_cameras_available', request) }}</p>
+    <p class="text-sm opacity-70 mb-4">{{ t('dashboard.add_connect_integration', request) }}</p>
+    <a href="{{ url_for(request, 'settings_integrations') }}" class="btn btn-primary">{{ t('dashboard.setup_integrations', request) }}</a>
 </div>
 {% endif %}
 
 <!-- Detail Modals -->
 <dialog id="detail-modal" class="modal">
     <div class="modal-box w-11/12 max-w-4xl">
-        <h3 class="font-bold text-lg mb-4" id="modal-title">Details</h3>
+        <h3 class="font-bold text-lg mb-4" id="modal-title">{{ t('common.details', request) }}</h3>
         <div id="modal-content">
             <!-- Dynamic content will be loaded here -->
         </div>
         <div class="modal-action">
             <form method="dialog">
-                <button class="btn">Close</button>
+                <button class="btn">{{ t('common.close', request) }}</button>
             </form>
         </div>
     </div>
@@ -120,25 +120,25 @@ function showDetailModal(type) {
     
     switch(type) {
         case 'detections':
-            title.textContent = 'Detection Analytics';
+            title.textContent = '{{ t("dashboard.detection_analytics", request) }}';
             content.innerHTML = '<div class="loading loading-spinner loading-lg mx-auto"></div>';
             modal.showModal();
             loadDetectionDetails();
             break;
         case 'effectiveness':
-            title.textContent = 'Success Rate Analytics';
+            title.textContent = '{{ t("dashboard.success_rate_analytics", request) }}';
             content.innerHTML = '<div class="loading loading-spinner loading-lg mx-auto"></div>';
             modal.showModal();
             loadEffectivenessDetails();
             break;
         case 'foes':
-            title.textContent = 'Foe Analytics';
+            title.textContent = '{{ t("dashboard.foe_analytics", request) }}';
             content.innerHTML = '<div class="loading loading-spinner loading-lg mx-auto"></div>';
             modal.showModal();
             loadFoeDetails();
             break;
         case 'activity':
-            title.textContent = 'Activity Patterns';
+            title.textContent = '{{ t("dashboard.activity_patterns", request) }}';
             content.innerHTML = '<div class="loading loading-spinner loading-lg mx-auto"></div>';
             modal.showModal();
             loadActivityDetails();
@@ -152,15 +152,15 @@ function loadDetectionDetails() {
         <div class="space-y-4">
             <div class="stats stats-vertical lg:stats-horizontal shadow">
                 <div class="stat">
-                    <div class="stat-title">This Week</div>
+                    <div class="stat-title">{{ t('dashboard.this_week', request) }}</div>
                     <div class="stat-value">{{ stats.weekly_detections or 0 }}</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-title">This Month</div>
+                    <div class="stat-title">{{ t('dashboard.this_month', request) }}</div>
                     <div class="stat-value">{{ stats.monthly_detections or 0 }}</div>
                 </div>
             </div>
-            <p class="text-sm opacity-70">Detailed charts and trends coming soon...</p>
+            <p class="text-sm opacity-70">{{ t('dashboard.coming_soon', request) }}</p>
         </div>
     `;
 }
@@ -168,7 +168,7 @@ function loadDetectionDetails() {
 function loadEffectivenessDetails() {
     document.getElementById('modal-content').innerHTML = `
         <div class="space-y-4">
-            <p class="text-sm opacity-70">Sound effectiveness analysis and detailed metrics coming soon...</p>
+            <p class="text-sm opacity-70">{{ t('dashboard.coming_soon', request) }}</p>
         </div>
     `;
 }
@@ -176,7 +176,7 @@ function loadEffectivenessDetails() {
 function loadFoeDetails() {
     document.getElementById('modal-content').innerHTML = `
         <div class="space-y-4">
-            <p class="text-sm opacity-70">Foe type analysis and behavior patterns coming soon...</p>
+            <p class="text-sm opacity-70">{{ t('dashboard.coming_soon', request) }}</p>
         </div>
     `;
 }
@@ -184,7 +184,7 @@ function loadFoeDetails() {
 function loadActivityDetails() {
     document.getElementById('modal-content').innerHTML = `
         <div class="space-y-4">
-            <p class="text-sm opacity-70">Activity timeline and pattern analysis coming soon...</p>
+            <p class="text-sm opacity-70">{{ t('dashboard.coming_soon', request) }}</p>
         </div>
     `;
 }

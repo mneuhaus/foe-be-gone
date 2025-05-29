@@ -1,0 +1,143 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "close": "Schließen",
+    "loading": "Lädt...",
+    "success": "Erfolg",
+    "error": "Fehler",
+    "warning": "Warnung",
+    "info": "Info",
+    "confirm": "Bestätigen",
+    "yes": "Ja",
+    "no": "Nein",
+    "upload": "Hochladen",
+    "download": "Herunterladen",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "refresh": "Aktualisieren",
+    "settings": "Einstellungen",
+    "language": "Sprache",
+    "details": "Details"
+  },
+  "nav": {
+    "dashboard": "Übersicht",
+    "detections": "Erkennungen",
+    "logs": "Protokolle",
+    "settings": "Einstellungen",
+    "general": "Allgemein",
+    "integrations": "Integrationen",
+    "sounds": "Töne",
+    "data": "Daten",
+    "statistics": "Vollständige Analyse"
+  },
+  "foes": {
+    "rats": "Ratten",
+    "crows": "Krähen",
+    "cats": "Katzen",
+    "herons": "Reiher",
+    "pigeons": "Tauben",
+    "unknown": "Unbekannt",
+    "all": "Alle Tiere"
+  },
+  "dashboard": {
+    "title": "Übersicht",
+    "subtitle": "Echtzeit-Wildtiererkennung und Abschrecksystem",
+    "recent_detections": "Aktuelle Erkennungen",
+    "system_status": "Systemstatus",
+    "cameras_online": "Kameras online",
+    "detections_today": "Erkennungen heute",
+    "sounds_played": "Töne abgespielt",
+    "ai_cost_today": "KI-Kosten heute",
+    "no_recent_detections": "Keine aktuellen Erkennungen",
+    "view_all": "Alle Erkennungen anzeigen",
+    "total_detections": "Gesamte Erkennungen",
+    "success_rate": "Erfolgsrate",
+    "successful": "erfolgreich",
+    "most_common_foe": "Häufigster Eindringling",
+    "activity_status": "Aktivitätsstatus",
+    "quiet": "Ruhig",
+    "no_recent_activity": "Keine aktuelle Aktivität",
+    "live_camera_feeds": "Live-Kamera-Feeds",
+    "no_cameras_available": "Keine Kameras verfügbar",
+    "add_connect_integration": "Integration hinzufügen und verbinden, um Live-Kamera-Feeds zu sehen",
+    "setup_integrations": "Integrationen einrichten",
+    "detection_analytics": "Erkennungs-Analyse",
+    "success_rate_analytics": "Erfolgsrate-Analyse",
+    "foe_analytics": "Eindringling-Analyse",
+    "activity_patterns": "Aktivitätsmuster",
+    "this_week": "Diese Woche",
+    "this_month": "Dieser Monat",
+    "coming_soon": "Bald verfügbar..."
+  },
+  "detections": {
+    "title": "Erkennungen",
+    "subtitle": "Wildtiererkennungen anzeigen und verwalten",
+    "filter_time": {
+      "1h": "Letzte Stunde",
+      "6h": "6 Stunden",
+      "24h": "24 Stunden",
+      "72h": "3 Tage",
+      "168h": "Woche"
+    },
+    "snapshot_capture_level": "Aufnahme-Stufe",
+    "capture_levels": {
+      "0": "Nur bei Abschreckung",
+      "1": "KI-Erkennung",
+      "2": "Schwellwert überschritten",
+      "3": "Alle Aufnahmen"
+    },
+    "change_threshold": "Änderungserkennungs-Schwellwert",
+    "auto_refresh": "Automatisch aktualisieren",
+    "clear_all": "Alle löschen",
+    "detection_interval": "Erkennungsintervall",
+    "checking_every": "Prüfung alle {seconds} Sekunden",
+    "view_details": "Details anzeigen",
+    "no_detections": "Keine Erkennungen gefunden",
+    "try_different_filters": "Versuchen Sie, Ihre Filter anzupassen oder schauen Sie später wieder vorbei"
+  },
+  "sounds": {
+    "title": "Tonverwaltung",
+    "subtitle": "Abschrecktöne für jeden Tiertyp verwalten",
+    "upload_sound": "Ton hochladen",
+    "upload_first_sound": "Ersten Ton hochladen",
+    "no_sounds": "Noch keine Töne hochgeladen",
+    "sounds_available": "{count} Ton/Töne verfügbar",
+    "select_file": "Tondatei auswählen (MP3 oder WAV)",
+    "uploading": "Wird hochgeladen...",
+    "play": "Ton abspielen",
+    "delete": "Ton löschen",
+    "delete_confirm": "Sind Sie sicher, dass Sie \"{filename}\" löschen möchten?"
+  },
+  "settings": {
+    "general": {
+      "title": "Allgemeine Einstellungen",
+      "subtitle": "Anwendungsweite Einstellungen und Präferenzen konfigurieren",
+      "ai_detection": "KI- & Erkennungseinstellungen",
+      "system": "Systemeinstellungen",
+      "data_management": "Datenverwaltung",
+      "update_settings": "Einstellungen aktualisieren"
+    },
+    "integrations": {
+      "title": "Kamera-Integrationen",
+      "subtitle": "Verbindungen zu Kamerasystemen verwalten",
+      "no_integrations": "Keine Integrationen konfiguriert",
+      "add_integration": "Integration hinzufügen",
+      "test_connection": "Verbindung testen",
+      "remove_integration": "Integration entfernen",
+      "cameras_found": "{count} Kamera(s) gefunden"
+    }
+  },
+  "messages": {
+    "settings_updated": "Einstellungen erfolgreich aktualisiert",
+    "sound_uploaded": "Ton '{filename}' erfolgreich für {foe_type} hochgeladen",
+    "sound_deleted": "Ton '{filename}' erfolgreich gelöscht",
+    "upload_failed": "Hochladen fehlgeschlagen",
+    "delete_failed": "Löschen fehlgeschlagen",
+    "network_error": "Netzwerkfehler: {error}",
+    "capture_level_updated": "Aufnahme-Stufe aktualisiert",
+    "threshold_updated": "Schwellwert auf {value} aktualisiert"
+  }
+}

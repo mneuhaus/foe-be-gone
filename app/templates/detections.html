@@ -9,7 +9,7 @@
             <!-- Title and Key Info -->
             <div class="flex-1">
                 <div class="flex items-center gap-3 mb-2">
-                    <h1 class="text-3xl font-bold text-base-content">Detections</h1>
+                    <h1 class="text-3xl font-bold text-base-content">{{ t('detections.title', request) }}</h1>
                     <!-- Live Indicator -->
                     <div class="flex items-center gap-2">
                         <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
@@ -34,21 +34,21 @@
                 <form method="get" class="flex flex-wrap items-center gap-2">
                     <div class="join">
                         <select name="hours" class="select select-bordered select-sm join-item min-w-32">
-                            <option value="1" {% if hours == 1 %}selected{% endif %}>Last Hour</option>
-                            <option value="6" {% if hours == 6 %}selected{% endif %}>6 Hours</option>
-                            <option value="24" {% if hours == 24 %}selected{% endif %}>24 Hours</option>
-                            <option value="72" {% if hours == 72 %}selected{% endif %}>3 Days</option>
-                            <option value="168" {% if hours == 168 %}selected{% endif %}>Week</option>
+                            <option value="1" {% if hours == 1 %}selected{% endif %}>{{ t('detections.filter_time.1h', request) }}</option>
+                            <option value="6" {% if hours == 6 %}selected{% endif %}>{{ t('detections.filter_time.6h', request) }}</option>
+                            <option value="24" {% if hours == 24 %}selected{% endif %}>{{ t('detections.filter_time.24h', request) }}</option>
+                            <option value="72" {% if hours == 72 %}selected{% endif %}>{{ t('detections.filter_time.72h', request) }}</option>
+                            <option value="168" {% if hours == 168 %}selected{% endif %}>{{ t('detections.filter_time.168h', request) }}</option>
                         </select>
                         
                         <select name="foe_type" class="select select-bordered select-sm join-item min-w-28">
-                            <option value="">All Foes</option>
-                            <option value="rats" {% if foe_type == "rats" %}selected{% endif %}>🐀 Rats</option>
-                            <option value="crows" {% if foe_type == "crows" %}selected{% endif %}>🐦 Crows</option>
-                            <option value="cats" {% if foe_type == "cats" %}selected{% endif %}>🐱 Cats</option>
-                            <option value="herons" {% if foe_type == "herons" %}selected{% endif %}>🦆 Herons</option>
-                            <option value="pigeons" {% if foe_type == "pigeons" %}selected{% endif %}>🕊️ Pigeons</option>
-                            <option value="unknown" {% if foe_type == "unknown" %}selected{% endif %}>❓ Unknown</option>
+                            <option value="">{{ t('foes.all', request) }}</option>
+                            <option value="rats" {% if foe_type == "rats" %}selected{% endif %}>🐀 {{ t('foes.rats', request) }}</option>
+                            <option value="crows" {% if foe_type == "crows" %}selected{% endif %}>🐦 {{ t('foes.crows', request) }}</option>
+                            <option value="cats" {% if foe_type == "cats" %}selected{% endif %}>🐱 {{ t('foes.cats', request) }}</option>
+                            <option value="herons" {% if foe_type == "herons" %}selected{% endif %}>🦆 {{ t('foes.herons', request) }}</option>
+                            <option value="pigeons" {% if foe_type == "pigeons" %}selected{% endif %}>🕊️ {{ t('foes.pigeons', request) }}</option>
+                            <option value="unknown" {% if foe_type == "unknown" %}selected{% endif %}>❓ {{ t('foes.unknown', request) }}</option>
                         </select>
                         
                         <button type="submit" class="btn btn-primary btn-sm join-item">
@@ -77,7 +77,7 @@
                                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                         </svg>
-                                        Auto-refresh
+                                        {{ t('detections.auto_refresh', request) }}
                                     </span>
                                     <input 
                                         type="checkbox" 
@@ -97,7 +97,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                     </svg>
-                                    Advanced Settings
+                                    {{ t('common.settings', request) }}
                                 </a>
                             </li>
                             
@@ -109,7 +109,7 @@
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
-                                    Clear All Detections
+                                    {{ t('detections.clear_all', request) }}
                                 </a>
                             </li>
                             {% endif %}

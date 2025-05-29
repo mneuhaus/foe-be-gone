@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Sound Management{% endblock %}
+{% block title %}{{ t('sounds.title', request) }}{% endblock %}
 
 {% block content %}
 <div class="max-w-6xl mx-auto">
     <div class="flex items-center justify-between mb-8">
         <div>
-            <h1 class="text-3xl font-bold text-base-content">Sound Management</h1>
-            <p class="text-base-content/70 mt-2">Manage deterrent sounds for each foe type</p>
+            <h1 class="text-3xl font-bold text-base-content">{{ t('sounds.title', request) }}</h1>
+            <p class="text-base-content/70 mt-2">{{ t('sounds.subtitle', request) }}</p>
         </div>
     </div>
 
@@ -32,7 +32,7 @@
                         </div>
                         <div>
                             <h2 class="text-2xl font-bold">{{ foe_type|capitalize }} Sounds</h2>
-                            <p class="text-sm text-base-content/60">{{ sounds_by_type[foe_type].count }} sound(s) available</p>
+                            <p class="text-sm text-base-content/60">{{ t('sounds.sounds_available', request, count=sounds_by_type[foe_type].count) }}</p>
                         </div>
                     </div>
                     
@@ -41,7 +41,7 @@
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
-                        Upload Sound
+                        {{ t('sounds.upload_sound', request) }}
                     </button>
                 </div>
 

@@ -1,0 +1,143 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "loading": "Loading...",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "upload": "Upload",
+    "download": "Download",
+    "search": "Search",
+    "filter": "Filter",
+    "refresh": "Refresh",
+    "settings": "Settings",
+    "language": "Language",
+    "details": "Details"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "detections": "Detections",
+    "logs": "Logs",
+    "settings": "Settings",
+    "general": "General",
+    "integrations": "Integrations",
+    "sounds": "Sounds",
+    "data": "Data",
+    "statistics": "Full Analytics"
+  },
+  "foes": {
+    "rats": "Rats",
+    "crows": "Crows",
+    "cats": "Cats",
+    "herons": "Herons",
+    "pigeons": "Pigeons",
+    "unknown": "Unknown",
+    "all": "All Foes"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Real-time wildlife detection and deterrent system",
+    "recent_detections": "Recent Detections",
+    "system_status": "System Status",
+    "cameras_online": "Cameras Online",
+    "detections_today": "Detections Today",
+    "sounds_played": "Sounds Played",
+    "ai_cost_today": "AI Cost Today",
+    "no_recent_detections": "No recent detections",
+    "view_all": "View All Detections",
+    "total_detections": "Total Detections",
+    "success_rate": "Success Rate",
+    "successful": "successful",
+    "most_common_foe": "Most Common Foe",
+    "activity_status": "Activity Status",
+    "quiet": "Quiet",
+    "no_recent_activity": "No recent activity",
+    "live_camera_feeds": "Live Camera Feeds",
+    "no_cameras_available": "No cameras available",
+    "add_connect_integration": "Add and connect an integration to see live camera feeds",
+    "setup_integrations": "Setup Integrations",
+    "detection_analytics": "Detection Analytics",
+    "success_rate_analytics": "Success Rate Analytics",
+    "foe_analytics": "Foe Analytics",
+    "activity_patterns": "Activity Patterns",
+    "this_week": "This Week",
+    "this_month": "This Month",
+    "coming_soon": "Coming soon..."
+  },
+  "detections": {
+    "title": "Detections",
+    "subtitle": "View and manage wildlife detections",
+    "filter_time": {
+      "1h": "Last Hour",
+      "6h": "6 Hours",
+      "24h": "24 Hours",
+      "72h": "3 Days",
+      "168h": "Week"
+    },
+    "snapshot_capture_level": "Snapshot Capture Level",
+    "capture_levels": {
+      "0": "Foe Deterred Only",
+      "1": "AI Detection",
+      "2": "Threshold Crossed",
+      "3": "All Snapshots"
+    },
+    "change_threshold": "Change Detection Threshold",
+    "auto_refresh": "Auto-refresh",
+    "clear_all": "Clear All",
+    "detection_interval": "Detection Interval",
+    "checking_every": "Checking every {seconds} seconds",
+    "view_details": "View Details",
+    "no_detections": "No detections found",
+    "try_different_filters": "Try adjusting your filters or check back later"
+  },
+  "sounds": {
+    "title": "Sound Management",
+    "subtitle": "Manage deterrent sounds for each foe type",
+    "upload_sound": "Upload Sound",
+    "upload_first_sound": "Upload First Sound",
+    "no_sounds": "No sounds uploaded yet",
+    "sounds_available": "{count} sound(s) available",
+    "select_file": "Select sound file (MP3 or WAV)",
+    "uploading": "Uploading...",
+    "play": "Play sound",
+    "delete": "Delete sound",
+    "delete_confirm": "Are you sure you want to delete \"{filename}\"?"
+  },
+  "settings": {
+    "general": {
+      "title": "General Settings",
+      "subtitle": "Configure application-wide settings and preferences",
+      "ai_detection": "AI & Detection Settings",
+      "system": "System Settings",
+      "data_management": "Data Management",
+      "update_settings": "Update Settings"
+    },
+    "integrations": {
+      "title": "Camera Integrations",
+      "subtitle": "Manage connections to camera systems",
+      "no_integrations": "No integrations configured",
+      "add_integration": "Add Integration",
+      "test_connection": "Test Connection",
+      "remove_integration": "Remove Integration",
+      "cameras_found": "{count} camera(s) found"
+    }
+  },
+  "messages": {
+    "settings_updated": "Settings updated successfully",
+    "sound_uploaded": "Sound '{filename}' uploaded successfully for {foe_type}",
+    "sound_deleted": "Sound '{filename}' deleted successfully",
+    "upload_failed": "Upload failed",
+    "delete_failed": "Delete failed",
+    "network_error": "Network error: {error}",
+    "capture_level_updated": "Capture level updated",
+    "threshold_updated": "Threshold updated to {value}"
+  }
+}

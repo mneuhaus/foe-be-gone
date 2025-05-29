@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Integrations{% endblock %}
+{% block title %}{{ t('settings.integrations.title', request) }}{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold">Integrations</h1>
+        <h1 class="text-3xl font-bold">{{ t('settings.integrations.title', request) }}</h1>
         
         <!-- Add Integration Button with Dropdown -->
         <div class="dropdown dropdown-end">
@@ -13,7 +13,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
-                Add Integration
+                {{ t('settings.integrations.add_integration', request) }}
             </div>
             <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded z-[1] w-64 p-2 shadow-lg">
                 <li>
