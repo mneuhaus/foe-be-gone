@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Statistics{% endblock %}
+{% block title %}{{ t('statistics.title', request) }}{% endblock %}
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
@@ -27,46 +27,46 @@
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold mb-8">System Analytics</h1>
+    <h1 class="text-4xl font-bold mb-8">{{ t('statistics.system_analytics', request) }}</h1>
     
     <!-- Overview Stats -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div class="stat-card">
-            <div class="stat-label">Total Detections</div>
+            <div class="stat-label">{{ t('statistics.total_detections', request) }}</div>
             <div class="stat-value text-primary">{{ overview.total_detections }}</div>
-            <div class="text-sm mt-2">{{ overview.detections_today }} today</div>
+            <div class="text-sm mt-2">{{ overview.detections_today }} {{ t('common.today', request) }}</div>
         </div>
         
         <div class="stat-card">
-            <div class="stat-label">Success Rate</div>
+            <div class="stat-label">{{ t('statistics.success_rate', request) }}</div>
             <div class="stat-value text-success">{{ overview.success_rate }}%</div>
-            <div class="text-sm mt-2">{{ overview.successful_deterrents }} successful</div>
+            <div class="text-sm mt-2">{{ overview.successful_deterrents }} {{ t('common.successful', request) }}</div>
         </div>
         
         <div class="stat-card">
-            <div class="stat-label">Most Common Foe</div>
-            <div class="stat-value text-error">{{ overview.most_common_foe or 'None' }}</div>
-            <div class="text-sm mt-2">{{ overview.most_common_foe_count }} detections</div>
+            <div class="stat-label">{{ t('statistics.most_common_foe', request) }}</div>
+            <div class="stat-value text-error">{{ overview.most_common_foe or t('common.none', request) }}</div>
+            <div class="text-sm mt-2">{{ overview.most_common_foe_count }} {{ t('common.detections', request) }}</div>
         </div>
         
         <div class="stat-card">
-            <div class="stat-label">Friend:Foe Ratio</div>
+            <div class="stat-label">{{ t('statistics.friend_foe_ratio', request) }}</div>
             <div class="stat-value text-info">{{ overview.friend_foe_ratio }}</div>
-            <div class="text-sm mt-2">{{ overview.friend_detections }} friends</div>
+            <div class="text-sm mt-2">{{ overview.friend_detections }} {{ t('common.friends', request) }}</div>
         </div>
     </div>
 
     <!-- Daily Trends -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div class="stat-card">
-            <h2 class="text-xl font-bold mb-4">Daily Activity Trends</h2>
+            <h2 class="text-xl font-bold mb-4">{{ t('statistics.daily_activity_trends', request) }}</h2>
             <div class="chart-container">
                 <canvas id="dailyTrendsChart"></canvas>
             </div>
         </div>
         
         <div class="stat-card">
-            <h2 class="text-xl font-bold mb-4">Success Rate Over Time</h2>
+            <h2 class="text-xl font-bold mb-4">{{ t('statistics.success_rate_over_time', request) }}</h2>
             <div class="chart-container">
                 <canvas id="successRateChart"></canvas>
             </div>
@@ -75,27 +75,27 @@
 
     <!-- Hourly Patterns -->
     <div class="stat-card mb-8">
-        <h2 class="text-xl font-bold mb-4">Activity by Hour of Day</h2>
+        <h2 class="text-xl font-bold mb-4">{{ t('statistics.activity_by_hour', request) }}</h2>
         <div class="chart-container">
             <canvas id="hourlyPatternsChart"></canvas>
         </div>
         <div class="mt-4 text-sm">
-            <span class="mr-4">🦅 Peak foe activity: {{ hourly_patterns.peak_foe_hour }}:00</span>
-            <span>🐿️ Peak friend activity: {{ hourly_patterns.peak_friend_hour }}:00</span>
+            <span class="mr-4">🦅 {{ t('statistics.peak_foe_activity', request) }}: {{ hourly_patterns.peak_foe_hour }}:00</span>
+            <span>🐿️ {{ t('statistics.peak_friend_activity', request) }}: {{ hourly_patterns.peak_friend_hour }}:00</span>
         </div>
     </div>
 
     <!-- Sound Effectiveness -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div class="stat-card">
-            <h2 class="text-xl font-bold mb-4">Top 10 Most Effective Sounds</h2>
+            <h2 class="text-xl font-bold mb-4">{{ t('statistics.top_effective_sounds', request) }}</h2>
             <div class="overflow-x-auto">
                 <table class="table table-compact w-full">
                     <thead>
                         <tr>
-                            <th>Sound</th>
-                            <th>Effectiveness</th>
-                            <th>Times Used</th>
+                            <th>{{ t('statistics.sound', request) }}</th>
+                            <th>{{ t('statistics.effectiveness', request) }}</th>
+                            <th>{{ t('statistics.times_used', request) }}</th>
                         </tr>
                     </thead>
                     <tbody>
