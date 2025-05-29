@@ -54,7 +54,8 @@
       "Bash(git stash:*)",
       "Bash(curl:*)",
       "Bash(git rm:*)",
-      "Bash(./test-addon-local.sh:*)"
+      "Bash(./test-addon-local.sh:*)",
+      "Bash(git branch:*)"
     ],
     "deny": []
   },

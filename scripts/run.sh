@@ -43,18 +43,18 @@ if [ "${DEV_MODE}" = "true" ]; then
     bashio::log.info "SSH server started with PID ${SSH_PID}"
     
     # Create development directories if they don't exist
-    mkdir -p /data/foe-be-gone-dev/dev-workspace
-    mkdir -p /data/foe-be-gone-dev/gh-config
-    mkdir -p /data/foe-be-gone-dev/claude-config
+    mkdir -p /share/foe-be-gone-dev/dev-workspace
+    mkdir -p /share/foe-be-gone-dev/gh-config
+    mkdir -p /share/foe-be-gone-dev/claude-config
     
     # Create symlinks for development tools
     bashio::log.info "Setting up development environment symlinks..."
     mkdir -p /root/.config
-    ln -sfn /data/foe-be-gone-dev/dev-workspace /dev-workspace
-    ln -sfn /data/foe-be-gone-dev/gh-config /root/.config/gh
-    ln -sfn /data/foe-be-gone-dev/claude-config /root/.claude
-    if [ -f /data/foe-be-gone-dev/claude.json ]; then
-        ln -sfn /data/foe-be-gone-dev/claude.json /root/.claude.json
+    ln -sfn /share/foe-be-gone-dev/dev-workspace /dev-workspace
+    ln -sfn /share/foe-be-gone-dev/gh-config /root/.config/gh
+    ln -sfn /share/foe-be-gone-dev/claude-config /root/.claude
+    if [ -f /share/foe-be-gone-dev/claude.json ]; then
+        ln -sfn /share/foe-be-gone-dev/claude.json /root/.claude.json
     fi
     
     # Initialize dev workspace if not already done
