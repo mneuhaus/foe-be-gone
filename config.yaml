@@ -28,6 +28,7 @@ map:
   - ssl
   - config:rw
   - media:rw
+  - str:/var/lib/foe-be-gone:rw
 environment:
   DATA_PATH: "/data"
   SNAPSHOT_PATH: "/share/foe-be-gone/snapshots"
