@@ -46,7 +46,7 @@ class DummyCameraDevice(DeviceInterface):
             "type": self.device_type,
             "status": self.status,
             "last_seen": self.last_seen.isoformat(),
-            "current_image": f"/public/{self.integration.current_image_path}" if self.integration.current_image_path else None
+            "current_image": f"public/{self.integration.current_image_path}" if self.integration.current_image_path else None
         }
 
 
@@ -175,7 +175,7 @@ class DummySurveillanceIntegration(IntegrationBase):
             name="Dummy Camera",
             device_type="camera",
             status="online",
-            current_image_url="/public/dummy-surveillance/nothing/Terrassentür  - 5-26-2025, 09.07.18 GMT+2.jpg",
+            current_image_url="public/dummy-surveillance/nothing/Terrassentür  - 5-26-2025, 09.07.18 GMT+2.jpg",
             device_metadata={
                 "camera_id": "dummy-cam-001",
                 "model": "Dummy Model",
@@ -282,7 +282,7 @@ class DummySurveillanceIntegration(IntegrationBase):
         return {
             "success": True,
             "scenario": scenario,
-            "image_path": f"/public/{self.current_image_path}",
+            "image_path": f"public/{self.current_image_path}",
             "image_count": len(images)
         }
     

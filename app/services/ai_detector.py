@@ -44,6 +44,12 @@ class AIDetector:
     
     def __init__(self, api_key: Optional[str] = None, session: Optional[Session] = None):
         """Initialize the AI detector."""
+        # Set model configuration first
+        self.model = config.AI_MODEL
+        self.temperature = config.AI_TEMPERATURE
+        self.max_tokens = config.AI_MAX_TOKENS
+        
+        # Get API key
         if api_key:
             self.api_key = api_key
         elif session:
@@ -52,14 +58,16 @@ class AIDetector:
         else:
             self.api_key = None
             
-        # Set the API key for LiteLLM
+        # Set the API key for LiteLLM (handles multiple providers)
         if self.api_key:
             import os
-            os.environ["OPENAI_API_KEY"] = self.api_key
-            
-        self.model = config.AI_MODEL
-        self.temperature = config.AI_TEMPERATURE
-        self.max_tokens = config.AI_MAX_TOKENS
+            # LiteLLM automatically detects provider from model name
+            # For Anthropic models (claude-*), it uses ANTHROPIC_API_KEY
+            # For OpenAI models (gpt-*), it uses OPENAI_API_KEY
+            if self.model.startswith("claude"):
+                os.environ["ANTHROPIC_API_KEY"] = self.api_key
+            else:
+                os.environ["OPENAI_API_KEY"] = self.api_key
         
         logger.info(f"AI Detector initialized with model: {self.model}")
     

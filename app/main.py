@@ -115,6 +115,34 @@ app = FastAPI(
     ]
 )
 
+# Home Assistant Ingress IP filtering middleware
+@app.middleware("http")
+async def ingress_security_middleware(request: Request, call_next):
+    """Security middleware for Home Assistant Ingress.
+    
+    Only allow connections from Home Assistant Ingress (172.30.32.2)
+    and localhost (for development).
+    """
+    client_ip = request.client.host if request.client else None
+    
+    # Allow localhost for development
+    if client_ip in ["127.0.0.1", "::1", "localhost"]:
+        return await call_next(request)
+    
+    # Allow Home Assistant Ingress IP
+    if client_ip == "172.30.32.2":
+        return await call_next(request)
+    
+    # In development mode, allow all connections
+    from app.core.config import config
+    if getattr(config, 'DEV_MODE', False):
+        return await call_next(request)
+    
+    # Block all other IPs when running in production
+    from fastapi import HTTPException
+    logger.warning(f"Blocked access from unauthorized IP: {client_ip}")
+    raise HTTPException(status_code=403, detail="Access denied")
+
 # Mount static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.mount("/public", StaticFiles(directory="public"), name="public")
@@ -173,6 +201,33 @@ async def health_check() -> dict[str, str]:
         dict: Status and version information
     """
     return {"status": "healthy", "version": "2.0.0"}
+
+
+@app.get("/debug/urls", tags=["health"], summary="Debug URL generation")
+async def debug_urls(request: Request) -> dict:
+    """Debug endpoint to check URL generation for Home Assistant ingress.
+    
+    Returns:
+        dict: URL generation debug information
+    """
+    from app.core.url_helpers import get_base_url, static_url, url_for
+    
+    base_url = get_base_url(request)
+    test_api_path = "api/integrations/test/devices/test/snapshot"
+    test_static_path = "public/dummy-surveillance/nothing/test.jpg"
+    
+    return {
+        "client_ip": request.client.host if request.client else None,
+        "headers": dict(request.headers),
+        "base_url": base_url,
+        "ingress_path": request.headers.get("X-Ingress-Path", ""),
+        "root_path": request.scope.get("root_path", ""),
+        "url_examples": {
+            "api_endpoint": static_url(request, "/" + test_api_path),
+            "static_file": static_url(request, test_static_path),
+            "dashboard_route": url_for(request, "dashboard")
+        }
+    }
 
 
 if __name__ == "__main__":

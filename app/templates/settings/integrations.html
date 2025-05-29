@@ -101,7 +101,7 @@
                                 {% if device.device_type == "camera" %}
                                     {% if integration.integration_type == "unifi_protect" and device.current_image_url %}
                                         <img 
-                                            src="{{ device.current_image_url }}" 
+                                            src="{% if device.current_image_url.startswith('/api/') or device.current_image_url.startswith('api/') %}{{ get_base_url(request) }}{{ device.current_image_url if device.current_image_url.startswith('/') else '/' + device.current_image_url }}{% else %}{{ device.current_image_url }}{% endif %}" 
                                             alt="{{ device.name }}" 
                                             class="rounded h-24 w-full object-cover device-image"
                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
@@ -120,7 +120,7 @@
                                         </div>
                                     {% elif device.current_image_url %}
                                         <img 
-                                            src="{{ device.current_image_url }}" 
+                                            src="{% if device.current_image_url.startswith('/api/') or device.current_image_url.startswith('api/') %}{{ get_base_url(request) }}{{ device.current_image_url if device.current_image_url.startswith('/') else '/' + device.current_image_url }}{% else %}{{ device.current_image_url }}{% endif %}" 
                                             alt="{{ device.name }}" 
                                             class="rounded h-24 w-full object-cover device-image"
                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
@@ -355,8 +355,13 @@ async function setTestScenario(integrationId, scenario) {
             if (integrationCard && result.image_path) {
                 const deviceImages = integrationCard.querySelectorAll('.device-image');
                 deviceImages.forEach(img => {
-                    // Force reload by adding timestamp
-                    const newSrc = result.image_path + '?t=' + Date.now();
+                    // Force reload by adding timestamp with proper base URL
+                    const baseUrl = document.querySelector('meta[name="base-url"]')?.content || '';
+                    const imagePath = result.image_path;
+                    // Handle both /api/ and api/ formats
+                    const fullPath = imagePath.startsWith('/') ? imagePath : '/' + imagePath;
+                    const newSrc = baseUrl + fullPath + '?t=' + Date.now();
+                    console.log('Updating image src:', newSrc);
                     img.src = newSrc;
                 });
             }

@@ -149,11 +149,11 @@
             {% if detection.image_path %}
             <figure class="aspect-[4/3] bg-base-200 relative">
                 <img 
-                    src="/{{ detection.image_path }}" 
+                    src="{{ get_base_url(request) }}/{{ detection.image_path }}" 
                     alt="Detection {{ detection.id }}"
                     class="w-full h-full object-cover cursor-pointer"
                     onclick="showDetectionModal({{ detection.id }})"
-                    onerror="this.onerror=null;this.src='/static/img/no-image.png';"
+                    onerror="this.onerror=null;this.src='{{ get_base_url(request) }}/static/img/no-image.png';"
                 />
                 <!-- Foe badges overlay -->
                 {% if detection.foes %}
@@ -505,13 +505,13 @@ function showDetectionModal(detectionId) {
                 ${detection.image_path ? `
                 <div>
                     <h4 class="font-medium mb-2">Initial Detection</h4>
-                    <img src="/${detection.image_path}" class="w-full rounded-lg" />
+                    <img src="${getBaseUrl()}/${detection.image_path}" class="w-full rounded-lg" />
                 </div>` : ''}
                 
                 ${detection.effectiveness && detection.effectiveness.follow_up_image_path ? `
                 <div>
                     <h4 class="font-medium mb-2">Follow-up (After ${detection.effectiveness.wait_duration}s)</h4>
-                    <img src="/${detection.effectiveness.follow_up_image_path}" class="w-full rounded-lg" />
+                    <img src="${getBaseUrl()}/${detection.effectiveness.follow_up_image_path}" class="w-full rounded-lg" />
                 </div>` : ''}
             </div>
             
@@ -871,7 +871,7 @@ function createDetectionCard(detection) {
             ${detection.image_path ? `
             <figure class="relative h-48 bg-base-200">
                 <img 
-                    src="/${detection.image_path}" 
+                    src="${getBaseUrl()}/${detection.image_path}" 
                     alt="Detection snapshot" 
                     class="w-full h-full object-cover"
                     loading="lazy"
@@ -961,6 +961,11 @@ function createDetectionCard(detection) {
             </div>
         </div>
     `;
+}
+
+// Helper function to get base URL for images
+function getBaseUrl() {
+    return document.querySelector('meta[name="base-url"]')?.content || '';
 }
 
 // Auto-refresh is now disabled by default

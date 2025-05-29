@@ -162,7 +162,7 @@ class DetectionProcessor:
             try:
                 with get_db_session() as ai_session:
                     ai_detector = AIDetector(session=ai_session)
-                    result = ai_detector.detect_foes(image_data)
+                    result = await ai_detector.detect_foes(image_data)
             
                 if not result.foes_detected:
                     logger.info(f"No foes detected in {camera.name}")

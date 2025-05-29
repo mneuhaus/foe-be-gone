@@ -377,7 +377,7 @@ class UniFiProtectIntegration(IntegrationBase):
                 
                 # For UniFi cameras, we'll use the snapshot endpoint directly
                 # instead of storing base64 data which might be too large
-                device.current_image_url = f"/api/integrations/{self.instance.id}/devices/{camera['id']}/snapshot"
+                device.current_image_url = f"api/integrations/{self.instance.id}/devices/{camera['id']}/snapshot"
                 
                 devices.append(device)
                 

@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_session
 from app.core.templates import templates
+from app.core.url_helpers import url_for
 from app.models.integration_instance import IntegrationInstance
 from app.models.device import Device
 from app.models.setting import Setting
@@ -81,7 +82,7 @@ async def update_general_settings(
             value = form_data[key]
             set_setting_value(session, key, str(value))
     
-    return RedirectResponse(url=request.url_for("settings_general"), status_code=303)
+    return RedirectResponse(url=url_for(request, "settings_general"), status_code=303)
 
 
 @router.get("/integrations", response_class=HTMLResponse, name="settings_integrations")

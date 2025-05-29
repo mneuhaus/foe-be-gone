@@ -11,10 +11,14 @@
         <figure class="relative aspect-video">
             {% if camera.current_image_url %}
             <img 
-                src="{{ camera.current_image_url }}" 
+                src="{% if camera.current_image_url.startswith('/api/') or camera.current_image_url.startswith('api/') %}{{ get_base_url(request) }}{{ camera.current_image_url if camera.current_image_url.startswith('/') else '/' + camera.current_image_url }}{% else %}{{ camera.current_image_url }}{% endif %}" 
                 alt="{{ camera.name }}" 
                 class="w-full h-full object-cover"
-                onerror="this.src='/public/dummy-surveillance/nothing/1.jpg'"
+                data-debug-url="{% if camera.current_image_url.startswith('/api/') or camera.current_image_url.startswith('api/') %}{{ get_base_url(request) }}{{ camera.current_image_url if camera.current_image_url.startswith('/') else '/' + camera.current_image_url }}{% else %}{{ camera.current_image_url }}{% endif %}"
+                data-base-url="{{ get_base_url(request) }}"
+                data-original-url="{{ camera.current_image_url }}"
+                onload="console.log('Image loaded successfully:', this.src);"
+                onerror="console.log('Image failed to load. Attempted URL:', this.src); console.log('Base URL:', this.dataset.baseUrl); console.log('Original URL:', this.dataset.originalUrl); this.src='{{ get_base_url(request) }}/public/dummy-surveillance/nothing/Terrassentür  - 5-26-2025, 09.07.18 GMT+2.jpg';"
             />
             {% else %}
             <div class="w-full h-full bg-base-300 flex items-center justify-center">

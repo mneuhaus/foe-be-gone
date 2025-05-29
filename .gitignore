@@ -94,3 +94,6 @@ playwright/.cache/
 *.tmp
 *.temp
 test_*.db
+
+# Environment setup tracking
+.initialized

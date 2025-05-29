@@ -235,7 +235,7 @@ async def set_test_scenario(
     
     for device in devices:
         if device.device_type == "camera":
-            device.current_image_url = result.get("image_path", "/public/dummy-surveillance/nothing/1.jpg")
+            device.current_image_url = result.get("image_path", "public/dummy-surveillance/nothing/Terrassentür  - 5-26-2025, 09.07.18 GMT+2.jpg")
             device.updated_at = datetime.utcnow()
     
     session.commit()
