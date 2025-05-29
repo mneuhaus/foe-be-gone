@@ -1,6 +1,6 @@
 name: "Foe Be Gone"
 description: "AI-powered wildlife detection and deterrent system"
-version: "1.0.23"
+version: "1.0.24"
 slug: "foe-be-gone"
 init: false
 arch:
@@ -9,11 +9,11 @@ arch:
 startup: application
 boot: auto
 options:
-  capture_all_snapshots: false
+  snapshot_capture_level: 1
   phash_threshold: 15
   dev_mode: false
 schema:
-  capture_all_snapshots: "bool"
+  snapshot_capture_level: "int(0,3)"
   phash_threshold: "int(1,30)"
   dev_mode: "bool"
 ports:

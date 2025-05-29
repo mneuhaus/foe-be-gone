@@ -113,12 +113,15 @@ async def detections_page(
         detections_with_effectiveness.append(detection_dict)
     
     # Get current detection settings
-    capture_all_snapshots = False
+    snapshot_capture_level = 1
     phash_threshold = 10
     
-    capture_all_setting = session.get(Setting, 'capture_all_snapshots')
-    if capture_all_setting:
-        capture_all_snapshots = capture_all_setting.value.lower() == 'true'
+    capture_level_setting = session.get(Setting, 'snapshot_capture_level')
+    if capture_level_setting:
+        try:
+            snapshot_capture_level = int(capture_level_setting.value)
+        except ValueError:
+            pass
     
     phash_setting = session.get(Setting, 'phash_threshold')
     if phash_setting:
@@ -126,6 +129,14 @@ async def detections_page(
             phash_threshold = int(phash_setting.value)
         except ValueError:
             pass
+    
+    # Map capture levels to human-readable labels
+    capture_level_labels = {
+        0: "Foe Deterred Only",
+        1: "AI Detection",
+        2: "Threshold Crossed",
+        3: "All Snapshots"
+    }
     
     context = {
         "request": request,
@@ -136,7 +147,8 @@ async def detections_page(
         "foe_type": foe_type,
         "available_foe_types": foe_types_result,
         "current_interval": detection_worker.check_interval,
-        "capture_all_snapshots": capture_all_snapshots,
+        "snapshot_capture_level": snapshot_capture_level,
+        "capture_level_label": capture_level_labels.get(snapshot_capture_level, "Unknown"),
         "phash_threshold": phash_threshold
     }
     
@@ -507,6 +519,11 @@ class CaptureAllUpdate(BaseModel):
     enabled: bool = Field(description="Whether to capture all snapshots")
 
 
+class CaptureLevelUpdate(BaseModel):
+    """Request model for updating snapshot capture level."""
+    level: int = Field(ge=0, le=3, description="Capture level (0-3)")
+
+
 class PhashThresholdUpdate(BaseModel):
     """Request model for updating phash threshold."""
     threshold: int = Field(ge=1, le=30, description="Phash threshold (1-30)")
@@ -567,3 +584,37 @@ async def set_phash_threshold(
     session.commit()
     
     return success_response(f"Change threshold set to {threshold}")
+
+
+@router.post("/api/settings/capture-level", summary="Set snapshot capture level", response_model=Dict[str, Any])
+async def set_capture_level(
+    update: CaptureLevelUpdate,
+    session: Session = Depends(get_session)
+) -> Dict[str, Any]:
+    """Set the snapshot capture level.
+    
+    Args:
+        update: CaptureLevelUpdate request body
+        session: Database session
+        
+    Returns:
+        Dict with success status
+    """
+    level = update.level
+    level_names = {
+        0: "Foe Deterred Only",
+        1: "AI Detection",
+        2: "Threshold Crossed",
+        3: "All Snapshots"
+    }
+    
+    setting = session.get(Setting, 'snapshot_capture_level')
+    if setting:
+        setting.value = str(level)
+    else:
+        setting = Setting(key='snapshot_capture_level', value=str(level))
+        session.add(setting)
+    
+    session.commit()
+    
+    return success_response(f"Capture level set to: {level_names.get(level, 'Unknown')}")

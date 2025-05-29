@@ -157,21 +157,28 @@
                     
                     <!-- Advanced Detection Settings -->
                     <div class="space-y-4">
-                        <!-- Capture All Snapshots -->
-                        <div class="form-control">
-                            <label class="label cursor-pointer justify-start gap-3">
-                                <input 
-                                    type="checkbox" 
-                                    id="capture-all-snapshots" 
-                                    class="checkbox checkbox-primary"
-                                    onchange="updateCaptureAllSnapshots(this.checked)"
-                                    {% if capture_all_snapshots %}checked{% endif %}
-                                >
-                                <div>
-                                    <span class="label-text font-medium">Capture all snapshots</span>
-                                    <div class="text-xs text-base-content/60">Save images even when no foes detected</div>
-                                </div>
-                            </label>
+                        <!-- Snapshot Capture Level -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label class="label-text font-medium">Snapshot Capture Level</label>
+                                <span class="text-sm text-primary font-medium" id="capture-level-label">{{ capture_level_label }}</span>
+                            </div>
+                            <input 
+                                type="range" 
+                                id="snapshot-capture-level" 
+                                min="0" 
+                                max="3" 
+                                value="{{ snapshot_capture_level }}"
+                                class="range range-primary" 
+                                step="1"
+                                onchange="updateSnapshotCaptureLevel(this.value)"
+                            >
+                            <div class="w-full flex justify-between text-xs px-2">
+                                <span>Foe<br>Deterred</span>
+                                <span>AI<br>Detection</span>
+                                <span>Threshold<br>Crossed</span>
+                                <span>All<br>Snapshots</span>
+                            </div>
                         </div>
                         
                         <!-- Change Detection Threshold -->
@@ -598,29 +605,39 @@ async function updateInterval(value) {
     }, 500);
 }
 
-async function updateCaptureAllSnapshots(enabled) {
+async function updateSnapshotCaptureLevel(level) {
+    const levelLabels = {
+        '0': 'Foe Deterred Only',
+        '1': 'AI Detection',
+        '2': 'Threshold Crossed',
+        '3': 'All Snapshots'
+    };
+    
     try {
-        const response = await fetch(apiUrl('/detections/api/settings/capture-all'), {
+        const response = await fetch(apiUrl('/detections/api/settings/capture-level'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ enabled: enabled })
+            body: JSON.stringify({ level: parseInt(level) })
         });
         
         if (response.ok) {
             const result = await response.json();
-            console.log('Capture all snapshots:', result.message);
+            console.log('Snapshot capture level:', result.message);
+            
+            // Update label
+            document.getElementById('capture-level-label').textContent = levelLabels[level];
             
             // Show notification
             showNotification(result.message, 'success');
         } else {
-            console.error('Failed to update capture all snapshots');
-            // Reset checkbox on error
-            document.getElementById('capture-all-snapshots').checked = !enabled;
+            console.error('Failed to update capture level');
+            // Reset slider on error
+            document.getElementById('snapshot-capture-level').value = {{ snapshot_capture_level }};
         }
     } catch (error) {
-        console.error('Error updating capture all snapshots:', error);
-        // Reset checkbox on error
-        document.getElementById('capture-all-snapshots').checked = !enabled;
+        console.error('Error updating capture level:', error);
+        // Reset slider on error
+        document.getElementById('snapshot-capture-level').value = {{ snapshot_capture_level }};
     }
 }
 

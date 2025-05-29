@@ -9,12 +9,12 @@ CONFIG_PATH=/data/options.json
 
 # Get configuration from Home Assistant
 # Note: OpenAI settings are managed through the web interface, not addon config
-CAPTURE_ALL_SNAPSHOTS=$(bashio::config 'capture_all_snapshots')
+SNAPSHOT_CAPTURE_LEVEL=$(bashio::config 'snapshot_capture_level')
 PHASH_THRESHOLD=$(bashio::config 'phash_threshold')
 DEV_MODE=$(bashio::config 'dev_mode')
 
 # Set environment variables
-export CAPTURE_ALL_SNAPSHOTS="${CAPTURE_ALL_SNAPSHOTS}"
+export SNAPSHOT_CAPTURE_LEVEL="${SNAPSHOT_CAPTURE_LEVEL}"
 export PHASH_THRESHOLD="${PHASH_THRESHOLD}"
 export DEV_MODE="${DEV_MODE}"
 
@@ -30,7 +30,7 @@ mkdir -p "${SNAPSHOT_PATH}" "${VIDEO_PATH}" "${SOUND_PATH}"
 
 # Log configuration
 bashio::log.info "Starting Foe Be Gone..."
-bashio::log.info "Capture All Snapshots: ${CAPTURE_ALL_SNAPSHOTS}"
+bashio::log.info "Snapshot Capture Level: ${SNAPSHOT_CAPTURE_LEVEL} (0=Foe Deterred, 1=AI Detection, 2=Threshold Crossed, 3=All)"
 bashio::log.info "pHash Threshold: ${PHASH_THRESHOLD}"
 bashio::log.info "Dev Mode: ${DEV_MODE}"
 
