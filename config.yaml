@@ -28,7 +28,10 @@ map:
   - ssl
   - config:rw
   - media:rw
-  - str:/var/lib/foe-be-gone:rw
+  - str:/data/foe-be-gone-dev/dev-workspace:/dev-workspace:rw
+  - str:/data/foe-be-gone-dev/gh-config:/root/.config/gh:rw
+  - str:/data/foe-be-gone-dev/claude-config:/root/.claude:rw
+  - str:/data/foe-be-gone-dev/claude.json:/root/.claude.json:rw
 environment:
   DATA_PATH: "/data"
   SNAPSHOT_PATH: "/share/foe-be-gone/snapshots"
