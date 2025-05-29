@@ -1,6 +1,6 @@
 name: "Foe Be Gone"
 description: "AI-powered wildlife detection and deterrent system"
-version: "1.0.18"
+version: "1.0.19"
 slug: "foe-be-gone"
 init: false
 arch:
@@ -28,10 +28,6 @@ map:
   - ssl
   - config:rw
   - media:rw
-  - str:/data/foe-be-gone-dev/dev-workspace:/dev-workspace:rw
-  - str:/data/foe-be-gone-dev/gh-config:/root/.config/gh:rw
-  - str:/data/foe-be-gone-dev/claude-config:/root/.claude:rw
-  - str:/data/foe-be-gone-dev/claude.json:/root/.claude.json:rw
 environment:
   DATA_PATH: "/data"
   SNAPSHOT_PATH: "/share/foe-be-gone/snapshots"

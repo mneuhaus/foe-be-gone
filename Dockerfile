@@ -108,7 +108,7 @@ RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master
 LABEL \
     io.hass.name="Foe Be Gone" \
     io.hass.description="AI-powered wildlife detection and deterrent system" \
-    io.hass.version="1.0.18" \
+    io.hass.version="1.0.19" \
     io.hass.type="addon" \
     io.hass.arch="amd64|aarch64"
 
