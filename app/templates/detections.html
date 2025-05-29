@@ -46,6 +46,8 @@
                             <option value="rats" {% if foe_type == "rats" %}selected{% endif %}>🐀 Rats</option>
                             <option value="crows" {% if foe_type == "crows" %}selected{% endif %}>🐦 Crows</option>
                             <option value="cats" {% if foe_type == "cats" %}selected{% endif %}>🐱 Cats</option>
+                            <option value="herons" {% if foe_type == "herons" %}selected{% endif %}>🦆 Herons</option>
+                            <option value="pigeons" {% if foe_type == "pigeons" %}selected{% endif %}>🕊️ Pigeons</option>
                             <option value="unknown" {% if foe_type == "unknown" %}selected{% endif %}>❓ Unknown</option>
                         </select>
                         
@@ -249,6 +251,8 @@
                         {% if foe.foe_type == 'rats' %}badge-error
                         {% elif foe.foe_type == 'crows' %}badge-warning
                         {% elif foe.foe_type == 'cats' %}badge-success
+                        {% elif foe.foe_type == 'herons' %}badge-info
+                        {% elif foe.foe_type == 'pigeons' %}badge-secondary
                         {% else %}badge-neutral{% endif %} 
                         badge-sm">
                         {{ foe.foe_type }}
@@ -822,6 +826,8 @@ function getFoeBadgeClass(foeType) {
         case 'rats': return 'badge-error';
         case 'crows': return 'badge-warning';
         case 'cats': return 'badge-success';
+        case 'herons': return 'badge-info';
+        case 'pigeons': return 'badge-secondary';
         default: return 'badge-neutral';
     }
 }

@@ -124,7 +124,7 @@ async def sounds_page(
     sounds_by_type = sound_player.list_sounds_by_type()
     
     # Get the foe types we support
-    foe_types = ["crows", "rats", "cats"]  # Hardcoded as requested
+    foe_types = ["crows", "rats", "cats", "herons", "pigeons"]  # Hardcoded as requested
     
     # Ensure all foe types are in the dict even if they have no sounds
     for foe_type in foe_types:
@@ -150,7 +150,7 @@ async def upload_sound(
 ):
     """Upload a new sound file for a specific foe type."""
     # Validate foe type
-    valid_foe_types = ["crows", "rats", "cats"]
+    valid_foe_types = ["crows", "rats", "cats", "herons", "pigeons"]
     if foe_type not in valid_foe_types:
         raise HTTPException(status_code=400, detail=f"Invalid foe type: {foe_type}")
     
@@ -183,7 +183,7 @@ async def delete_sound(
 ):
     """Delete a sound file."""
     # Validate foe type
-    valid_foe_types = ["crows", "rats", "cats"]
+    valid_foe_types = ["crows", "rats", "cats", "herons", "pigeons"]
     if foe_type not in valid_foe_types:
         raise HTTPException(status_code=400, detail=f"Invalid foe type: {foe_type}")
     

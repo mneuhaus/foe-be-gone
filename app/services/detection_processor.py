@@ -223,7 +223,7 @@ class DetectionProcessor:
                             # Normalize foe type to uppercase string
                             foe_type_str = detected_foe.foe_type.upper()
                             # Validate it's a known type
-                            if foe_type_str not in ["RATS", "CROWS", "CATS", "UNKNOWN"]:
+                            if foe_type_str not in ["RATS", "CROWS", "CATS", "HERONS", "PIGEONS", "UNKNOWN"]:
                                 foe_type_str = "UNKNOWN"
                             
                             foe = Foe(

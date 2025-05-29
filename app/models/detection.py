@@ -15,6 +15,8 @@ class FoeType(str, Enum):
     RATS = "RATS"      # All rodents (rats, mice)
     CROWS = "CROWS"    # All corvids (crows, ravens, magpies, jackdaws)
     CATS = "CATS"      # Domestic cats
+    HERONS = "HERONS"  # Herons and similar wading birds
+    PIGEONS = "PIGEONS" # Pigeons and doves
     UNKNOWN = "UNKNOWN"
 
 
