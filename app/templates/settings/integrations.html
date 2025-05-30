@@ -81,11 +81,11 @@
                                     </svg>
                                 </div>
                                 <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded z-[1] w-48 p-2 shadow">
-                                    <li><a onclick="testIntegration('{{ integration.id }}')">Test Connection</a></li>
+                                    <li><a onclick="testIntegration('{{ integration.id }}')">{{ t('settings.integrations.test_connection', request) }}</a></li>
                                     {% if integration.integration_type == "unifi_protect" and integration.status == "connected" %}
-                                    <li><a onclick="showCameraSelectionModal('{{ integration.id }}')">Select Cameras</a></li>
+                                    <li><a onclick="showCameraSelectionModal('{{ integration.id }}')">{{ t('settings.integrations.select_cameras', request) }}</a></li>
                                     {% endif %}
-                                    <li><a onclick="deleteIntegration('{{ integration.id }}')" class="text-error">Delete</a></li>
+                                    <li><a onclick="deleteIntegration('{{ integration.id }}')" class="text-error">{{ t('settings.integrations.delete', request) }}</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -175,8 +175,8 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-16 h-16 mx-auto mb-4 opacity-50">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 0 0-5.656 0l-4 4a4 4 0 1 0 5.656 5.656l1.102-1.101m-.758-4.899a4 4 0 0 0 5.656 0l4-4a4 4 0 0 0-5.656-5.656l-1.1 1.1" />
                 </svg>
-                <p class="text-lg mb-2">No integrations configured</p>
-                <p class="text-sm opacity-70">Add an integration to start connecting your devices</p>
+                <p class="text-lg mb-2">{{ t('settings.integrations.no_integrations_configured', request) }}</p>
+                <p class="text-sm opacity-70">{{ t('settings.integrations.add_integration_to_start', request) }}</p>
             </div>
         {% endif %}
     </div>
@@ -185,16 +185,16 @@
 <!-- Camera Selection Modal -->
 <dialog id="camera-selection-modal" class="modal">
     <div class="modal-box max-w-2xl">
-        <h3 class="font-bold text-lg mb-4">Select Cameras</h3>
+        <h3 class="font-bold text-lg mb-4">{{ t('settings.integrations.select_cameras', request) }}</h3>
         <div id="camera-selection-content">
             <div class="text-center py-8">
                 <span class="loading loading-spinner loading-lg"></span>
-                <p class="mt-2">Loading cameras...</p>
+                <p class="mt-2">{{ t('settings.integrations.loading_cameras', request) }}</p>
             </div>
         </div>
         <div class="modal-action">
-            <button type="button" class="btn" onclick="document.getElementById('camera-selection-modal').close()">Cancel</button>
-            <button type="button" class="btn btn-primary" onclick="saveCameraSelection()">Save Selection</button>
+            <button type="button" class="btn" onclick="document.getElementById('camera-selection-modal').close()">{{ t('settings.integrations.cancel', request) }}</button>
+            <button type="button" class="btn btn-primary" onclick="saveCameraSelection()">{{ t('settings.integrations.save_selection', request) }}</button>
         </div>
     </div>
     <form method="dialog" class="modal-backdrop">
@@ -205,11 +205,11 @@
 <!-- UniFi Protect Configuration Modal -->
 <dialog id="unifi-config-modal" class="modal">
     <div class="modal-box">
-        <h3 class="font-bold text-lg mb-4">Configure UniFi Protect</h3>
+        <h3 class="font-bold text-lg mb-4">{{ t('settings.integrations.configure_unifi_protect', request) }}</h3>
         <form id="unifi-config-form" class="space-y-4">
             <div class="form-control">
                 <label class="label">
-                    <span class="label-text">UniFi Protect Host</span>
+                    <span class="label-text">{{ t('settings.integrations.unifi_protect_host', request) }}</span>
                 </label>
                 <input 
                     type="text" 
@@ -219,13 +219,13 @@
                     required
                 />
                 <label class="label">
-                    <span class="label-text-alt">Include https:// and your UniFi controller IP/hostname</span>
+                    <span class="label-text-alt">{{ t('settings.integrations.include_https_controller', request) }}</span>
                 </label>
             </div>
             
             <div class="form-control">
                 <label class="label">
-                    <span class="label-text">API Key</span>
+                    <span class="label-text">{{ t('settings.integrations.api_key', request) }}</span>
                 </label>
                 <input 
                     type="password" 
@@ -235,13 +235,13 @@
                     required
                 />
                 <label class="label">
-                    <span class="label-text-alt">Generate from UniFi Protect Settings → Integrations</span>
+                    <span class="label-text-alt">{{ t('settings.integrations.generate_from_unifi', request) }}</span>
                 </label>
             </div>
             
             <div class="modal-action">
-                <button type="button" class="btn" onclick="document.getElementById('unifi-config-modal').close()">Cancel</button>
-                <button type="submit" class="btn btn-primary">Connect</button>
+                <button type="button" class="btn" onclick="document.getElementById('unifi-config-modal').close()">{{ t('settings.integrations.cancel', request) }}</button>
+                <button type="submit" class="btn btn-primary">{{ t('settings.integrations.connect', request) }}</button>
             </div>
         </form>
     </div>
@@ -318,7 +318,7 @@ async function testIntegration(integrationId) {
 }
 
 async function deleteIntegration(integrationId) {
-    if (!confirm('Are you sure you want to delete this integration?')) {
+    if (!confirm('{{ t('settings.integrations.delete_integration_confirm', request) }}')) {
         return;
     }
     
@@ -537,8 +537,8 @@ async function showCameraSelectionModal(integrationId) {
         if (data.cameras.length === 0) {
             content.innerHTML = `
                 <div class="text-center py-8">
-                    <p class="text-lg">No cameras found</p>
-                    <p class="text-sm opacity-70 mt-2">Make sure your UniFi Protect system has cameras configured</p>
+                    <p class="text-lg">{{ t('settings.integrations.no_cameras_found', request) }}</p>
+                    <p class="text-sm opacity-70 mt-2">{{ t('settings.integrations.make_sure_cameras_configured', request) }}</p>
                 </div>
             `;
         }

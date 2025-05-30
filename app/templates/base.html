@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ title }}{% endblock %} - Foe Be Gone</title>
+    <title>{% block title %}{{ title }}{% endblock %} - {{ t('common.title_suffix', request) }}</title>
     
     <!-- Tailwind CSS + daisyUI -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -71,8 +71,8 @@
                     <span class="hidden sm:inline">{{ translator.get_language(request).upper() }}</span>
                 </label>
                 <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-32">
-                    <li><a href="?lang=en" class="{% if translator.get_language(request) == 'en' %}active{% endif %}">English</a></li>
-                    <li><a href="?lang=de" class="{% if translator.get_language(request) == 'de' %}active{% endif %}">Deutsch</a></li>
+                    <li><a href="?lang=en" class="{% if translator.get_language(request) == 'en' %}active{% endif %}">{{ t('common.english', request) }}</a></li>
+                    <li><a href="?lang=de" class="{% if translator.get_language(request) == 'de' %}active{% endif %}">{{ t('common.deutsch', request) }}</a></li>
                 </ul>
             </div>
             
@@ -128,7 +128,7 @@
                         {{ t('nav.statistics', request) }}
                     </a></li>
                     <li class="menu-title">
-                        <span>System</span>
+                        <span>{{ t('nav.system', request) }}</span>
                     </li>
                     <li><a href="{{ url_for(request, 'view_logs') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">

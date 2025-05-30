@@ -83,10 +83,10 @@
             </div>
             <div class="form-control">
                 <label class="label">
-                    <span class="label-text">Log Level</span>
+                    <span class="label-text">{{ t('logs.log_level', request) }}</span>
                 </label>
                 <select id="levelSelect" class="select select-bordered select-sm">
-                    <option value="">All Levels</option>
+                    <option value="">{{ t('logs.all_levels', request) }}</option>
                     <option value="DEBUG" {% if level == 'DEBUG' %}selected{% endif %}>DEBUG</option>
                     <option value="INFO" {% if level == 'INFO' %}selected{% endif %}>INFO</option>
                     <option value="WARNING" {% if level == 'WARNING' %}selected{% endif %}>WARNING</option>
@@ -96,16 +96,16 @@
             </div>
             <div class="form-control flex-1">
                 <label class="label">
-                    <span class="label-text">Search</span>
+                    <span class="label-text">{{ t('logs.search', request) }}</span>
                 </label>
-                <input type="text" id="searchInput" placeholder="Search in logs..." 
+                <input type="text" id="searchInput" placeholder="{{ t('logs.search_in_logs', request) }}" 
                        class="input input-bordered input-sm" value="{{ search or '' }}">
             </div>
             <div class="form-control">
                 <label class="label">
                     <span class="label-text">&nbsp;</span>
                 </label>
-                <button id="applyFiltersBtn" class="btn btn-primary btn-sm">Apply Filters</button>
+                <button id="applyFiltersBtn" class="btn btn-primary btn-sm">{{ t('logs.apply_filters', request) }}</button>
             </div>
         </div>
     </div>
@@ -119,7 +119,7 @@
                 <!-- Logs will be loaded here -->
                 <div class="text-center py-8">
                     <span class="loading loading-spinner loading-lg"></span>
-                    <p class="mt-2">Loading logs...</p>
+                    <p class="mt-2">{{ t('logs.loading_logs', request) }}</p>
                 </div>
             </div>
         </div>
@@ -199,7 +199,7 @@ async function loadLogs() {
         const logContent = document.getElementById('logContent');
         
         if (data.logs.length === 0) {
-            logContent.innerHTML = '<div class="text-center py-8 text-base-content/50">No logs found</div>';
+            logContent.innerHTML = '<div class="text-center py-8 text-base-content/50">{{ t('logs.no_logs_found', request) }}</div>';
         } else {
             logContent.innerHTML = data.logs.map(formatLogEntry).join('');
         }
@@ -251,7 +251,7 @@ document.getElementById('followBtn').addEventListener('click', function() {
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
             </svg>
-            Auto-refresh: ON
+            {{ t('logs.auto_refresh_on', request) }}
         `;
         refreshInterval = setInterval(loadLogs, 2000);
     } else {
@@ -261,7 +261,7 @@ document.getElementById('followBtn').addEventListener('click', function() {
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
             </svg>
-            Auto-refresh: OFF
+            {{ t('logs.auto_refresh_off', request) }}
         `;
         if (refreshInterval) {
             clearInterval(refreshInterval);
@@ -271,7 +271,7 @@ document.getElementById('followBtn').addEventListener('click', function() {
 });
 
 document.getElementById('clearBtn').addEventListener('click', async function() {
-    if (!confirm('Are you sure you want to clear all logs?')) return;
+    if (!confirm('{{ t('logs.clear_logs_confirm', request) }}')) return;
     
     try {
         const response = await fetch(apiUrl('/api/logs'), { method: 'DELETE' });
@@ -280,11 +280,11 @@ document.getElementById('clearBtn').addEventListener('click', async function() {
         if (response.ok) {
             loadLogs();
         } else {
-            alert('Failed to clear logs');
+            alert('{{ t('logs.failed_to_clear_logs_js', request) }}');
         }
     } catch (error) {
         console.error('Error clearing logs:', error);
-        alert('Failed to clear logs');
+        alert('{{ t('logs.failed_to_clear_logs_js', request) }}');
     }
 });
 

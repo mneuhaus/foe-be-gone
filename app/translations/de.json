@@ -62,7 +62,8 @@
     "integrations": "Integrationen",
     "sounds": "Töne",
     "data": "Daten",
-    "statistics": "Vollständige Analyse"
+    "statistics": "Vollständige Analyse",
+    "system": "System"
   },
   "foes": {
     "rats": "Ratten",
@@ -159,7 +160,31 @@
     "threshold_crossed_level": "Schwellwert überschritten",
     "all_snapshots_level": "Alle Aufnahmen", 
     "change_detection_sensitivity": "Änderungserkennungs-Empfindlichkeit",
-    "effectiveness_statistics": "Wirksamkeitsstatistiken"
+    "effectiveness_statistics": "Wirksamkeitsstatistiken",
+    "detection_interval_label": "Erkennungsintervall",
+    "change_detection_sensitivity_label": "Änderungserkennungs-Empfindlichkeit",
+    "no_detections_yet": "Noch keine Erkennungen",
+    "no_foes_detected_monitoring_text": "Im gewählten Zeitraum wurden keine Feinde erkannt. Das System überwacht aktiv alle Kameras.",
+    "system_active": "System aktiv",
+    "refresh": "Aktualisieren",
+    "settings": "Einstellungen", 
+    "close": "Schließen",
+    "clear_all_detections_title": "Alle Erkennungen löschen?",
+    "clear_all_detections_text": "Dies wird alle {count} Erkennungsaufzeichnungen dauerhaft löschen. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "yes_clear_all": "Ja, alle löschen",
+    "cancel": "Abbrechen",
+    "title_suffix": "Foe Be Gone",
+    "english": "Englisch",
+    "deutsch": "Deutsch",
+    "no_sounds_uploaded": "Noch keine Töne hochgeladen",
+    "failed_to_load_statistics": "Statistiken konnten nicht geladen werden",
+    "no_foes": "Keine Feinde",
+    "sound_file_could_not_be_loaded": "Tondatei konnte nicht geladen werden",
+    "browser_does_not_support_audio": "Browser unterstützt keine Audio-Wiedergabe",
+    "sound_playing": "Ton wird abgespielt...",
+    "could_not_play_sound": "Ton konnte nicht abgespielt werden. Überprüfen Sie die Browser-Audio-Berechtigungen.",
+    "showing_log_entries": "{count} von {total} Protokolleinträgen angezeigt",
+    "failed_to_load_logs": "Protokolle konnten nicht geladen werden"
   },
   "sounds": {
     "title": "Tonverwaltung",
@@ -225,7 +250,19 @@
       "total_cost": "Gesamtkosten",
       "average_daily_cost": "Durchschnittliche Tageskosten",
       "cost_per_success": "Kosten pro Erfolg",
-      "monthly_projection": "Monatsprognose"
+      "monthly_projection": "Monatsprognose",
+      "effectiveness_by_foe_type": "Wirksamkeit nach Feindtyp",
+      "foe_detection_frequency": "Feinderkennung-Häufigkeit",
+      "deterrent_success_by_foe": "Abschreck-Erfolg nach Feind",
+      "friendly_creatures_detected": "Erkannte freundliche Kreaturen",
+      "total_friends": "Freunde insgesamt",
+      "friend_activity_trend": "Freund-Aktivitätstrend",
+      "deterrent_impact_friends": "Abschreck-Auswirkung auf Freunde",
+      "camera_performance": "Kamera-Leistung",
+      "detections": "Erkennungen",
+      "success_rate": "Erfolgsrate",
+      "ai_processing_costs": "KI-Verarbeitungskosten",
+      "cost_analysis": "Kostenanalyse"
     },
     "logs": {
       "title": "Anwendungsprotokolle",
@@ -240,7 +277,18 @@
       "loading_logs": "Protokolle werden geladen...",
       "no_logs_found": "Keine Protokolle gefunden",
       "clear_logs_confirm": "Sind Sie sicher, dass Sie alle Protokolle löschen möchten?",
-      "failed_to_clear_logs": "Protokolle konnten nicht gelöscht werden"
+      "failed_to_clear_logs": "Protokolle konnten nicht gelöscht werden",
+      "log_level": "Protokollebene",
+      "all_levels": "Alle Ebenen",
+      "search": "Suchen",
+      "search_in_logs": "In Protokollen suchen...",
+      "apply_filters": "Filter anwenden",
+      "loading_logs": "Protokolle werden geladen...",
+      "no_logs_found": "Keine Protokolle gefunden",
+      "auto_refresh_on": "Automatisch aktualisieren: EIN",
+      "auto_refresh_off": "Automatisch aktualisieren: AUS",
+      "clear_logs_confirm": "Sind Sie sicher, dass Sie alle Protokolle löschen möchten?",
+      "failed_to_clear_logs_js": "Protokolle konnten nicht gelöscht werden"
     },
     "diagnostics": {
       "title": "Kamera-Diagnose",
@@ -300,7 +348,22 @@
       "camera_selection_saved": "Kameraauswahl gespeichert",
       "talkback_test_initiated": "Talkback-Test gestartet",
       "talkback_test_failed": "Talkback-Test fehlgeschlagen",
-      "error_testing_talkback": "Fehler beim Testen von Talkback"
+      "error_testing_talkback": "Fehler beim Testen von Talkback",
+      "no_integrations_configured": "Keine Integrationen konfiguriert",
+      "add_integration_to_start": "Fügen Sie eine Integration hinzu, um Ihre Geräte zu verbinden",
+      "select_cameras": "Kameras auswählen",
+      "loading_cameras": "Kameras werden geladen...",
+      "save_selection": "Auswahl speichern",
+      "configure_unifi_protect": "UniFi Protect konfigurieren",
+      "unifi_protect_host": "UniFi Protect Host",
+      "include_https_controller": "Fügen Sie https:// und Ihre UniFi Controller IP/Hostname hinzu",
+      "api_key": "API-Schlüssel",
+      "generate_from_unifi": "Generieren Sie aus UniFi Protect Einstellungen → Integrationen",
+      "cancel": "Abbrechen",
+      "connect": "Verbinden",
+      "no_cameras_found": "Keine Kameras gefunden",
+      "make_sure_cameras_configured": "Stellen Sie sicher, dass Ihr UniFi Protect System Kameras konfiguriert hat",
+      "delete_integration_confirm": "Sind Sie sicher, dass Sie diese Integration löschen möchten?"
     }
   },
   "messages": {

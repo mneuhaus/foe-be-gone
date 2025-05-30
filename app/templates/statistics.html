@@ -116,7 +116,7 @@
         </div>
         
         <div class="stat-card">
-            <h2 class="text-xl font-bold mb-4">Effectiveness by Foe Type</h2>
+            <h2 class="text-xl font-bold mb-4">{{ t('statistics.effectiveness_by_foe_type', request) }}</h2>
             <div class="space-y-4">
                 {% for foe_type, sounds in sound_effectiveness.per_foe_rankings.items() %}
                 <div class="collapse collapse-arrow bg-base-300">
@@ -143,14 +143,14 @@
     <!-- Foe Analytics -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div class="stat-card">
-            <h2 class="text-xl font-bold mb-4">Foe Detection Frequency</h2>
+            <h2 class="text-xl font-bold mb-4">{{ t('statistics.foe_detection_frequency', request) }}</h2>
             <div class="chart-container mini-chart">
                 <canvas id="foeFrequencyChart"></canvas>
             </div>
         </div>
         
         <div class="stat-card">
-            <h2 class="text-xl font-bold mb-4">Deterrent Success by Foe</h2>
+            <h2 class="text-xl font-bold mb-4">{{ t('statistics.deterrent_success_by_foe', request) }}</h2>
             <div class="space-y-2">
                 {% for foe in foe_analytics.foe_frequencies[:5] %}
                 <div class="flex items-center justify-between">
@@ -168,24 +168,24 @@
     <!-- Friend Analytics -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div class="stat-card">
-            <h2 class="text-xl font-bold mb-4">Friendly Creatures Detected</h2>
+            <h2 class="text-xl font-bold mb-4">{{ t('statistics.friendly_creatures_detected', request) }}</h2>
             <div class="chart-container mini-chart">
                 <canvas id="friendTypesChart"></canvas>
             </div>
             <div class="mt-4 text-center">
-                <div class="badge badge-lg badge-info">Total Friends: {{ friend_analytics.total_friends }}</div>
+                <div class="badge badge-lg badge-info">{{ t('statistics.total_friends', request) }}: {{ friend_analytics.total_friends }}</div>
             </div>
         </div>
         
         <div class="stat-card">
-            <h2 class="text-xl font-bold mb-4">Friend Activity Trend</h2>
+            <h2 class="text-xl font-bold mb-4">{{ t('statistics.friend_activity_trend', request) }}</h2>
             <div class="chart-container mini-chart">
                 <canvas id="friendTrendChart"></canvas>
             </div>
             <div class="mt-4">
                 <div class="alert alert-info">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span>Deterrent impact on friends: {{ friend_analytics.deterrent_impact.impact }}</span>
+                    <span>{{ t('statistics.deterrent_impact_friends', request) }}: {{ friend_analytics.deterrent_impact.impact }}</span>
                 </div>
             </div>
         </div>
@@ -193,16 +193,16 @@
 
     <!-- Camera Statistics -->
     <div class="stat-card mb-8">
-        <h2 class="text-xl font-bold mb-4">Camera Performance</h2>
+        <h2 class="text-xl font-bold mb-4">{{ t('statistics.camera_performance', request) }}</h2>
         <div class="overflow-x-auto">
             <table class="table w-full">
                 <thead>
                     <tr>
-                        <th>Camera</th>
-                        <th>Detections</th>
-                        <th>Foes</th>
-                        <th>Success Rate</th>
-                        <th>Activity</th>
+                        <th>{{ t('statistics.camera', request) }}</th>
+                        <th>{{ t('statistics.detections', request) }}</th>
+                        <th>{{ t('statistics.foes', request) }}</th>
+                        <th>{{ t('statistics.success_rate', request) }}</th>
+                        <th>{{ t('statistics.activity', request) }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -229,14 +229,14 @@
     <!-- Cost Analytics -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="stat-card">
-            <h2 class="text-xl font-bold mb-4">AI Processing Costs</h2>
+            <h2 class="text-xl font-bold mb-4">{{ t('statistics.ai_processing_costs', request) }}</h2>
             <div class="chart-container mini-chart">
                 <canvas id="dailyCostsChart"></canvas>
             </div>
         </div>
         
         <div class="stat-card">
-            <h2 class="text-xl font-bold mb-4">Cost Analysis</h2>
+            <h2 class="text-xl font-bold mb-4">{{ t('statistics.cost_analysis', request) }}</h2>
             <div class="space-y-4">
                 <div class="flex justify-between">
                     <span>Total Cost</span>
