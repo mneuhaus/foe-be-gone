@@ -108,6 +108,28 @@ docker-compose up -d
 git clone https://github.com/mneuhaus/foe-be-gone.git
 cd foe-be-gone
 
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+# On Linux/macOS:
+source venv/bin/activate
+# On Windows:
+# venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run database migrations
+alembic upgrade head
+
+# Start the application
+uvicorn app.main:app --reload
+```
+
+### Alternative: Using uv (Fast Python Package Manager)
+
+```bash
 # Install uv (Python package manager)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
@@ -236,17 +258,27 @@ Interactive API docs available at `/docs` when running.
 ### Development Setup
 
 ```bash
-# Install development dependencies
-uv sync --dev
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install all dependencies including dev tools
+pip install -r requirements.txt -r requirements-dev.txt
 
 # Install Playwright browsers
-uv run playwright install
+playwright install
 
 # Run tests
-uv run pytest
+pytest
 
 # Start development server
-uv run uvicorn app.main:app --reload
+uvicorn app.main:app --reload
+
+# Alternative: Using uv (faster)
+# uv sync --dev
+# uv run playwright install
+# uv run pytest
+# uv run uvicorn app.main:app --reload
 ```
 
 ### Architecture

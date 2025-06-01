@@ -285,7 +285,7 @@
                 
                 <!-- Simple Timestamp -->
                 <div class="text-xs text-base-content/60 mb-3">
-                    {{ detection.timestamp.strftime('%b %d, %H:%M:%S') }}
+                    {{ format_datetime_tz(detection.timestamp, timezone) }}
                 </div>
                 
                 <!-- View Details Button -->

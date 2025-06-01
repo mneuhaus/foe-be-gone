@@ -215,7 +215,12 @@
       "ai_detection": "AI & Detection Settings",
       "system": "System Settings",
       "data_management": "Data Management",
-      "update_settings": "Update Settings"
+      "update_settings": "Update Settings",
+      "yolo_detection": "YOLO Detection Settings",
+      "enable_yolo": "Enable YOLO Detection",
+      "yolo_enabled_description": "Use YOLO for fast, local animal detection before sending to OpenAI",
+      "yolo_confidence_threshold": "YOLO Confidence Threshold",
+      "yolo_confidence_description": "Minimum confidence score for YOLO detections (lower = more sensitive)"
     },
     "statistics": {
       "title": "Statistics",

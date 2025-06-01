@@ -27,6 +27,10 @@ class Config:
     # Detection thresholds
     MIN_CONFIDENCE_THRESHOLD: float = 0.5
     
+    # YOLO detection settings
+    YOLO_CONFIDENCE_THRESHOLD: float = float(os.getenv("YOLO_CONFIDENCE_THRESHOLD", "0.25"))
+    YOLO_ENABLED: bool = os.getenv("YOLO_ENABLED", "true").lower() == "true"
+    
     # Sound player settings
     SOUNDS_DIR: Path = Path("public/sounds")
     SUPPORTED_AUDIO_FORMATS: list[str] = [".mp3", ".wav"]
@@ -34,6 +38,10 @@ class Config:
     # Snapshot settings
     SNAPSHOTS_DIR: Path = Path("data/snapshots")
     SNAPSHOT_RETENTION_DAYS: int = 7
+    
+    # YOLO model settings
+    MODELS_DIR: Path = Path("data/models")
+    YOLO_MODEL_NAME: str = "yolo11n.pt"
     
     # AI Model configuration  
     AI_MODEL: str = os.getenv("AI_MODEL", "gpt-4o")  # LiteLLM model name
@@ -67,8 +75,9 @@ class Config:
         if not cls.SOUNDS_DIR.exists():
             errors.append(f"Sounds directory not found: {cls.SOUNDS_DIR}")
         
-        # Create snapshots directory if it doesn't exist
+        # Create data directories if they don't exist
         cls.SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+        cls.MODELS_DIR.mkdir(parents=True, exist_ok=True)
         
         # If there are errors, print them and exit
         if errors:

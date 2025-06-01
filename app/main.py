@@ -19,11 +19,13 @@ from app.core.database import create_db_and_tables, get_session, engine
 from app.core.session import get_db_session
 from app.routes import settings, detections, statistics, logs
 from app.routes.api import integrations
+from app.routes.api import detections as api_detections
 from app.services.detection_worker import detection_worker
 from app.services.settings_service import SettingsService
 from app.models.setting import Setting
 from app.models.device import Device
 from app.models.integration_instance import IntegrationInstance
+from app.core.templates import format_datetime_tz
 
 # Validate configuration before setting up logging
 config.validate()
@@ -120,8 +122,8 @@ app = FastAPI(
 async def ingress_security_middleware(request: Request, call_next):
     """Security middleware for Home Assistant Ingress.
     
-    Only allow connections from Home Assistant Ingress (172.30.32.2)
-    and localhost (for development).
+    Only allow connections from Home Assistant Ingress (172.30.32.2),
+    localhost (for development), and local network (10.0.42.*).
     """
     client_ip = request.client.host if request.client else None
     
@@ -131,6 +133,10 @@ async def ingress_security_middleware(request: Request, call_next):
     
     # Allow Home Assistant Ingress IP
     if client_ip == "172.30.32.2":
+        return await call_next(request)
+    
+    # Allow local network 10.0.42.*
+    if client_ip and client_ip.startswith("10.0.42."):
         return await call_next(request)
     
     # In development mode, allow all connections
@@ -158,6 +164,7 @@ app.include_router(integrations.router)
 app.include_router(detections.router)
 app.include_router(statistics.router)
 app.include_router(logs.router)
+app.include_router(api_detections.router)
 
 # Add API documentation info
 @app.get("/api", tags=["documentation"], summary="API Documentation")
@@ -213,7 +220,10 @@ async def dashboard(request: Request, session: Session = Depends(get_session)) -
                 hours_ago = int(time_diff.total_seconds() / 3600)
                 last_detection_time = f"{hours_ago}h ago"
             else:
-                last_detection_time = last_detection.timestamp.strftime("%m/%d %H:%M")
+                # Get timezone setting
+                settings_service = SettingsService(session)
+                timezone = settings_service.get_timezone()
+                last_detection_time = format_datetime_tz(last_detection.timestamp, timezone, "%m/%d %H:%M")
     
     # Prepare stats for template
     stats = {

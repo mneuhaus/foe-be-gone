@@ -55,7 +55,8 @@
       "Bash(curl:*)",
       "Bash(git rm:*)",
       "Bash(./test-addon-local.sh:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(./venv/bin/pip install pytz)"
     ],
     "deny": []
   },

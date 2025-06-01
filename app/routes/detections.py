@@ -22,6 +22,7 @@ from app.services.effectiveness_tracker import effectiveness_tracker
 from app.services.camera_diagnostics import camera_diagnostics
 from app.models.setting import Setting
 from app.models.sound_effectiveness import SoundEffectiveness
+from app.services.settings_service import SettingsService
 
 router = APIRouter(prefix="/detections", tags=["detections"])
 
@@ -138,6 +139,10 @@ async def detections_page(
         3: "All Snapshots"
     }
     
+    # Get timezone setting
+    settings_service = SettingsService(session)
+    timezone = settings_service.get_timezone()
+    
     context = {
         "request": request,
         "title": "Detections",
@@ -149,7 +154,8 @@ async def detections_page(
         "current_interval": detection_worker.check_interval,
         "snapshot_capture_level": snapshot_capture_level,
         "capture_level_label": capture_level_labels.get(snapshot_capture_level, "Unknown"),
-        "phash_threshold": phash_threshold
+        "phash_threshold": phash_threshold,
+        "timezone": timezone
     }
     
     return templates.TemplateResponse(request, "detections.html", context)

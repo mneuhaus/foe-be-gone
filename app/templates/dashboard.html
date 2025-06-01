@@ -54,15 +54,24 @@
     {% for camera in cameras %}
     <div class="card bg-base-200 shadow-sm overflow-hidden">
         <figure class="relative aspect-video">
+            <!-- Canvas for YOLO overlays -->
+            <canvas 
+                id="yolo-canvas-{{ camera.id }}" 
+                class="absolute inset-0 w-full h-full pointer-events-none z-10"
+                style="display: none;">
+            </canvas>
+            
             {% if camera.current_image_url %}
             <img 
+                id="camera-img-{{ camera.id }}"
                 src="{% if camera.current_image_url.startswith('/api/') or camera.current_image_url.startswith('api/') %}{{ get_base_url(request) }}{{ camera.current_image_url if camera.current_image_url.startswith('/') else '/' + camera.current_image_url }}{% else %}{{ camera.current_image_url }}{% endif %}" 
                 alt="{{ camera.name }}" 
                 class="w-full h-full object-cover"
+                data-camera-id="{{ camera.id }}"
                 data-debug-url="{% if camera.current_image_url.startswith('/api/') or camera.current_image_url.startswith('api/') %}{{ get_base_url(request) }}{{ camera.current_image_url if camera.current_image_url.startswith('/') else '/' + camera.current_image_url }}{% else %}{{ camera.current_image_url }}{% endif %}"
                 data-base-url="{{ get_base_url(request) }}"
                 data-original-url="{{ camera.current_image_url }}"
-                onload="console.log('Image loaded successfully:', this.src);"
+                onload="console.log('Image loaded successfully:', this.src); loadYoloDetections('{{ camera.id }}');"
                 onerror="console.log('Image failed to load. Attempted URL:', this.src); console.log('Base URL:', this.dataset.baseUrl); console.log('Original URL:', this.dataset.originalUrl); this.src='{{ get_base_url(request) }}/public/dummy-surveillance/nothing/Terrassentür  - 5-26-2025, 09.07.18 GMT+2.jpg';"
             />
             {% else %}
@@ -74,14 +83,28 @@
             {% endif %}
             
             <!-- Live indicator -->
-            <div class="absolute top-2 right-2 flex items-center gap-1 bg-black/50 px-2 py-1 rounded">
+            <div class="absolute top-2 right-2 flex items-center gap-1 bg-black/50 px-2 py-1 rounded z-20">
                 <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                 <span class="text-xs text-white">{{ t('common.live', request) }}</span>
+            </div>
+            
+            <!-- YOLO toggle button -->
+            <div class="absolute top-2 left-2 z-20">
+                <button 
+                    onclick="toggleYoloOverlay('{{ camera.id }}')"
+                    class="btn btn-xs btn-ghost bg-black/50 text-white hover:bg-black/70"
+                    title="Toggle YOLO detection overlay">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </button>
             </div>
         </figure>
         
         <div class="card-body p-3">
             <p class="text-sm font-medium">{{ camera.name }}</p>
+            <p class="text-xs opacity-70" id="yolo-status-{{ camera.id }}"></p>
         </div>
     </div>
     {% endfor %}
@@ -187,6 +210,121 @@ function loadActivityDetails() {
             <p class="text-sm opacity-70">{{ t('dashboard.coming_soon', request) }}</p>
         </div>
     `;
+}
+
+// YOLO detection overlay functions
+const yoloData = {};
+
+async function loadYoloDetections(cameraId) {
+    try {
+        const response = await fetch(`/api/detections/camera/${cameraId}/latest`);
+        const data = await response.json();
+        
+        if (data.detection && data.detection.yolo_results) {
+            yoloData[cameraId] = data.detection.yolo_results;
+            updateYoloStatus(cameraId, data.detection);
+        }
+    } catch (error) {
+        console.error('Error loading YOLO detections:', error);
+    }
+}
+
+function updateYoloStatus(cameraId, detection) {
+    const statusEl = document.getElementById(`yolo-status-${cameraId}`);
+    if (statusEl && detection.yolo_results) {
+        const totalAnimals = detection.yolo_results.total_animals || 0;
+        const totalFoes = detection.yolo_results.total_foes || 0;
+        
+        if (totalAnimals > 0) {
+            statusEl.textContent = `${totalAnimals} animal(s) detected, ${totalFoes} foe(s)`;
+        } else {
+            statusEl.textContent = 'No animals detected';
+        }
+    }
+}
+
+function toggleYoloOverlay(cameraId) {
+    const canvas = document.getElementById(`yolo-canvas-${cameraId}`);
+    const img = document.getElementById(`camera-img-${cameraId}`);
+    
+    if (!canvas || !img) return;
+    
+    if (canvas.style.display === 'none') {
+        // Show overlay
+        canvas.style.display = 'block';
+        drawYoloBoxes(cameraId);
+    } else {
+        // Hide overlay
+        canvas.style.display = 'none';
+    }
+}
+
+function drawYoloBoxes(cameraId) {
+    const canvas = document.getElementById(`yolo-canvas-${cameraId}`);
+    const img = document.getElementById(`camera-img-${cameraId}`);
+    const data = yoloData[cameraId];
+    
+    if (!canvas || !img || !data || !data.detections) return;
+    
+    // Set canvas size to match image
+    canvas.width = img.offsetWidth;
+    canvas.height = img.offsetHeight;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Calculate scale factors
+    const scaleX = canvas.width / img.naturalWidth;
+    const scaleY = canvas.height / img.naturalHeight;
+    
+    // Define colors for different types
+    const colors = {
+        'CROW': '#ef4444',      // Red for crows
+        'CAT': '#3b82f6',       // Blue for cats
+        'RAT': '#fb923c',       // Orange for rats
+        'friend': '#10b981',    // Green for non-foes
+        'unknown': '#6b7280'    // Gray for unknown
+    };
+    
+    // Draw each detection
+    data.detections.forEach(det => {
+        const [x1, y1, x2, y2] = det.bbox;
+        
+        // Scale coordinates
+        const sx1 = x1 * scaleX;
+        const sy1 = y1 * scaleY;
+        const sx2 = x2 * scaleX;
+        const sy2 = y2 * scaleY;
+        
+        // Determine color based on foe classification
+        let color = colors.friend;
+        let label = `${det.class_name}: ${(det.confidence * 100).toFixed(1)}%`;
+        
+        if (data.foe_classifications) {
+            for (const [foeType, foes] of Object.entries(data.foe_classifications)) {
+                if (foes.some(f => f.class_name === det.class_name)) {
+                    color = colors[foeType] || colors.unknown;
+                    label = `${foeType}: ${(det.confidence * 100).toFixed(1)}%`;
+                    break;
+                }
+            }
+        }
+        
+        // Draw bounding box
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(sx1, sy1, sx2 - sx1, sy2 - sy1);
+        
+        // Draw label background
+        ctx.font = '12px sans-serif';
+        const textWidth = ctx.measureText(label).width;
+        ctx.fillStyle = color;
+        ctx.fillRect(sx1, sy1 - 18, textWidth + 6, 18);
+        
+        // Draw label text
+        ctx.fillStyle = 'white';
+        ctx.fillText(label, sx1 + 3, sy1 - 5);
+    });
 }
 
 // Auto-refresh is now handled globally in the navbar

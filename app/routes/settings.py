@@ -27,7 +27,10 @@ DEFAULT_SETTINGS = {
     "detection_interval": {"value": "10", "label": "Detection Interval (seconds)", "type": "number", "min": 1, "max": 30, "description": "Time between detection checks"},
     "confidence_threshold": {"value": "0.5", "label": "Confidence Threshold", "type": "number", "min": 0.1, "max": 1.0, "step": 0.1, "description": "Minimum confidence for foe detection"},
     "max_image_size_mb": {"value": "10", "label": "Max Image Size (MB)", "type": "number", "min": 1, "max": 50, "description": "Maximum allowed image upload size"},
-    "snapshot_retention_days": {"value": "7", "label": "Snapshot Retention (days)", "type": "number", "min": 1, "max": 365, "description": "How long to keep detection snapshots"}
+    "snapshot_retention_days": {"value": "7", "label": "Snapshot Retention (days)", "type": "number", "min": 1, "max": 365, "description": "How long to keep detection snapshots"},
+    "timezone": {"value": "UTC", "label": "Timezone", "type": "select", "options": ["UTC", "Europe/Berlin", "Europe/London", "Europe/Paris", "Europe/Rome", "Europe/Madrid", "Europe/Vienna", "Europe/Warsaw", "Europe/Amsterdam", "Europe/Brussels", "Europe/Zurich", "America/New_York", "America/Chicago", "America/Los_Angeles", "America/Toronto", "America/Mexico_City", "Asia/Tokyo", "Asia/Shanghai", "Asia/Hong_Kong", "Asia/Singapore", "Australia/Sydney", "Australia/Melbourne"], "description": "Timezone for displaying dates and times"},
+    "yolo_enabled": {"value": "true", "label": "Enable YOLO Detection", "type": "checkbox", "description": "Use YOLO for fast local animal detection"},
+    "yolo_confidence_threshold": {"value": "0.25", "label": "YOLO Confidence Threshold", "type": "number", "min": 0.1, "max": 0.9, "step": 0.05, "description": "Minimum confidence for YOLO detections"}
 }
 
 
@@ -83,8 +86,12 @@ async def update_general_settings(
     form_data = await request.form()
     
     # Update each setting
-    for key in DEFAULT_SETTINGS.keys():
-        if key in form_data:
+    for key, config in DEFAULT_SETTINGS.items():
+        if config.get("type") == "checkbox":
+            # Checkboxes are only in form_data when checked
+            value = "true" if key in form_data else "false"
+            set_setting_value(session, key, value)
+        elif key in form_data:
             value = form_data[key]
             set_setting_value(session, key, str(value))
     

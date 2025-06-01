@@ -6,11 +6,15 @@ import asyncio
 import os
 import subprocess
 from pathlib import Path
+import warnings
 
 from app.integrations.base import IntegrationBase, DeviceInterface
 from app.models.device import Device
 from app.models.integration_instance import IntegrationInstance
 import base64
+
+# Suppress SSL warnings for self-signed certificates
+warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
 logger = logging.getLogger(__name__)
 
@@ -239,25 +243,25 @@ class UniFiProtectIntegration(IntegrationBase):
     def _init_client(self):
         """Initialize HTTP client with proper SSL handling."""
         config = self.instance.config_dict
-        logger.info(f"UniFi config: {config}")
+        logger.debug(f"Initializing UniFi client with config: {config}")
         self.host = config.get("host", "").rstrip("/")
         self.api_key = config.get("api_key", "")
         
-        # Create SSL context that accepts self-signed certificates
-        self._ssl_context = ssl.create_default_context()
-        self._ssl_context.check_hostname = False
-        self._ssl_context.verify_mode = ssl.CERT_NONE
-        
-        # Create HTTP client with custom SSL context
+        # Create HTTP client with SSL verification disabled
+        # This is necessary for self-signed certificates
         self._client = httpx.AsyncClient(
-            verify=self._ssl_context,
-            timeout=httpx.Timeout(30.0),
+            verify=False,  # Disable SSL verification completely
+            timeout=httpx.Timeout(30.0, connect=10.0),
             headers={
                 "X-API-KEY": self.api_key,
                 "Accept": "application/json",
                 "User-Agent": "Foe-Be-Gone/1.0"
-            }
+            },
+            follow_redirects=True,
+            http2=False,  # Disable HTTP/2 which can cause issues with some UniFi setups
+            limits=httpx.Limits(max_keepalive_connections=5, max_connections=10)
         )
+        logger.debug(f"Client initialized for host: {self.host}")
         
     async def test_connection(self) -> bool:
         """Test connection to UniFi Protect controller."""
@@ -271,7 +275,20 @@ class UniFiProtectIntegration(IntegrationBase):
                 
             # Test API endpoint and try to get system name
             url = f"{self.host}/proxy/protect/integration/v1/meta/info"
-            response = await self._client.get(url)
+            logger.debug(f"Testing connection to: {url}")
+            
+            try:
+                response = await self._client.get(url)
+            except httpx.ConnectError as e:
+                logger.error(f"Connection failed to {self.host}: {str(e)}")
+                logger.error(f"ConnectError details: {type(e).__name__}, {e.args}")
+                return False
+            except httpx.TimeoutException as e:
+                logger.error(f"Connection timeout to {self.host}: {str(e)}")
+                return False
+            except Exception as e:
+                logger.error(f"Unexpected error connecting to {self.host}: {type(e).__name__}: {str(e)}")
+                return False
             
             if response.status_code == 200:
                 data = response.json()
@@ -394,19 +411,43 @@ class UniFiProtectIntegration(IntegrationBase):
                 
             # Get camera details
             url = f"{self.host}/proxy/protect/integration/v1/cameras"
-            response = await self._client.get(url)
+            logger.debug(f"Fetching cameras from: {url}")
             
-            if response.status_code != 200:
-                return None
+            try:
+                response = await self._client.get(url)
+            except httpx.ConnectError as e:
+                logger.error(f"Connection failed to {self.host}: {str(e)}")
+                logger.error(f"ConnectError details: {type(e).__name__}, {e.args}")
+                raise Exception(f"All connection attempts failed")
+            except httpx.TimeoutException as e:
+                logger.error(f"Connection timeout to {self.host}: {str(e)}")
+                raise Exception(f"Connection timeout")
+            except Exception as e:
+                logger.error(f"Unexpected error connecting to {self.host}: {type(e).__name__}: {str(e)}")
+                raise
+            
+            if response.status_code == 401:
+                logger.error("Authentication failed - invalid API key")
+                raise Exception("Authentication failed")
+            elif response.status_code != 200:
+                logger.error(f"API returned status {response.status_code}")
+                raise Exception(f"API error: {response.status_code}")
                 
             cameras = response.json()
+            logger.debug(f"Found {len(cameras)} cameras")
             
             for camera in cameras:
                 if camera["id"] == device_id:
+                    logger.debug(f"Found camera {device_id}: {camera.get('name')}")
                     return UniFiProtectDevice(self, camera)
+            
+            logger.error(f"Camera {device_id} not found in {len(cameras)} available cameras")
+            available_ids = [c['id'] for c in cameras]
+            logger.debug(f"Available camera IDs: {available_ids}")
                     
         except Exception as e:
             logger.error(f"Failed to get device {device_id}: {str(e)}")
+            raise
             
         return None
         

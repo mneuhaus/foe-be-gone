@@ -123,11 +123,21 @@ async def delete_integration(
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
     
-    # Delete all devices associated with this integration
+    # First, delete all detections associated with devices from this integration
+    from app.models.detection import Detection
     devices = session.exec(select(Device).where(Device.integration_id == integration_id)).all()
+    
+    for device in devices:
+        # Delete all detections for this device
+        detections = session.exec(select(Detection).where(Detection.device_id == device.id)).all()
+        for detection in detections:
+            session.delete(detection)
+    
+    # Now delete all devices associated with this integration
     for device in devices:
         session.delete(device)
     
+    # Finally delete the integration itself
     session.delete(integration)
     session.commit()
     
@@ -266,10 +276,23 @@ async def get_cameras(
                 integration_instance._init_client()
             
             url = f"{integration_instance.host}/proxy/protect/integration/v1/cameras"
-            response = await integration_instance._client.get(url)
             
-            if response.status_code != 200:
-                raise HTTPException(status_code=500, detail="Failed to fetch cameras from UniFi")
+            try:
+                response = await integration_instance._client.get(url)
+            except httpx.ConnectError as e:
+                logger.error(f"Connection failed to UniFi Protect: {str(e)}")
+                raise HTTPException(status_code=503, detail="Unable to connect to UniFi Protect. Please check your connection settings.")
+            except httpx.TimeoutException:
+                logger.error("Connection timeout to UniFi Protect")
+                raise HTTPException(status_code=504, detail="Connection timeout to UniFi Protect")
+            except Exception as e:
+                logger.error(f"Unexpected error connecting to UniFi Protect: {type(e).__name__}: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Connection error: {str(e)}")
+            
+            if response.status_code == 401:
+                raise HTTPException(status_code=401, detail="Invalid API key")
+            elif response.status_code != 200:
+                raise HTTPException(status_code=500, detail=f"UniFi API returned status {response.status_code}")
             
             cameras = response.json()
             enabled_cameras = integration.config_dict.get("enabled_cameras", [])

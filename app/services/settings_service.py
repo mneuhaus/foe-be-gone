@@ -83,6 +83,25 @@ class SettingsService:
         except ValueError:
             return 7
     
+    def get_yolo_enabled(self) -> bool:
+        """Get whether YOLO detection is enabled."""
+        enabled = self.get_setting("yolo_enabled", "true")
+        return enabled.lower() in ["true", "1", "yes", "on"]
+    
+    def get_yolo_confidence_threshold(self) -> float:
+        """Get YOLO confidence threshold."""
+        threshold = self.get_setting("yolo_confidence_threshold", "0.25")
+        try:
+            value = float(threshold)
+            return max(0.1, min(0.9, value))  # Clamp between 0.1-0.9
+        except ValueError:
+            return 0.25
+    
+    def get_timezone(self) -> str:
+        """Get configured timezone."""
+        # Default to UTC if not set
+        return self.get_setting("timezone", "UTC")
+    
     def initialize_defaults(self) -> None:
         """Initialize default settings if they don't exist."""
         defaults = {
@@ -91,7 +110,10 @@ class SettingsService:
             "detection_interval": "10",
             "confidence_threshold": "0.5",
             "max_image_size_mb": "10",
-            "snapshot_retention_days": "7"
+            "snapshot_retention_days": "7",
+            "yolo_enabled": os.getenv("YOLO_ENABLED", "true"),
+            "yolo_confidence_threshold": os.getenv("YOLO_CONFIDENCE_THRESHOLD", "0.25"),
+            "timezone": os.getenv("TZ", "UTC")  # Default to UTC or TZ env var
         }
         
         for key, default_value in defaults.items():

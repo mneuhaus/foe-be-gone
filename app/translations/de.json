@@ -215,7 +215,12 @@
       "ai_detection": "KI- & Erkennungseinstellungen",
       "system": "Systemeinstellungen",
       "data_management": "Datenverwaltung",
-      "update_settings": "Einstellungen aktualisieren"
+      "update_settings": "Einstellungen aktualisieren",
+      "yolo_detection": "YOLO-Erkennungseinstellungen",
+      "enable_yolo": "YOLO-Erkennung aktivieren",
+      "yolo_enabled_description": "YOLO für schnelle, lokale Tiererkennung vor OpenAI-Anfrage verwenden",
+      "yolo_confidence_threshold": "YOLO-Konfidenzschwelle",
+      "yolo_confidence_description": "Mindestkonfidenzschwelle für YOLO-Erkennungen (niedriger = empfindlicher)"
     },
     "statistics": {
       "title": "Statistiken",

@@ -109,9 +109,14 @@ class DetectionWorker:
             
             if not detection:
                 return
+            
+            # Store detection ID immediately while object is still attached
+            detection_id = detection.id
+            if not detection_id:
+                return
                 
-            # Get primary foe type
-            foe_type = self.detection_processor.get_primary_foe_type(detection)
+            # Get primary foe type using the ID
+            foe_type = self.detection_processor.get_primary_foe_type(detection_id)
             if not foe_type:
                 return
                 
@@ -126,17 +131,17 @@ class DetectionWorker:
                         rtsp_url=rtsp_url,
                         camera_name=camera.name,
                         duration=config.VIDEO_CAPTURE_DURATION,
-                        detection_id=detection.id
+                        detection_id=detection_id
                     )
                 )
-                logger.info(f"Started video capture for detection {detection.id}")
+                logger.info(f"Started video capture for detection {detection_id}")
             else:
                 logger.warning(f"Video capture not available for {camera.name}")
             
             # Store initial foe data for effectiveness tracking - get from fresh session
             initial_foes = []
             with get_db_session() as foe_session:
-                fresh_detection = foe_session.get(Detection, detection.id)
+                fresh_detection = foe_session.get(Detection, detection_id)
                 if fresh_detection and fresh_detection.foes:
                     initial_foes = [foe for foe in fresh_detection.foes]
             
@@ -203,7 +208,7 @@ class DetectionWorker:
                     played_sounds.append(f"camera:{selected_sound.name}")
                     playback_method = "camera"
                     self.detection_processor.record_deterrent_action(
-                        detection.id,
+                        detection_id,
                         f"sound_camera_{foe_type}",
                         True,
                         f"Played {selected_sound.name} on camera"
@@ -215,7 +220,7 @@ class DetectionWorker:
                         played_sounds.append(f"local:{selected_sound.name}")
                         playback_method = "local"
                         self.detection_processor.record_deterrent_action(
-                            detection.id,
+                            detection_id,
                             f"sound_local_{foe_type}",
                             True,
                             f"Played {selected_sound.name} locally"
@@ -255,7 +260,7 @@ class DetectionWorker:
                     
                     # Record effectiveness
                     effectiveness_tracker.record_effectiveness(
-                        detection_id=detection.id,
+                        detection_id=detection_id,
                         foe_type=foe_type,
                         sound_file=selected_sound_file,
                         playback_method=playback_method,
@@ -279,7 +284,7 @@ class DetectionWorker:
                 if video_path:
                     # Update detection with video path
                     with get_db_session() as session:
-                        detection_db = session.get(Detection, detection.id)
+                        detection_db = session.get(Detection, detection_id)
                         if detection_db:
                             detection_db.video_path = str(video_path)
                             detection_db.played_sounds = played_sounds

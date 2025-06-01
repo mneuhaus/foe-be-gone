@@ -10,12 +10,13 @@ from typing import Optional, List, Dict, Any
 
 import imagehash
 from PIL import Image
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.models.device import Device
 from app.models.detection import Detection, Foe, DetectionStatus, DeterrentAction, FoeType
 from app.models.setting import Setting
 from app.services.ai_detector import AIDetector
+from app.services.yolo_detector import YOLOv11DetectionService, YOLODetection
 from app.core.session import get_db_session, safe_commit
 from app.core.config import config
 
@@ -25,14 +26,27 @@ logger = logging.getLogger(__name__)
 class DetectionProcessor:
     """Processes camera snapshots to detect foes and manage detection records."""
     
-    def __init__(self, change_threshold: int = 10):
+    def __init__(self, change_threshold: int = 10, use_yolo: Optional[bool] = None):
         """
         Initialize the detection processor.
         
         Args:
             change_threshold: Hamming distance threshold for significant image changes
+            use_yolo: Whether to use YOLO for initial animal detection (None = use config)
         """
         self.change_threshold = change_threshold
+        self.use_yolo = use_yolo if use_yolo is not None else config.YOLO_ENABLED
+        self.yolo_confidence_threshold = config.YOLO_CONFIDENCE_THRESHOLD
+        self.yolo_detector = None
+        
+        # Initialize YOLO detector if enabled
+        if self.use_yolo:
+            try:
+                self.yolo_detector = YOLOv11DetectionService()
+                logger.info(f"YOLOv11 detector initialized successfully (confidence threshold: {self.yolo_confidence_threshold})")
+            except Exception as e:
+                logger.error(f"Failed to initialize YOLO detector: {e}")
+                self.use_yolo = False
         
     def calculate_image_hash(self, image_data: bytes) -> str:
         """Calculate perceptual hash of image data."""
@@ -91,6 +105,51 @@ class DetectionProcessor:
         except Exception as e:
             logger.error(f"Failed to save snapshot: {e}")
             raise
+    
+    def run_yolo_detection(self, image_data: bytes) -> Dict[str, Any]:
+        """Run YOLO detection on image data.
+        
+        Returns:
+            Dict containing detection results and metadata
+        """
+        if not self.yolo_detector:
+            return {"detections": [], "foe_classifications": {}}
+        
+        try:
+            # Convert bytes to PIL Image
+            image = Image.open(io.BytesIO(image_data))
+            
+            # Get YOLO detections with configured confidence threshold
+            detections, foe_classifications = self.yolo_detector.get_all_detections_with_foe_classification(
+                image, 
+                confidence_threshold=self.yolo_confidence_threshold
+            )
+            
+            # Convert to serializable format
+            detection_data = []
+            for det in detections:
+                detection_data.append({
+                    "class_name": det.class_name,
+                    "confidence": det.confidence,
+                    "bbox": det.bbox,
+                    "category": det.category,
+                    "is_foe": any(det in foe_list for foe_list in foe_classifications.values())
+                })
+            
+            return {
+                "detections": detection_data,
+                "foe_classifications": {
+                    foe_type: [{"class_name": d.class_name, "confidence": d.confidence} 
+                              for d in dets]
+                    for foe_type, dets in foe_classifications.items()
+                },
+                "total_animals": len(detections),
+                "total_foes": sum(len(dets) for dets in foe_classifications.values())
+            }
+            
+        except Exception as e:
+            logger.error(f"Error running YOLO detection: {e}")
+            return {"detections": [], "foe_classifications": {}, "error": str(e)}
     
     async def process_snapshot(self, camera: Device, image_data: bytes) -> Optional[Detection]:
         """
@@ -181,6 +240,17 @@ class DetectionProcessor:
             should_run_ai = has_change
             # We'll only save if foe is deterred
         
+        # Run YOLO detection first if enabled
+        yolo_results = None
+        if should_run_ai and self.use_yolo:
+            logger.info(f"Running YOLO detection for {camera.name}")
+            yolo_results = self.run_yolo_detection(image_data)
+            
+            # Skip AI if YOLO finds no animals
+            if yolo_results.get("total_animals", 0) == 0:
+                logger.info(f"YOLO found no animals in {camera.name}, skipping AI detection")
+                should_run_ai = False
+        
         # Run AI detection if needed
         if should_run_ai:
             logger.info(f"Running AI detection for {camera.name} (change threshold exceeded)")
@@ -212,7 +282,12 @@ class DetectionProcessor:
                             ai_response={
                                 "scene_description": result.scene_description,
                                 "hash_distance": hash_distance,
-                                "phash_threshold": phash_threshold
+                                "phash_threshold": phash_threshold,
+                                "yolo_results": yolo_results,
+                                "performance_metrics": {
+                                    "yolo_enabled": self.use_yolo,
+                                    "yolo_threshold": self.yolo_confidence_threshold if self.use_yolo else None
+                                }
                             },
                             processed_at=datetime.utcnow(),
                             ai_cost=result.cost
@@ -263,7 +338,8 @@ class DetectionProcessor:
                 return None
         
         # No AI detection needed but might still save snapshot
-        elif should_save_snapshot:
+        elif should_save_snapshot or (yolo_results and yolo_results.get("total_animals", 0) == 0):
+            # Save snapshot if required by capture level or if YOLO found no animals
             logger.info(f"Saving snapshot for {camera.name} without AI detection (capture level: {snapshot_capture_level})")
             with get_db_session() as session:
                 detection = Detection(
@@ -275,7 +351,8 @@ class DetectionProcessor:
                         "scene_description": f"Snapshot saved without AI analysis (capture level: {snapshot_capture_level})",
                         "hash_distance": hash_distance,
                         "phash_threshold": phash_threshold,
-                        "skipped_ai": True
+                        "skipped_ai": True,
+                        "yolo_results": yolo_results
                     },
                     processed_at=datetime.utcnow(),
                     ai_cost=0.0  # No AI cost
@@ -293,20 +370,23 @@ class DetectionProcessor:
                 pass
             return None
     
-    def get_primary_foe_type(self, detection: Detection) -> Optional[str]:
+    def get_primary_foe_type(self, detection_id: int) -> Optional[str]:
         """Get the primary foe type from a detection (highest confidence)."""
-        # Handle detached objects by getting fresh data from session
+        # Always get fresh data from session to avoid detached object issues
         try:
-            if not detection.foes:
-                # Try to get fresh detection with foes if object is detached
-                with get_db_session() as session:
-                    fresh_detection = session.get(Detection, detection.id)
-                    if not fresh_detection or not fresh_detection.foes:
-                        return None
-                    primary_foe = max(fresh_detection.foes, key=lambda f: f.confidence)
-                    return primary_foe.foe_type  # Already a string now
-            else:
-                primary_foe = max(detection.foes, key=lambda f: f.confidence)
+            with get_db_session() as session:
+                # Use joinedload to eagerly load foes relationship
+                from sqlalchemy.orm import joinedload
+                fresh_detection = session.exec(
+                    select(Detection)
+                    .options(joinedload(Detection.foes))
+                    .where(Detection.id == detection_id)
+                ).first()
+                
+                if not fresh_detection or not fresh_detection.foes:
+                    return None
+                    
+                primary_foe = max(fresh_detection.foes, key=lambda f: f.confidence)
                 return primary_foe.foe_type  # Already a string now
         except Exception as e:
             logger.error(f"Error getting primary foe type: {e}")
