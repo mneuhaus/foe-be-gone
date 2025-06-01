@@ -1,0 +1,22 @@
+{
+  "total_images_processed": 92,
+  "total_animals_detected": 24,
+  "animals_by_type": {
+    "bird": 3,
+    "cat": 17,
+    "dog": 4
+  },
+  "total_processing_time": 5.777266263961792,
+  "avg_time_per_image": 0.06279637243436731,
+  "images_per_second": 15.924486737592478,
+  "confidence_threshold": 0.3,
+  "model_info": {
+    "model": "YOLOv11n",
+    "version": "ultralytics",
+    "classes_detected": [
+      "bird",
+      "cat",
+      "dog"
+    ]
+  }
+}

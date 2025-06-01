@@ -1,0 +1,62 @@
+[
+  {
+    "image_name": "Terrassent\u00fcr  - 5-25-2025, 14.14.32 GMT+2",
+    "detections_count": 0,
+    "inference_time": 11.7032949924469,
+    "detections": []
+  },
+  {
+    "image_name": "Terrassent\u00fcr  - 5-25-2025, 14.14.31 GMT+2",
+    "detections_count": 0,
+    "inference_time": 8.247943878173828,
+    "detections": []
+  },
+  {
+    "image_name": "Terrassent\u00fcr  - 5-25-2025, 05.10.55 GMT+2",
+    "detections_count": 0,
+    "inference_time": 8.339069843292236,
+    "detections": []
+  },
+  {
+    "image_name": "Terrassent\u00fcr  - 5-25-2025, 21.36.53 GMT+2",
+    "detections_count": 0,
+    "inference_time": 8.510416269302368,
+    "detections": []
+  },
+  {
+    "image_name": "Terrassent\u00fcr  - 5-24-2025, 20.25.33 GMT+2",
+    "detections_count": 0,
+    "inference_time": 8.669916152954102,
+    "detections": []
+  },
+  {
+    "image_name": "Terrassent\u00fcr  - 5-26-2025, 09.07.18 GMT+2",
+    "detections_count": 0,
+    "inference_time": 8.28293490409851,
+    "detections": []
+  },
+  {
+    "image_name": "H\u00fchnerstall - 5-26-2025, 09.11.38 GMT+2",
+    "detections_count": 0,
+    "inference_time": 8.465572834014893,
+    "detections": []
+  },
+  {
+    "image_name": "Terrassent\u00fcr  - 5-26-2025, 00.24.02 GMT+2",
+    "detections_count": 0,
+    "inference_time": 8.445962905883789,
+    "detections": []
+  },
+  {
+    "image_name": "H\u00fchnerstall - 5-25-2025, 22.34.44 GMT+2",
+    "detections_count": 0,
+    "inference_time": 8.2708580493927,
+    "detections": []
+  },
+  {
+    "image_name": "H\u00fchnerstall - 5-25-2025, 20.19.26 GMT+2",
+    "detections_count": 0,
+    "inference_time": 8.29820704460144,
+    "detections": []
+  }
+]

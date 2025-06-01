@@ -1,0 +1,20 @@
+{
+  "total_images_classified": 43,
+  "processing_time": 3.545301914215088,
+  "avg_time_per_image": 0.08244888172593227,
+  "animal_group_counts": {
+    "corvid": 5,
+    "bird": 7,
+    "unknown": 16,
+    "mammal": 11,
+    "small_mammal": 1,
+    "canine": 2,
+    "rodent": 1
+  },
+  "model_info": {
+    "model": "EfficientNet-B0",
+    "pretrained": "ImageNet",
+    "device": "mps",
+    "top_k_predictions": 5
+  }
+}

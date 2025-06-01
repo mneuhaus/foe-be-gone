@@ -1,0 +1,80 @@
+{
+  "0.1": {
+    "total_detections": 10,
+    "detections_by_class": {
+      "bird": 1,
+      "cat": 7,
+      "dog": 2
+    },
+    "avg_processing_time": 0.09165707756491269,
+    "images_processed": 17
+  },
+  "0.2": {
+    "total_detections": 8,
+    "detections_by_class": {
+      "bird": 1,
+      "cat": 5,
+      "dog": 2
+    },
+    "avg_processing_time": 0.045981827904196346,
+    "images_processed": 17
+  },
+  "0.3": {
+    "total_detections": 7,
+    "detections_by_class": {
+      "bird": 1,
+      "cat": 4,
+      "dog": 2
+    },
+    "avg_processing_time": 0.04559183120727539,
+    "images_processed": 17
+  },
+  "0.4": {
+    "total_detections": 4,
+    "detections_by_class": {
+      "cat": 4
+    },
+    "avg_processing_time": 0.04546799379236558,
+    "images_processed": 17
+  },
+  "0.5": {
+    "total_detections": 3,
+    "detections_by_class": {
+      "cat": 3
+    },
+    "avg_processing_time": 0.04601540284998277,
+    "images_processed": 17
+  },
+  "0.6": {
+    "total_detections": 3,
+    "detections_by_class": {
+      "cat": 3
+    },
+    "avg_processing_time": 0.04625166163725011,
+    "images_processed": 17
+  },
+  "0.7": {
+    "total_detections": 2,
+    "detections_by_class": {
+      "cat": 2
+    },
+    "avg_processing_time": 0.04671587663538316,
+    "images_processed": 17
+  },
+  "0.8": {
+    "total_detections": 1,
+    "detections_by_class": {
+      "cat": 1
+    },
+    "avg_processing_time": 0.04620762432322783,
+    "images_processed": 17
+  },
+  "0.9": {
+    "total_detections": 1,
+    "detections_by_class": {
+      "cat": 1
+    },
+    "avg_processing_time": 0.046678991878733915,
+    "images_processed": 17
+  }
+}

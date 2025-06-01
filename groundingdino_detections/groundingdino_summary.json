@@ -1,0 +1,17 @@
+{
+  "total_images_processed": 10,
+  "total_detections": 0,
+  "total_processing_time": 87.47219681739807,
+  "avg_time_per_image": 8.747219681739807,
+  "text_prompts_used": [
+    "black crow bird",
+    "magpie bird",
+    "raven bird",
+    "corvid bird"
+  ],
+  "confidence_threshold": 0.25,
+  "model_info": {
+    "approach": "transformers",
+    "device": "mps"
+  }
+}

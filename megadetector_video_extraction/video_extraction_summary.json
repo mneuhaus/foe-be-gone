@@ -1,0 +1,1204 @@
+{
+  "Terrassent\u00fcr  5-30-2025, 22.25.03 GMT+2 - 5-30-2025, 22.25.12 GMT+2_frame_000074": {
+    "inference_time": 1.244107961654663,
+    "animals_detected": 2,
+    "crops": [
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 22.25.03 GMT+2 - 5-30-2025, 22.25.12 GMT+2_frame_000074_animal_264_conf_0.45_expanded.jpg",
+        "confidence": 0.448,
+        "bbox_original": [
+          492,
+          1320,
+          697,
+          1509
+        ],
+        "bbox_expanded": [
+          441,
+          1273,
+          748,
+          1512
+        ],
+        "size": [
+          307,
+          239
+        ],
+        "expansion_factor": 0.5
+      },
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 22.25.03 GMT+2 - 5-30-2025, 22.25.12 GMT+2_frame_000074_animal_265_conf_0.77_expanded.jpg",
+        "confidence": 0.772,
+        "bbox_original": [
+          695,
+          1183,
+          853,
+          1395
+        ],
+        "bbox_expanded": [
+          656,
+          1130,
+          892,
+          1448
+        ],
+        "size": [
+          236,
+          318
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 22.25.03 GMT+2 - 5-30-2025, 22.25.12 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 22.25.03 GMT+2 - 5-30-2025, 22.25.12 GMT+2_frame_000176": {
+    "inference_time": 0.9408738613128662,
+    "animals_detected": 2,
+    "crops": [
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 22.25.03 GMT+2 - 5-30-2025, 22.25.12 GMT+2_frame_000176_animal_214_conf_0.74_expanded.jpg",
+        "confidence": 0.744,
+        "bbox_original": [
+          490,
+          1319,
+          695,
+          1509
+        ],
+        "bbox_expanded": [
+          439,
+          1272,
+          746,
+          1512
+        ],
+        "size": [
+          307,
+          240
+        ],
+        "expansion_factor": 0.5
+      },
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 22.25.03 GMT+2 - 5-30-2025, 22.25.12 GMT+2_frame_000176_animal_215_conf_0.78_expanded.jpg",
+        "confidence": 0.779,
+        "bbox_original": [
+          734,
+          1193,
+          873,
+          1406
+        ],
+        "bbox_expanded": [
+          700,
+          1140,
+          907,
+          1459
+        ],
+        "size": [
+          207,
+          319
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 22.25.03 GMT+2 - 5-30-2025, 22.25.12 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 22.25.03 GMT+2 - 5-30-2025, 22.25.12 GMT+2_frame_000212": {
+    "inference_time": 0.6854417324066162,
+    "animals_detected": 2,
+    "crops": [
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 22.25.03 GMT+2 - 5-30-2025, 22.25.12 GMT+2_frame_000212_animal_191_conf_0.67_expanded.jpg",
+        "confidence": 0.673,
+        "bbox_original": [
+          491,
+          1319,
+          695,
+          1509
+        ],
+        "bbox_expanded": [
+          440,
+          1272,
+          746,
+          1512
+        ],
+        "size": [
+          306,
+          240
+        ],
+        "expansion_factor": 0.5
+      },
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 22.25.03 GMT+2 - 5-30-2025, 22.25.12 GMT+2_frame_000212_animal_192_conf_0.85_expanded.jpg",
+        "confidence": 0.853,
+        "bbox_original": [
+          738,
+          1199,
+          875,
+          1424
+        ],
+        "bbox_expanded": [
+          704,
+          1143,
+          909,
+          1480
+        ],
+        "size": [
+          205,
+          337
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 22.25.03 GMT+2 - 5-30-2025, 22.25.12 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 18.32.47 GMT+2 - 5-30-2025, 18.33.17 GMT+2_frame_000205": {
+    "inference_time": 0.81430983543396,
+    "animals_detected": 3,
+    "crops": [
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 18.32.47 GMT+2 - 5-30-2025, 18.33.17 GMT+2_frame_000205_animal_266_conf_0.36_expanded.jpg",
+        "confidence": 0.358,
+        "bbox_original": [
+          889,
+          1009,
+          1020,
+          1196
+        ],
+        "bbox_expanded": [
+          857,
+          963,
+          1052,
+          1242
+        ],
+        "size": [
+          195,
+          279
+        ],
+        "expansion_factor": 0.5
+      },
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 18.32.47 GMT+2 - 5-30-2025, 18.33.17 GMT+2_frame_000205_animal_267_conf_0.59_expanded.jpg",
+        "confidence": 0.586,
+        "bbox_original": [
+          1994,
+          1121,
+          2076,
+          1212
+        ],
+        "bbox_expanded": [
+          1974,
+          1099,
+          2096,
+          1234
+        ],
+        "size": [
+          122,
+          135
+        ],
+        "expansion_factor": 0.5
+      },
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 18.32.47 GMT+2 - 5-30-2025, 18.33.17 GMT+2_frame_000205_animal_268_conf_0.61_expanded.jpg",
+        "confidence": 0.609,
+        "bbox_original": [
+          889,
+          945,
+          1202,
+          1191
+        ],
+        "bbox_expanded": [
+          811,
+          884,
+          1280,
+          1252
+        ],
+        "size": [
+          469,
+          368
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 18.32.47 GMT+2 - 5-30-2025, 18.33.17 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 18.32.47 GMT+2 - 5-30-2025, 18.33.17 GMT+2_frame_000505": {
+    "inference_time": 0.6993088722229004,
+    "animals_detected": 2,
+    "crops": [
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 18.32.47 GMT+2 - 5-30-2025, 18.33.17 GMT+2_frame_000505_animal_299_conf_0.45_expanded.jpg",
+        "confidence": 0.45,
+        "bbox_original": [
+          1996,
+          1124,
+          2079,
+          1211
+        ],
+        "bbox_expanded": [
+          1976,
+          1103,
+          2099,
+          1232
+        ],
+        "size": [
+          123,
+          129
+        ],
+        "expansion_factor": 0.5
+      },
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 18.32.47 GMT+2 - 5-30-2025, 18.33.17 GMT+2_frame_000505_animal_300_conf_0.91_expanded.jpg",
+        "confidence": 0.913,
+        "bbox_original": [
+          940,
+          170,
+          1288,
+          334
+        ],
+        "bbox_expanded": [
+          853,
+          129,
+          1375,
+          375
+        ],
+        "size": [
+          522,
+          246
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 18.32.47 GMT+2 - 5-30-2025, 18.33.17 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 18.32.47 GMT+2 - 5-30-2025, 18.33.17 GMT+2_frame_000928": {
+    "inference_time": 0.8058979511260986,
+    "animals_detected": 2,
+    "crops": [
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 18.32.47 GMT+2 - 5-30-2025, 18.33.17 GMT+2_frame_000928_animal_299_conf_0.55_expanded.jpg",
+        "confidence": 0.552,
+        "bbox_original": [
+          1995,
+          1124,
+          2082,
+          1211
+        ],
+        "bbox_expanded": [
+          1974,
+          1103,
+          2103,
+          1232
+        ],
+        "size": [
+          129,
+          129
+        ],
+        "expansion_factor": 0.5
+      },
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 18.32.47 GMT+2 - 5-30-2025, 18.33.17 GMT+2_frame_000928_animal_300_conf_0.89_expanded.jpg",
+        "confidence": 0.888,
+        "bbox_original": [
+          928,
+          214,
+          1315,
+          347
+        ],
+        "bbox_expanded": [
+          832,
+          181,
+          1411,
+          380
+        ],
+        "size": [
+          579,
+          199
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 18.32.47 GMT+2 - 5-30-2025, 18.33.17 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 20.09.04 GMT+2 - 5-30-2025, 20.09.35 GMT+2_frame_000054": {
+    "inference_time": 0.8516659736633301,
+    "animals_detected": 0,
+    "crops": [],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 20.09.04 GMT+2 - 5-30-2025, 20.09.35 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 20.09.04 GMT+2 - 5-30-2025, 20.09.35 GMT+2_frame_000378": {
+    "inference_time": 0.9008080959320068,
+    "animals_detected": 2,
+    "crops": [
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 20.09.04 GMT+2 - 5-30-2025, 20.09.35 GMT+2_frame_000378_animal_208_conf_0.38_expanded.jpg",
+        "confidence": 0.378,
+        "bbox_original": [
+          1990,
+          1124,
+          2079,
+          1212
+        ],
+        "bbox_expanded": [
+          1968,
+          1102,
+          2101,
+          1234
+        ],
+        "size": [
+          133,
+          132
+        ],
+        "expansion_factor": 0.5
+      },
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 20.09.04 GMT+2 - 5-30-2025, 20.09.35 GMT+2_frame_000378_animal_209_conf_0.93_expanded.jpg",
+        "confidence": 0.926,
+        "bbox_original": [
+          2127,
+          1167,
+          2384,
+          1389
+        ],
+        "bbox_expanded": [
+          2063,
+          1112,
+          2448,
+          1444
+        ],
+        "size": [
+          385,
+          332
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 20.09.04 GMT+2 - 5-30-2025, 20.09.35 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 20.09.04 GMT+2 - 5-30-2025, 20.09.35 GMT+2_frame_000415": {
+    "inference_time": 0.8505847454071045,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 20.09.04 GMT+2 - 5-30-2025, 20.09.35 GMT+2_frame_000415_animal_154_conf_0.93_expanded.jpg",
+        "confidence": 0.931,
+        "bbox_original": [
+          2011,
+          1185,
+          2305,
+          1376
+        ],
+        "bbox_expanded": [
+          1938,
+          1138,
+          2378,
+          1423
+        ],
+        "size": [
+          440,
+          285
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 20.09.04 GMT+2 - 5-30-2025, 20.09.35 GMT+2"
+  },
+  "Wintergarten 5-29-2025, 04.04.25 GMT+2 - 5-29-2025, 04.04.38 GMT+2_frame_000020": {
+    "inference_time": 0.7655999660491943,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Wintergarten 5-29-2025, 04.04.25 GMT+2 - 5-29-2025, 04.04.38 GMT+2_frame_000020_animal_101_conf_0.97_expanded.jpg",
+        "confidence": 0.968,
+        "bbox_original": [
+          0,
+          119,
+          365,
+          1076
+        ],
+        "bbox_expanded": [
+          0,
+          0,
+          456,
+          1080
+        ],
+        "size": [
+          456,
+          1080
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Wintergarten 5-29-2025, 04.04.25 GMT+2 - 5-29-2025, 04.04.38 GMT+2"
+  },
+  "Wintergarten 5-29-2025, 04.04.25 GMT+2 - 5-29-2025, 04.04.38 GMT+2_frame_000373": {
+    "inference_time": 0.6346912384033203,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Wintergarten 5-29-2025, 04.04.25 GMT+2 - 5-29-2025, 04.04.38 GMT+2_frame_000373_animal_218_conf_0.74_expanded.jpg",
+        "confidence": 0.744,
+        "bbox_original": [
+          177,
+          321,
+          251,
+          485
+        ],
+        "bbox_expanded": [
+          159,
+          280,
+          269,
+          526
+        ],
+        "size": [
+          110,
+          246
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Wintergarten 5-29-2025, 04.04.25 GMT+2 - 5-29-2025, 04.04.38 GMT+2"
+  },
+  "Wintergarten 5-29-2025, 04.04.25 GMT+2 - 5-29-2025, 04.04.38 GMT+2_frame_000461": {
+    "inference_time": 0.6818490028381348,
+    "animals_detected": 0,
+    "crops": [],
+    "source_video": "Wintergarten 5-29-2025, 04.04.25 GMT+2 - 5-29-2025, 04.04.38 GMT+2"
+  },
+  "Wintergarten 5-30-2025, 08.09.39 GMT+2 - 5-30-2025, 08.09.46 GMT+2_frame_000089": {
+    "inference_time": 0.6833679676055908,
+    "animals_detected": 0,
+    "crops": [],
+    "source_video": "Wintergarten 5-30-2025, 08.09.39 GMT+2 - 5-30-2025, 08.09.46 GMT+2"
+  },
+  "Wintergarten 5-30-2025, 08.09.39 GMT+2 - 5-30-2025, 08.09.46 GMT+2_frame_000128": {
+    "inference_time": 0.7699329853057861,
+    "animals_detected": 0,
+    "crops": [],
+    "source_video": "Wintergarten 5-30-2025, 08.09.39 GMT+2 - 5-30-2025, 08.09.46 GMT+2"
+  },
+  "Wintergarten 5-30-2025, 08.09.39 GMT+2 - 5-30-2025, 08.09.46 GMT+2_frame_000173": {
+    "inference_time": 0.6488261222839355,
+    "animals_detected": 0,
+    "crops": [],
+    "source_video": "Wintergarten 5-30-2025, 08.09.39 GMT+2 - 5-30-2025, 08.09.46 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 23.54.20 GMT+2 - 5-30-2025, 23.54.28 GMT+2_frame_000178": {
+    "inference_time": 0.6575930118560791,
+    "animals_detected": 0,
+    "crops": [],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 23.54.20 GMT+2 - 5-30-2025, 23.54.28 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 23.54.20 GMT+2 - 5-30-2025, 23.54.28 GMT+2_frame_000227": {
+    "inference_time": 0.65590500831604,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 23.54.20 GMT+2 - 5-30-2025, 23.54.28 GMT+2_frame_000227_animal_300_conf_0.34_expanded.jpg",
+        "confidence": 0.345,
+        "bbox_original": [
+          1579,
+          1098,
+          1726,
+          1230
+        ],
+        "bbox_expanded": [
+          1543,
+          1065,
+          1762,
+          1263
+        ],
+        "size": [
+          219,
+          198
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 23.54.20 GMT+2 - 5-30-2025, 23.54.28 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 23.54.20 GMT+2 - 5-30-2025, 23.54.28 GMT+2_frame_000269": {
+    "inference_time": 0.7261810302734375,
+    "animals_detected": 0,
+    "crops": [],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 23.54.20 GMT+2 - 5-30-2025, 23.54.28 GMT+2"
+  },
+  "Terrassent\u00fcr  5-31-2025, 07.33.43 GMT+2 - 5-31-2025, 07.33.51 GMT+2_frame_000091": {
+    "inference_time": 0.6701557636260986,
+    "animals_detected": 0,
+    "crops": [],
+    "source_video": "Terrassent\u00fcr  5-31-2025, 07.33.43 GMT+2 - 5-31-2025, 07.33.51 GMT+2"
+  },
+  "Terrassent\u00fcr  5-31-2025, 07.33.43 GMT+2 - 5-31-2025, 07.33.51 GMT+2_frame_000232": {
+    "inference_time": 0.677001953125,
+    "animals_detected": 0,
+    "crops": [],
+    "source_video": "Terrassent\u00fcr  5-31-2025, 07.33.43 GMT+2 - 5-31-2025, 07.33.51 GMT+2"
+  },
+  "Terrassent\u00fcr  5-31-2025, 07.33.43 GMT+2 - 5-31-2025, 07.33.51 GMT+2_frame_000236": {
+    "inference_time": 0.7667686939239502,
+    "animals_detected": 0,
+    "crops": [],
+    "source_video": "Terrassent\u00fcr  5-31-2025, 07.33.43 GMT+2 - 5-31-2025, 07.33.51 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 20.10.10 GMT+2 - 5-30-2025, 20.10.26 GMT+2_frame_000047": {
+    "inference_time": 0.6754179000854492,
+    "animals_detected": 2,
+    "crops": [
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 20.10.10 GMT+2 - 5-30-2025, 20.10.26 GMT+2_frame_000047_animal_205_conf_0.43_expanded.jpg",
+        "confidence": 0.433,
+        "bbox_original": [
+          1990,
+          1123,
+          2076,
+          1211
+        ],
+        "bbox_expanded": [
+          1969,
+          1101,
+          2097,
+          1233
+        ],
+        "size": [
+          128,
+          132
+        ],
+        "expansion_factor": 0.5
+      },
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 20.10.10 GMT+2 - 5-30-2025, 20.10.26 GMT+2_frame_000047_animal_206_conf_0.61_expanded.jpg",
+        "confidence": 0.606,
+        "bbox_original": [
+          2473,
+          1315,
+          2573,
+          1447
+        ],
+        "bbox_expanded": [
+          2448,
+          1282,
+          2598,
+          1480
+        ],
+        "size": [
+          150,
+          198
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 20.10.10 GMT+2 - 5-30-2025, 20.10.26 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 20.10.10 GMT+2 - 5-30-2025, 20.10.26 GMT+2_frame_000143": {
+    "inference_time": 0.6769599914550781,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 20.10.10 GMT+2 - 5-30-2025, 20.10.26 GMT+2_frame_000143_animal_199_conf_0.93_expanded.jpg",
+        "confidence": 0.933,
+        "bbox_original": [
+          1772,
+          1214,
+          2185,
+          1424
+        ],
+        "bbox_expanded": [
+          1669,
+          1162,
+          2288,
+          1476
+        ],
+        "size": [
+          619,
+          314
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 20.10.10 GMT+2 - 5-30-2025, 20.10.26 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 20.10.10 GMT+2 - 5-30-2025, 20.10.26 GMT+2_frame_000421": {
+    "inference_time": 0.6700680255889893,
+    "animals_detected": 0,
+    "crops": [],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 20.10.10 GMT+2 - 5-30-2025, 20.10.26 GMT+2"
+  },
+  "Wintergarten 5-25-2025, 18.48.49 GMT+2 - 5-25-2025, 18.48.56 GMT+2_frame_000032": {
+    "inference_time": 0.6283729076385498,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Wintergarten 5-25-2025, 18.48.49 GMT+2 - 5-25-2025, 18.48.56 GMT+2_frame_000032_animal_161_conf_0.94_expanded.jpg",
+        "confidence": 0.944,
+        "bbox_original": [
+          609,
+          510,
+          912,
+          642
+        ],
+        "bbox_expanded": [
+          534,
+          477,
+          987,
+          675
+        ],
+        "size": [
+          453,
+          198
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Wintergarten 5-25-2025, 18.48.49 GMT+2 - 5-25-2025, 18.48.56 GMT+2"
+  },
+  "Wintergarten 5-25-2025, 18.48.49 GMT+2 - 5-25-2025, 18.48.56 GMT+2_frame_000049": {
+    "inference_time": 0.6298661231994629,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Wintergarten 5-25-2025, 18.48.49 GMT+2 - 5-25-2025, 18.48.56 GMT+2_frame_000049_animal_189_conf_0.90_expanded.jpg",
+        "confidence": 0.902,
+        "bbox_original": [
+          739,
+          439,
+          990,
+          619
+        ],
+        "bbox_expanded": [
+          677,
+          394,
+          1052,
+          664
+        ],
+        "size": [
+          375,
+          270
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Wintergarten 5-25-2025, 18.48.49 GMT+2 - 5-25-2025, 18.48.56 GMT+2"
+  },
+  "Wintergarten 5-25-2025, 18.48.49 GMT+2 - 5-25-2025, 18.48.56 GMT+2_frame_000076": {
+    "inference_time": 0.7273259162902832,
+    "animals_detected": 2,
+    "crops": [
+      {
+        "filename": "Wintergarten 5-25-2025, 18.48.49 GMT+2 - 5-25-2025, 18.48.56 GMT+2_frame_000076_animal_200_conf_0.36_expanded.jpg",
+        "confidence": 0.357,
+        "bbox_original": [
+          235,
+          460,
+          287,
+          560
+        ],
+        "bbox_expanded": [
+          222,
+          435,
+          300,
+          585
+        ],
+        "size": [
+          78,
+          150
+        ],
+        "expansion_factor": 0.5
+      },
+      {
+        "filename": "Wintergarten 5-25-2025, 18.48.49 GMT+2 - 5-25-2025, 18.48.56 GMT+2_frame_000076_animal_201_conf_0.91_expanded.jpg",
+        "confidence": 0.907,
+        "bbox_original": [
+          739,
+          449,
+          1013,
+          619
+        ],
+        "bbox_expanded": [
+          671,
+          407,
+          1081,
+          661
+        ],
+        "size": [
+          410,
+          254
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Wintergarten 5-25-2025, 18.48.49 GMT+2 - 5-25-2025, 18.48.56 GMT+2"
+  },
+  "Terrassent\u00fcr  5-31-2025, 10.29.54 GMT+2 - 5-31-2025, 10.30.00 GMT+2_frame_000002": {
+    "inference_time": 0.6709229946136475,
+    "animals_detected": 0,
+    "crops": [],
+    "source_video": "Terrassent\u00fcr  5-31-2025, 10.29.54 GMT+2 - 5-31-2025, 10.30.00 GMT+2"
+  },
+  "Terrassent\u00fcr  5-31-2025, 10.29.54 GMT+2 - 5-31-2025, 10.30.00 GMT+2_frame_000024": {
+    "inference_time": 0.9230489730834961,
+    "animals_detected": 0,
+    "crops": [],
+    "source_video": "Terrassent\u00fcr  5-31-2025, 10.29.54 GMT+2 - 5-31-2025, 10.30.00 GMT+2"
+  },
+  "Terrassent\u00fcr  5-31-2025, 10.29.54 GMT+2 - 5-31-2025, 10.30.00 GMT+2_frame_000266": {
+    "inference_time": 0.6807200908660889,
+    "animals_detected": 0,
+    "crops": [],
+    "source_video": "Terrassent\u00fcr  5-31-2025, 10.29.54 GMT+2 - 5-31-2025, 10.30.00 GMT+2"
+  },
+  "Wintergarten 5-29-2025, 04.04.09 GMT+2 - 5-29-2025, 04.04.23 GMT+2_frame_000088": {
+    "inference_time": 0.639178991317749,
+    "animals_detected": 0,
+    "crops": [],
+    "source_video": "Wintergarten 5-29-2025, 04.04.09 GMT+2 - 5-29-2025, 04.04.23 GMT+2"
+  },
+  "Wintergarten 5-29-2025, 04.04.09 GMT+2 - 5-29-2025, 04.04.23 GMT+2_frame_000143": {
+    "inference_time": 1.0103590488433838,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Wintergarten 5-29-2025, 04.04.09 GMT+2 - 5-29-2025, 04.04.23 GMT+2_frame_000143_animal_87_conf_0.96_expanded.jpg",
+        "confidence": 0.956,
+        "bbox_original": [
+          0,
+          190,
+          245,
+          793
+        ],
+        "bbox_expanded": [
+          0,
+          40,
+          306,
+          943
+        ],
+        "size": [
+          306,
+          903
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Wintergarten 5-29-2025, 04.04.09 GMT+2 - 5-29-2025, 04.04.23 GMT+2"
+  },
+  "Wintergarten 5-29-2025, 04.04.09 GMT+2 - 5-29-2025, 04.04.23 GMT+2_frame_000216": {
+    "inference_time": 0.7255489826202393,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Wintergarten 5-29-2025, 04.04.09 GMT+2 - 5-29-2025, 04.04.23 GMT+2_frame_000216_animal_132_conf_0.92_expanded.jpg",
+        "confidence": 0.918,
+        "bbox_original": [
+          0,
+          170,
+          396,
+          1050
+        ],
+        "bbox_expanded": [
+          0,
+          0,
+          495,
+          1080
+        ],
+        "size": [
+          495,
+          1080
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Wintergarten 5-29-2025, 04.04.09 GMT+2 - 5-29-2025, 04.04.23 GMT+2"
+  },
+  "Wintergarten 5-30-2025, 18.11.34 GMT+2 - 5-30-2025, 18.11.44 GMT+2_frame_000052": {
+    "inference_time": 0.8512723445892334,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Wintergarten 5-30-2025, 18.11.34 GMT+2 - 5-30-2025, 18.11.44 GMT+2_frame_000052_animal_247_conf_0.36_expanded.jpg",
+        "confidence": 0.364,
+        "bbox_original": [
+          299,
+          380,
+          368,
+          478
+        ],
+        "bbox_expanded": [
+          282,
+          356,
+          385,
+          502
+        ],
+        "size": [
+          103,
+          146
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Wintergarten 5-30-2025, 18.11.34 GMT+2 - 5-30-2025, 18.11.44 GMT+2"
+  },
+  "Wintergarten 5-30-2025, 18.11.34 GMT+2 - 5-30-2025, 18.11.44 GMT+2_frame_000124": {
+    "inference_time": 0.659653902053833,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Wintergarten 5-30-2025, 18.11.34 GMT+2 - 5-30-2025, 18.11.44 GMT+2_frame_000124_animal_245_conf_0.77_expanded.jpg",
+        "confidence": 0.77,
+        "bbox_original": [
+          29,
+          328,
+          90,
+          502
+        ],
+        "bbox_expanded": [
+          14,
+          285,
+          105,
+          545
+        ],
+        "size": [
+          91,
+          260
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Wintergarten 5-30-2025, 18.11.34 GMT+2 - 5-30-2025, 18.11.44 GMT+2"
+  },
+  "Wintergarten 5-30-2025, 18.11.34 GMT+2 - 5-30-2025, 18.11.44 GMT+2_frame_000352": {
+    "inference_time": 0.6522421836853027,
+    "animals_detected": 0,
+    "crops": [],
+    "source_video": "Wintergarten 5-30-2025, 18.11.34 GMT+2 - 5-30-2025, 18.11.44 GMT+2"
+  },
+  "Wintergarten 5-25-2025, 19.47.18 GMT+2 - 5-25-2025, 19.47.28 GMT+2_frame_000017": {
+    "inference_time": 0.6702642440795898,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Wintergarten 5-25-2025, 19.47.18 GMT+2 - 5-25-2025, 19.47.28 GMT+2_frame_000017_animal_218_conf_0.35_expanded.jpg",
+        "confidence": 0.349,
+        "bbox_original": [
+          228,
+          459,
+          290,
+          559
+        ],
+        "bbox_expanded": [
+          213,
+          434,
+          305,
+          584
+        ],
+        "size": [
+          92,
+          150
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Wintergarten 5-25-2025, 19.47.18 GMT+2 - 5-25-2025, 19.47.28 GMT+2"
+  },
+  "Wintergarten 5-25-2025, 19.47.18 GMT+2 - 5-25-2025, 19.47.28 GMT+2_frame_000203": {
+    "inference_time": 0.6443219184875488,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Wintergarten 5-25-2025, 19.47.18 GMT+2 - 5-25-2025, 19.47.28 GMT+2_frame_000203_animal_169_conf_0.92_expanded.jpg",
+        "confidence": 0.917,
+        "bbox_original": [
+          121,
+          457,
+          308,
+          670
+        ],
+        "bbox_expanded": [
+          75,
+          404,
+          354,
+          723
+        ],
+        "size": [
+          279,
+          319
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Wintergarten 5-25-2025, 19.47.18 GMT+2 - 5-25-2025, 19.47.28 GMT+2"
+  },
+  "Wintergarten 5-25-2025, 19.47.18 GMT+2 - 5-25-2025, 19.47.28 GMT+2_frame_000303": {
+    "inference_time": 0.647648811340332,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Wintergarten 5-25-2025, 19.47.18 GMT+2 - 5-25-2025, 19.47.28 GMT+2_frame_000303_animal_143_conf_0.89_expanded.jpg",
+        "confidence": 0.886,
+        "bbox_original": [
+          363,
+          458,
+          753,
+          674
+        ],
+        "bbox_expanded": [
+          266,
+          404,
+          850,
+          728
+        ],
+        "size": [
+          584,
+          324
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Wintergarten 5-25-2025, 19.47.18 GMT+2 - 5-25-2025, 19.47.28 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 19.15.34 GMT+2 - 5-30-2025, 19.16.29 GMT+2_frame_000132": {
+    "inference_time": 0.6766891479492188,
+    "animals_detected": 2,
+    "crops": [
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 19.15.34 GMT+2 - 5-30-2025, 19.16.29 GMT+2_frame_000132_animal_299_conf_0.49_expanded.jpg",
+        "confidence": 0.486,
+        "bbox_original": [
+          1995,
+          1125,
+          2082,
+          1213
+        ],
+        "bbox_expanded": [
+          1974,
+          1103,
+          2103,
+          1235
+        ],
+        "size": [
+          129,
+          132
+        ],
+        "expansion_factor": 0.5
+      },
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 19.15.34 GMT+2 - 5-30-2025, 19.16.29 GMT+2_frame_000132_animal_300_conf_0.77_expanded.jpg",
+        "confidence": 0.766,
+        "bbox_original": [
+          489,
+          753,
+          579,
+          890
+        ],
+        "bbox_expanded": [
+          467,
+          719,
+          601,
+          924
+        ],
+        "size": [
+          134,
+          205
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 19.15.34 GMT+2 - 5-30-2025, 19.16.29 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 19.15.34 GMT+2 - 5-30-2025, 19.16.29 GMT+2_frame_000413": {
+    "inference_time": 0.7721450328826904,
+    "animals_detected": 3,
+    "crops": [
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 19.15.34 GMT+2 - 5-30-2025, 19.16.29 GMT+2_frame_000413_animal_298_conf_0.35_expanded.jpg",
+        "confidence": 0.349,
+        "bbox_original": [
+          1992,
+          1125,
+          2077,
+          1214
+        ],
+        "bbox_expanded": [
+          1971,
+          1103,
+          2098,
+          1236
+        ],
+        "size": [
+          127,
+          133
+        ],
+        "expansion_factor": 0.5
+      },
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 19.15.34 GMT+2 - 5-30-2025, 19.16.29 GMT+2_frame_000413_animal_299_conf_0.91_expanded.jpg",
+        "confidence": 0.906,
+        "bbox_original": [
+          1644,
+          1212,
+          1841,
+          1487
+        ],
+        "bbox_expanded": [
+          1595,
+          1144,
+          1890,
+          1512
+        ],
+        "size": [
+          295,
+          368
+        ],
+        "expansion_factor": 0.5
+      },
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 19.15.34 GMT+2 - 5-30-2025, 19.16.29 GMT+2_frame_000413_animal_300_conf_0.92_expanded.jpg",
+        "confidence": 0.918,
+        "bbox_original": [
+          421,
+          856,
+          537,
+          1046
+        ],
+        "bbox_expanded": [
+          392,
+          809,
+          566,
+          1093
+        ],
+        "size": [
+          174,
+          284
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 19.15.34 GMT+2 - 5-30-2025, 19.16.29 GMT+2"
+  },
+  "Terrassent\u00fcr  5-30-2025, 19.15.34 GMT+2 - 5-30-2025, 19.16.29 GMT+2_frame_000665": {
+    "inference_time": 0.6920161247253418,
+    "animals_detected": 2,
+    "crops": [
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 19.15.34 GMT+2 - 5-30-2025, 19.16.29 GMT+2_frame_000665_animal_299_conf_0.39_expanded.jpg",
+        "confidence": 0.388,
+        "bbox_original": [
+          2001,
+          1124,
+          2082,
+          1209
+        ],
+        "bbox_expanded": [
+          1981,
+          1103,
+          2102,
+          1230
+        ],
+        "size": [
+          121,
+          127
+        ],
+        "expansion_factor": 0.5
+      },
+      {
+        "filename": "Terrassent\u00fcr  5-30-2025, 19.15.34 GMT+2 - 5-30-2025, 19.16.29 GMT+2_frame_000665_animal_300_conf_0.82_expanded.jpg",
+        "confidence": 0.823,
+        "bbox_original": [
+          122,
+          1151,
+          237,
+          1296
+        ],
+        "bbox_expanded": [
+          94,
+          1115,
+          265,
+          1332
+        ],
+        "size": [
+          171,
+          217
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Terrassent\u00fcr  5-30-2025, 19.15.34 GMT+2 - 5-30-2025, 19.16.29 GMT+2"
+  },
+  "Wintergarten 5-30-2025, 18.23.17 GMT+2 - 5-30-2025, 18.23.26 GMT+2_frame_000110": {
+    "inference_time": 0.6555430889129639,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Wintergarten 5-30-2025, 18.23.17 GMT+2 - 5-30-2025, 18.23.26 GMT+2_frame_000110_animal_191_conf_0.89_expanded.jpg",
+        "confidence": 0.894,
+        "bbox_original": [
+          353,
+          454,
+          595,
+          619
+        ],
+        "bbox_expanded": [
+          293,
+          413,
+          655,
+          660
+        ],
+        "size": [
+          362,
+          247
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Wintergarten 5-30-2025, 18.23.17 GMT+2 - 5-30-2025, 18.23.26 GMT+2"
+  },
+  "Wintergarten 5-30-2025, 18.23.17 GMT+2 - 5-30-2025, 18.23.26 GMT+2_frame_000111": {
+    "inference_time": 0.6382558345794678,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Wintergarten 5-30-2025, 18.23.17 GMT+2 - 5-30-2025, 18.23.26 GMT+2_frame_000111_animal_167_conf_0.92_expanded.jpg",
+        "confidence": 0.916,
+        "bbox_original": [
+          369,
+          470,
+          640,
+          621
+        ],
+        "bbox_expanded": [
+          302,
+          433,
+          707,
+          658
+        ],
+        "size": [
+          405,
+          225
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Wintergarten 5-30-2025, 18.23.17 GMT+2 - 5-30-2025, 18.23.26 GMT+2"
+  },
+  "Wintergarten 5-30-2025, 18.23.17 GMT+2 - 5-30-2025, 18.23.26 GMT+2_frame_000139": {
+    "inference_time": 0.6173770427703857,
+    "animals_detected": 1,
+    "crops": [
+      {
+        "filename": "Wintergarten 5-30-2025, 18.23.17 GMT+2 - 5-30-2025, 18.23.26 GMT+2_frame_000139_animal_227_conf_0.93_expanded.jpg",
+        "confidence": 0.931,
+        "bbox_original": [
+          773,
+          507,
+          1108,
+          690
+        ],
+        "bbox_expanded": [
+          690,
+          462,
+          1191,
+          735
+        ],
+        "size": [
+          501,
+          273
+        ],
+        "expansion_factor": 0.5
+      }
+    ],
+    "source_video": "Wintergarten 5-30-2025, 18.23.17 GMT+2 - 5-30-2025, 18.23.26 GMT+2"
+  }
+}
