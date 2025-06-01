@@ -222,13 +222,13 @@
                     onmouseenter="toggleMedia({{ detection.id }}, 'enter')"
                     onmouseleave="toggleMedia({{ detection.id }}, 'leave')"
                     onclick="showDetectionModal({{ detection.id }})">
-                <!-- Static Image -->
+                <!-- Static Image with Bounding Boxes -->
                 <img 
                     id="image-{{ detection.id }}"
-                    src="{{ get_base_url(request) }}/{{ detection.image_path }}" 
+                    src="{{ get_base_url(request) }}/detections/image-with-boxes/{{ detection.id }}" 
                     alt="Detection {{ detection.id }}"
                     class="w-full h-full object-cover cursor-pointer transition-opacity duration-300"
-                    onerror="this.onerror=null;this.src='{{ get_base_url(request) }}/static/img/no-image.png';"
+                    onerror="this.onerror=null;this.src='{{ get_base_url(request) }}/{{ detection.image_path }}';"
                 />
                 
                 <!-- Video (hidden by default) -->

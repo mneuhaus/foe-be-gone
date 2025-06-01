@@ -1,11 +1,13 @@
 """Routes for detection management and viewing."""
 import logging
 import os
+import io
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict, Any, List
+from PIL import Image, ImageDraw, ImageFont
 
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import APIRouter, Request, Depends, HTTPException, Response
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select, delete
@@ -24,6 +26,7 @@ from app.models.setting import Setting
 from app.models.sound_effectiveness import SoundEffectiveness
 from app.services.settings_service import SettingsService
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/detections", tags=["detections"])
 
 
@@ -355,6 +358,130 @@ async def test_sound_on_camera(
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error testing sound on camera: {str(e)}")
+
+
+@router.get("/image-with-boxes/{detection_id}", include_in_schema=False)
+async def serve_detection_image_with_boxes(
+    detection_id: int,
+    session: Session = Depends(get_session)
+):
+    """Serve detection image with bounding boxes drawn."""
+    detection = session.get(Detection, detection_id)
+    if not detection:
+        raise HTTPException(status_code=404, detail="Detection not found")
+    
+    if not detection.image_path or not Path(detection.image_path).exists():
+        raise HTTPException(status_code=404, detail="No image available for this detection")
+    
+    try:
+        # Load the original image
+        image = Image.open(detection.image_path).convert('RGB')
+        
+        # Check if we have YOLO results or foe bounding boxes
+        draw_boxes = False
+        
+        # Option 1: Use YOLO results if available
+        if detection.ai_response and "yolo_results" in detection.ai_response:
+            yolo_results = detection.ai_response["yolo_results"]
+            if yolo_results.get("detections"):
+                draw_boxes = True
+                # Use YOLO service to draw boxes
+                from app.services.yolo_detector import YOLOv11DetectionService, YOLODetection
+                
+                yolo_service = YOLOv11DetectionService()
+                detections_list = []
+                
+                for det in yolo_results["detections"]:
+                    yolo_det = YOLODetection(
+                        class_id=0,  # Not needed for drawing
+                        class_name=det["class_name"],
+                        confidence=det["confidence"],
+                        bbox=tuple(det["bbox"]),
+                        category=det.get("category", "unknown")
+                    )
+                    detections_list.append(yolo_det)
+                
+                # Draw bounding boxes
+                image = yolo_service.draw_detections(
+                    image, 
+                    detections_list,
+                    yolo_results.get("foe_classifications", {})
+                )
+        
+        # Option 2: Fall back to foe bounding boxes if no YOLO results
+        if not draw_boxes and detection.foes:
+            draw = ImageDraw.Draw(image)
+            
+            # Define colors for different foe types
+            colors = {
+                "rats": "#ef4444",     # red
+                "crows": "#f59e0b",    # amber
+                "cats": "#10b981",     # green
+                "herons": "#3b82f6",   # blue
+                "pigeons": "#8b5cf6",  # purple
+                "unknown": "#6b7280"   # gray
+            }
+            
+            for foe in detection.foes:
+                if foe.bounding_box and "x" in foe.bounding_box:
+                    # Extract coordinates
+                    x = foe.bounding_box.get("x", 0)
+                    y = foe.bounding_box.get("y", 0)
+                    width = foe.bounding_box.get("width", 0)
+                    height = foe.bounding_box.get("height", 0)
+                    
+                    # Calculate box corners
+                    x1, y1 = x, y
+                    x2, y2 = x + width, y + height
+                    
+                    # Get color for foe type
+                    color = colors.get(foe.foe_type.lower(), colors["unknown"])
+                    
+                    # Draw rectangle
+                    draw.rectangle([x1, y1, x2, y2], outline=color, width=3)
+                    
+                    # Draw label with confidence
+                    label = f"{foe.foe_type} {foe.confidence:.0%}"
+                    try:
+                        # Try to use a system font
+                        font = None
+                        font_paths = [
+                            "/System/Library/Fonts/Helvetica.ttc",
+                            "/Library/Fonts/Arial.ttf",
+                            "/System/Library/Fonts/Avenir.ttc"
+                        ]
+                        for font_path in font_paths:
+                            if Path(font_path).exists():
+                                font = ImageFont.truetype(font_path, 16)
+                                break
+                        if not font:
+                            font = ImageFont.load_default()
+                    except:
+                        font = ImageFont.load_default()
+                    
+                    # Get text bbox for background
+                    bbox = draw.textbbox((x1, y1), label, font=font)
+                    
+                    # Draw label background
+                    draw.rectangle([bbox[0]-2, bbox[1]-2, bbox[2]+2, bbox[3]+2], fill=color)
+                    
+                    # Draw label text
+                    draw.text((x1, y1), label, fill="white", font=font)
+        
+        # Convert image to bytes
+        img_buffer = io.BytesIO()
+        image.save(img_buffer, format='JPEG', quality=85)
+        img_buffer.seek(0)
+        
+        return Response(
+            content=img_buffer.getvalue(),
+            media_type="image/jpeg"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error processing detection image: {e}")
+        # Fall back to original image
+        return FileResponse(detection.image_path)
 
 
 @router.get("/video/{detection_id}", include_in_schema=False)

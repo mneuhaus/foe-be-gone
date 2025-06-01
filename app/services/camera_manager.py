@@ -127,6 +127,7 @@ class CameraManager:
                     logger.error(f"Camera {camera_db.name} has no camera_id in metadata")
                     return False
                     
+                logger.debug(f"Getting device interface for camera {camera_id}")
                 device_interface = await handler.get_device(camera_id)
                 if not device_interface:
                     logger.error(f"Could not get device interface for camera {camera_id}")
@@ -135,10 +136,15 @@ class CameraManager:
                 # Play sound if supported
                 if hasattr(device_interface, 'play_sound_file'):
                     logger.info(f"Playing sound {sound_file.name} on camera {camera_db.name} (max {max_duration}s)")
+                    logger.debug(f"Sound file path: {sound_file}, exists: {sound_file.exists()}")
                     success = await device_interface.play_sound_file(sound_file, max_duration)
+                    if success:
+                        logger.info(f"Successfully played sound on camera {camera_db.name}")
+                    else:
+                        logger.warning(f"Failed to play sound on camera {camera_db.name}")
                     return success
                 else:
-                    logger.warning(f"Camera {camera_db.name} does not support sound playback")
+                    logger.warning(f"Camera {camera_db.name} does not support sound playback method")
                     return False
                     
             except Exception as e:

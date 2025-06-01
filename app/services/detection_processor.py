@@ -242,17 +242,22 @@ class DetectionProcessor:
         
         # Run YOLO detection first if enabled
         yolo_results = None
+        yolo_foes_detected = False
         if should_run_ai and self.use_yolo:
             logger.info(f"Running YOLO detection for {camera.name}")
             yolo_results = self.run_yolo_detection(image_data)
             
-            # Skip AI if YOLO finds no animals
-            if yolo_results.get("total_animals", 0) == 0:
+            # Check if YOLO detected any foes
+            if yolo_results.get("foe_classifications"):
+                yolo_foes_detected = True
+                logger.info(f"YOLO detected foes in {camera.name}: {list(yolo_results['foe_classifications'].keys())}")
+                should_run_ai = False  # Skip OpenAI if YOLO found foes
+            elif yolo_results.get("total_animals", 0) == 0:
                 logger.info(f"YOLO found no animals in {camera.name}, skipping AI detection")
                 should_run_ai = False
         
-        # Run AI detection if needed
-        if should_run_ai:
+        # Run AI detection if needed (only if YOLO didn't find foes)
+        if should_run_ai and not yolo_foes_detected:
             logger.info(f"Running AI detection for {camera.name} (change threshold exceeded)")
             try:
                 with get_db_session() as ai_session:
@@ -337,6 +342,52 @@ class DetectionProcessor:
                     pass
                 return None
         
+        # Handle YOLO-only detection with foes
+        elif yolo_foes_detected:
+            logger.info(f"Creating detection from YOLO results for {camera.name}")
+            with get_db_session() as session:
+                detection = Detection(
+                    device_id=camera.id,
+                    image_path=str(image_path),
+                    timestamp=datetime.utcnow(),
+                    status=DetectionStatus.PROCESSED,
+                    ai_response={
+                        "scene_description": "YOLO detection - OpenAI skipped",
+                        "hash_distance": hash_distance,
+                        "phash_threshold": phash_threshold,
+                        "yolo_results": yolo_results,
+                        "yolo_only": True
+                    },
+                    processed_at=datetime.utcnow(),
+                    ai_cost=0.0  # No OpenAI cost
+                )
+                session.add(detection)
+                session.flush()  # Flush to get the detection ID
+                
+                # Add foes from YOLO results
+                for animal_type, detections_list in yolo_results.get("foe_classifications", {}).items():
+                    # Map animal types to foe types
+                    foe_type = self.map_yolo_to_foe_type(animal_type)
+                    if foe_type and detections_list:
+                        # Get the highest confidence detection for this foe type
+                        best_detection = max(detections_list, key=lambda d: d.get("confidence", 0))
+                        confidence = best_detection.get("confidence", 0.0)
+                        
+                        foe = Foe(
+                            foe_type=foe_type,
+                            confidence=confidence,
+                            bounding_box={},  # YOLO bbox format is different, would need conversion
+                            detection_id=detection.id
+                        )
+                        session.add(foe)
+                        logger.info(f"Added {foe_type} foe with confidence {confidence:.2f}")
+                
+                safe_commit(session)
+                
+                logger.info(f"Created YOLO-only detection for {camera.name} with {len(detection.foes)} foe(s)")
+                
+                return detection
+        
         # No AI detection needed but might still save snapshot
         elif should_save_snapshot or (yolo_results and yolo_results.get("total_animals", 0) == 0):
             # Save snapshot if required by capture level or if YOLO found no animals
@@ -369,6 +420,49 @@ class DetectionProcessor:
             except Exception:
                 pass
             return None
+    
+    def map_yolo_to_foe_type(self, animal_type: str) -> Optional[str]:
+        """Map YOLO animal type to our foe type enum."""
+        # Convert to uppercase to match FoeType enum
+        animal_upper = animal_type.upper()
+        
+        # Direct mappings
+        if animal_upper in ["RATS", "CROWS", "CATS", "HERONS", "PIGEONS"]:
+            return animal_upper
+        
+        # Handle variations
+        if animal_upper in ["RAT", "MOUSE", "RODENT"]:
+            return "RATS"
+        elif animal_upper in ["CROW", "RAVEN", "MAGPIE", "JACKDAW"]:
+            return "CROWS"
+        elif animal_upper == "CAT":
+            return "CATS"
+        elif animal_upper == "HERON":
+            return "HERONS"
+        elif animal_upper in ["PIGEON", "DOVE"]:
+            return "PIGEONS"
+        
+        return None
+    
+    def get_primary_foe_from_yolo(self, yolo_results: Dict[str, Any]) -> Optional[str]:
+        """Get the primary foe type from YOLO results (highest confidence)."""
+        foe_classifications = yolo_results.get("foe_classifications", {})
+        if not foe_classifications:
+            return None
+        
+        # Find the foe with highest confidence
+        best_foe = None
+        best_confidence = 0.0
+        
+        for foe_type, detections_list in foe_classifications.items():
+            if detections_list:
+                # Get the highest confidence for this foe type
+                max_confidence = max(d.get("confidence", 0) for d in detections_list)
+                if max_confidence > best_confidence:
+                    best_confidence = max_confidence
+                    best_foe = foe_type
+        
+        return self.map_yolo_to_foe_type(best_foe) if best_foe else None
     
     def get_primary_foe_type(self, detection_id: int) -> Optional[str]:
         """Get the primary foe type from a detection (highest confidence)."""
