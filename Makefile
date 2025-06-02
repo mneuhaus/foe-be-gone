@@ -119,43 +119,41 @@ service-install: ## Install macOS LaunchAgent service for development server
 	@echo "🚀 Installing Foe Be Gone development service..."
 	@echo "📝 Creating LaunchAgent plist file..."
 	@mkdir -p ~/Library/LaunchAgents
-	@cat > ~/Library/LaunchAgents/com.foebegone.dev.plist << EOF
-	<?xml version="1.0" encoding="UTF-8"?>
-	<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-	<plist version="1.0">
-	<dict>
-	    <key>Label</key>
-	    <string>com.foebegone.dev</string>
-	    <key>ProgramArguments</key>
-	    <array>
-	        <string>$(shell pwd)/venv/bin/uvicorn</string>
-	        <string>app.main:app</string>
-	        <string>--reload</string>
-	        <string>--reload-include=*.html</string>
-	        <string>--reload-include=*.jinja</string>
-	        <string>--host</string>
-	        <string>0.0.0.0</string>
-	        <string>--port</string>
-	        <string>8000</string>
-	    </array>
-	    <key>WorkingDirectory</key>
-	    <string>$(shell pwd)</string>
-	    <key>RunAtLoad</key>
-	    <true/>
-	    <key>KeepAlive</key>
-	    <true/>
-	    <key>StandardOutPath</key>
-	    <string>$(shell pwd)/logs/foe-be-gone.log</string>
-	    <key>StandardErrorPath</key>
-	    <string>$(shell pwd)/logs/foe-be-gone.error.log</string>
-	    <key>EnvironmentVariables</key>
-	    <dict>
-	        <key>PATH</key>
-	        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
-	    </dict>
-	</dict>
-	</plist>
-	EOF
+	@echo '<?xml version="1.0" encoding="UTF-8"?>' > ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '<plist version="1.0">' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '<dict>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    <key>Label</key>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    <string>com.foebegone.dev</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    <key>ProgramArguments</key>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    <array>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '        <string>$(shell pwd)/venv/bin/uvicorn</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '        <string>app.main:app</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '        <string>--reload</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '        <string>--reload-include=*.html</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '        <string>--reload-include=*.jinja</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '        <string>--host</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '        <string>0.0.0.0</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '        <string>--port</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '        <string>8000</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    </array>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    <key>WorkingDirectory</key>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    <string>$(shell pwd)</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    <key>RunAtLoad</key>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    <true/>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    <key>KeepAlive</key>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    <true/>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    <key>StandardOutPath</key>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    <string>$(shell pwd)/logs/foe-be-gone.log</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    <key>StandardErrorPath</key>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    <string>$(shell pwd)/logs/foe-be-gone.error.log</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    <key>EnvironmentVariables</key>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    <dict>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '        <key>PATH</key>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '    </dict>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '</dict>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '</plist>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
 	@mkdir -p logs
 	@echo "✅ LaunchAgent plist created"
 	@echo "🔄 Loading service..."

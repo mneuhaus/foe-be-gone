@@ -624,6 +624,18 @@ async function updateSnapshotCaptureLevel(level) {
 let currentDetectionId = null;
 let detectionIds = [];
 
+// Helper function to format milliseconds into human-readable format
+function formatDuration(ms) {
+    if (!ms || ms === 0) return '0ms';
+    
+    if (ms >= 1000) {
+        const seconds = (ms / 1000).toFixed(1);
+        // Remove .0 for whole seconds
+        return seconds.endsWith('.0') ? `${parseInt(seconds)}s` : `${seconds}s`;
+    }
+    return `${Math.round(ms)}ms`;
+}
+
 function showDetectionModal(detectionId) {
     const detection = detectionData[detectionId];
     if (!detection) return;
@@ -789,6 +801,7 @@ function showDetectionModal(detectionId) {
                                 <span>Scene: ${speciesData.species_result.scene_description}</span>
                                 ${speciesData.species_result.cost ? `<span>Cost: $${speciesData.species_result.cost.toFixed(6)}</span>` : ''}
                                 <span>Model: ${detection.ai_response.performance_metrics?.species_identification_enabled ? 'Qwen2.5-VL-3B' : 'N/A'}</span>
+                                ${speciesData.detection_duration_ms ? `<span>Processing: ${formatDuration(speciesData.detection_duration_ms)}</span>` : ''}
                             </div>
                         </div>
                         `).join('') : 
@@ -828,6 +841,29 @@ function showDetectionModal(detectionId) {
                         <div>
                             <span class="font-medium">Species ID Cost:</span>
                             <span class="ml-2 font-mono">$${detection.ai_response.species_results.total_cost.toFixed(6)}</span>
+                        </div>` : ''}` : ''}
+                        ${detection.ai_response && detection.ai_response.performance_metrics ? `
+                        <div class="divider my-2"></div>
+                        <div class="text-sm font-medium mb-2">Processing Times:</div>
+                        ${detection.ai_response.performance_metrics.total_processing_ms ? `
+                        <div>
+                            <span class="font-medium">Total Processing:</span>
+                            <span class="ml-2 font-mono">${formatDuration(detection.ai_response.performance_metrics.total_processing_ms)}</span>
+                        </div>` : ''}
+                        ${detection.ai_response.performance_metrics.yolo_duration_ms ? `
+                        <div>
+                            <span class="font-medium">YOLO Detection:</span>
+                            <span class="ml-2 font-mono">${formatDuration(detection.ai_response.performance_metrics.yolo_duration_ms)}</span>
+                        </div>` : ''}
+                        ${detection.ai_response.performance_metrics.species_duration_ms ? `
+                        <div>
+                            <span class="font-medium">Species Identification:</span>
+                            <span class="ml-2 font-mono">${formatDuration(detection.ai_response.performance_metrics.species_duration_ms)}</span>
+                        </div>` : ''}
+                        ${detection.ai_response.performance_metrics.species_avg_per_detection_ms ? `
+                        <div>
+                            <span class="font-medium">Avg per Detection:</span>
+                            <span class="ml-2 font-mono">${formatDuration(detection.ai_response.performance_metrics.species_avg_per_detection_ms)}</span>
                         </div>` : ''}` : ''}
                     </div>
                 </div>

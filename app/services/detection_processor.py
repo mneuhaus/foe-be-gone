@@ -4,6 +4,7 @@ import logging
 import io
 import os
 import uuid
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -98,8 +99,9 @@ class DetectionProcessor:
             Dict containing detection results and metadata
         """
         if not self.yolo_detector:
-            return {"detections": [], "foe_classifications": {}}
+            return {"detections": [], "foe_classifications": {}, "yolo_duration_ms": 0}
         
+        start_time = time.time()
         try:
             # Convert bytes to PIL Image
             image = Image.open(io.BytesIO(image_data))
@@ -120,20 +122,25 @@ class DetectionProcessor:
                     "category": det.category
                 })
             
+            duration_ms = round((time.time() - start_time) * 1000)
+            logger.info(f"YOLO detection completed in {duration_ms}ms, found {len(detections)} animals")
+            
             return {
                 "detections": detection_data,
                 "foe_classifications": {},  # No longer done by YOLO
                 "total_animals": len(detections),  # All detections are animals
-                "total_foes": 0  # Will be determined by species ID
+                "total_foes": 0,  # Will be determined by species ID
+                "yolo_duration_ms": duration_ms
             }
             
         except Exception as e:
-            logger.error(f"Error running YOLO detection: {e}")
-            return {"detections": [], "foe_classifications": {}, "error": str(e)}
+            duration_ms = round((time.time() - start_time) * 1000)
+            logger.error(f"Error running YOLO detection after {duration_ms}ms: {e}")
+            return {"detections": [], "foe_classifications": {}, "error": str(e), "yolo_duration_ms": duration_ms}
     
     async def run_species_identification(self, image_data: bytes, yolo_results: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Run species identification on detected objects using Qwen2.5-VL.
+        Run species identification on detected objects using Ollama or Qwen.
         
         Args:
             image_data: Raw image bytes
@@ -143,7 +150,10 @@ class DetectionProcessor:
             Dict containing species identification results
         """
         if not self.species_detector or not yolo_results.get("detections"):
-            return {"species_identifications": [], "total_cost": 0.0}
+            return {"species_identifications": [], "total_cost": 0.0, "species_duration_ms": 0}
+        
+        start_time = time.time()
+        detections_count = len(yolo_results.get("detections", []))
         
         try:
             # Convert bytes to PIL Image
@@ -153,11 +163,12 @@ class DetectionProcessor:
             total_cost = 0.0
             
             # Identify species for each detected object
-            for detection in yolo_results["detections"]:
+            for i, detection in enumerate(yolo_results["detections"]):
                 bbox = detection.get("bbox")
                 if not bbox or len(bbox) != 4:
                     continue
                 
+                detection_start = time.time()
                 try:
                     # Run species identification on cropped region
                     species_result = await self.species_detector.identify_species(
@@ -165,11 +176,14 @@ class DetectionProcessor:
                         tuple(bbox)  # Convert to tuple (x1, y1, x2, y2)
                     )
                     
+                    detection_duration = round((time.time() - detection_start) * 1000)
+                    
                     # Add detection context
                     result_dict = {
                         "original_detection": detection,
                         "species_result": species_result.model_dump(),
-                        "bbox": bbox
+                        "bbox": bbox,
+                        "detection_duration_ms": detection_duration
                     }
                     
                     species_results.append(result_dict)
@@ -180,23 +194,35 @@ class DetectionProcessor:
                     # Log the identification
                     if species_result.identifications:
                         species_id = species_result.identifications[0]
-                        logger.info(f"Species identified: {species_id.species} "
+                        logger.info(f"Species identified in {detection_duration}ms: {species_id.species} "
                                   f"(foe_type: {species_id.foe_type}, "
                                   f"confidence: {species_id.confidence:.2f})")
+                    else:
+                        logger.info(f"No species identified in {detection_duration}ms for detection {i+1}")
                 
                 except Exception as e:
-                    logger.error(f"Error identifying species for detection: {e}")
+                    detection_duration = round((time.time() - detection_start) * 1000)
+                    logger.error(f"Error identifying species for detection {i+1} after {detection_duration}ms: {e}")
                     continue
+            
+            total_duration_ms = round((time.time() - start_time) * 1000)
+            avg_duration_per_detection = round(total_duration_ms / detections_count) if detections_count > 0 else 0
+            
+            logger.info(f"Species identification completed in {total_duration_ms}ms for {detections_count} detections "
+                       f"(avg {avg_duration_per_detection}ms per detection)")
             
             return {
                 "species_identifications": species_results,
                 "total_cost": total_cost,
-                "identifications_count": len(species_results)
+                "identifications_count": len(species_results),
+                "species_duration_ms": total_duration_ms,
+                "avg_duration_per_detection_ms": avg_duration_per_detection
             }
             
         except Exception as e:
-            logger.error(f"Error during species identification: {e}")
-            return {"species_identifications": [], "total_cost": 0.0, "error": str(e)}
+            total_duration_ms = round((time.time() - start_time) * 1000)
+            logger.error(f"Error during species identification after {total_duration_ms}ms: {e}")
+            return {"species_identifications": [], "total_cost": 0.0, "error": str(e), "species_duration_ms": total_duration_ms}
     
     async def process_snapshot(self, camera: Device, image_data: bytes) -> Optional[Detection]:
         """
@@ -223,6 +249,9 @@ class DetectionProcessor:
                     snapshot_capture_level = int(capture_level_setting.value)
                 except ValueError:
                     pass
+        
+        # Track overall processing time
+        processing_start_time = time.time()
         
         # Save snapshot
         image_path = self.save_snapshot(image_data, camera.name)
@@ -292,6 +321,9 @@ class DetectionProcessor:
             else:
                 scene_description = f"Snapshot saved without animal detection (capture level: {snapshot_capture_level})"
             
+            # Calculate total processing time
+            total_processing_ms = round((time.time() - processing_start_time) * 1000)
+            
             with get_db_session() as session:
                 detection = Detection(
                     device_id=camera.id,
@@ -306,7 +338,11 @@ class DetectionProcessor:
                         "performance_metrics": {
                             "yolo_enabled": self.use_yolo,
                             "yolo_threshold": self.yolo_confidence_threshold if self.use_yolo else None,
-                            "species_identification_enabled": bool(self.species_detector)
+                            "species_identification_enabled": bool(self.species_detector),
+                            "total_processing_ms": total_processing_ms,
+                            "yolo_duration_ms": yolo_results.get("yolo_duration_ms", 0) if yolo_results else 0,
+                            "species_duration_ms": species_results.get("species_duration_ms", 0) if species_results else 0,
+                            "species_avg_per_detection_ms": species_results.get("avg_duration_per_detection_ms", 0) if species_results else 0
                         }
                     },
                     processed_at=datetime.utcnow(),
@@ -348,10 +384,14 @@ class DetectionProcessor:
                 safe_commit(session)
                 
                 if foes_detected:
-                    logger.info(f"Created detection for {camera.name} with {len(detection.foes)} foe(s), "
-                              f"cost: ${total_ai_cost:.6f}")
+                    logger.info(f"Created detection for {camera.name} with {len(detection.foes)} foe(s) in {total_processing_ms}ms "
+                              f"(YOLO: {yolo_results.get('yolo_duration_ms', 0)}ms, "
+                              f"Species: {species_results.get('species_duration_ms', 0)}ms, "
+                              f"Cost: ${total_ai_cost:.6f})")
                 else:
-                    logger.info(f"Created detection for {camera.name} with no foes (animals detected: {animals_detected})")
+                    logger.info(f"Created detection for {camera.name} with no foes in {total_processing_ms}ms "
+                              f"(YOLO: {yolo_results.get('yolo_duration_ms', 0)}ms, "
+                              f"Animals detected: {animals_detected})")
                 
                 return detection
         

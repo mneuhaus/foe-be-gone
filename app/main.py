@@ -20,6 +20,7 @@ from app.core.session import get_db_session
 from app.routes import settings, detections, statistics, logs
 from app.routes.api import integrations
 from app.routes.api import detections as api_detections
+from app.routes.api import settings as api_settings
 from app.services.detection_worker import detection_worker
 from app.services.settings_service import SettingsService
 from app.models.setting import Setting
@@ -165,6 +166,7 @@ app.include_router(detections.router)
 app.include_router(statistics.router)
 app.include_router(logs.router)
 app.include_router(api_detections.router)
+app.include_router(api_settings.router)
 
 # Add API documentation info
 @app.get("/api", tags=["documentation"], summary="API Documentation")

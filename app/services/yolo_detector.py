@@ -86,8 +86,30 @@ class YOLOv11DetectionService:
             logger.error(f"Failed to load YOLO model: {e}")
             raise
     
+    def detect_animals(self, image: Image.Image, confidence_threshold: float = 0.25) -> List[YOLODetection]:
+        """Detect animals in an image using YOLO.
+        
+        Only returns detections that are classified as animals (birds, mammals, etc).
+        
+        Args:
+            image: PIL Image to process
+            confidence_threshold: Minimum confidence score for detections
+            
+        Returns:
+            List of YOLODetection objects for animals only
+        """
+        all_detections = self.detect(image, confidence_threshold)
+        
+        # Filter to only animals
+        animal_categories = ["avian", "mammal", "reptile", "amphibian"]
+        animal_detections = [d for d in all_detections if d.category in animal_categories]
+        
+        logger.info(f"YOLO detected {len(animal_detections)} animals out of {len(all_detections)} total objects")
+        
+        return animal_detections
+    
     def detect(self, image: Image.Image, confidence_threshold: float = 0.25) -> List[YOLODetection]:
-        """Detect animals in an image.
+        """Detect all objects in an image.
         
         Args:
             image: PIL Image to process
@@ -198,24 +220,22 @@ class YOLOv11DetectionService:
         image: Image.Image, 
         confidence_threshold: float = 0.25
     ) -> Tuple[List[YOLODetection], Dict[str, List[YOLODetection]]]:
-        """Detect all animals and classify them as foes or friends.
+        """DEPRECATED: Use detect() instead. Foe classification should be done by species identification.
+        
+        This method is kept for backward compatibility but returns empty foe classifications.
         
         Args:
             image: PIL Image to process
             confidence_threshold: Minimum confidence score
             
         Returns:
-            Tuple of (all_detections, foe_detections_by_type)
+            Tuple of (all_detections, empty_foe_dict)
         """
+        logger.warning("get_all_detections_with_foe_classification is deprecated. Use detect() and species identification.")
         all_detections = self.detect(image, confidence_threshold)
         
+        # Return empty foe classifications - let species ID handle this
         foe_detections = {}
-        for detection in all_detections:
-            foe_type = self.classify_as_foe(detection)
-            if foe_type:
-                if foe_type not in foe_detections:
-                    foe_detections[foe_type] = []
-                foe_detections[foe_type].append(detection)
         
         return all_detections, foe_detections
     

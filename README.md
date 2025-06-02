@@ -9,6 +9,7 @@ AI-powered wildlife detection and deterrent system that uses your security camer
 ## Features
 
 - 🎯 **AI-Powered Detection**: Uses OpenAI GPT-4 Vision to identify animals in camera snapshots
+- 🦙 **Local Species ID**: Optional Ollama integration for free, local species identification
 - 🔊 **Smart Deterrents**: Plays species-specific sounds to scare away unwanted animals
 - 📊 **Effectiveness Tracking**: Monitors which sounds work best for each animal type
 - 📈 **Comprehensive Analytics**: Beautiful statistics dashboard with insights
@@ -150,6 +151,31 @@ uv run uvicorn app.main:app --reload
 - **OpenAI API Key**: Get one at [OpenAI Platform](https://platform.openai.com/api-keys)
   - Requires GPT-4 Vision access
   - Typical cost: $0.01-0.03 per detection
+
+### Optional: Local Species Identification with Ollama
+
+For free, local species identification without sending images to OpenAI:
+
+```bash
+# Install Ollama (if not already installed)
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Run the setup script
+./scripts/setup-ollama.sh
+
+# Or manually pull a vision model
+ollama pull llava:13b
+
+# Configure Foe Be Gone to use Ollama
+export SPECIES_IDENTIFICATION_PROVIDER=ollama
+export OLLAMA_MODEL=llava:13b  # or llava:34b for better accuracy
+```
+
+Benefits:
+- 🆓 **Free**: No API costs for species identification
+- 🔒 **Private**: Images stay on your local network
+- ⚡ **Fast**: No internet latency
+- 🦙 **Flexible**: Choose from various model sizes
 
 ### Camera Setup
 

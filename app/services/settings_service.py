@@ -102,6 +102,33 @@ class SettingsService:
         # Default to UTC if not set
         return self.get_setting("timezone", "UTC")
     
+    def get_species_identification_enabled(self) -> bool:
+        """Get whether species identification is enabled."""
+        enabled = self.get_setting("species_identification_enabled", "true")
+        return enabled.lower() in ["true", "1", "yes", "on"]
+    
+    def get_species_model(self) -> str:
+        """Get species identification model."""
+        return self.get_setting("species_model", config.SPECIES_MODEL)
+    
+    def get_species_crop_padding(self) -> float:
+        """Get species identification crop padding."""
+        padding = self.get_setting("species_crop_padding", str(config.SPECIES_CROP_PADDING))
+        try:
+            value = float(padding)
+            return max(0.0, min(1.0, value))  # Clamp between 0.0-1.0
+        except ValueError:
+            return config.SPECIES_CROP_PADDING
+    
+    def get_species_identification_provider(self) -> str:
+        """Get species identification provider (qwen or ollama)."""
+        return self.get_setting("species_identification_provider", config.SPECIES_IDENTIFICATION_PROVIDER)
+    
+    def get_deterrents_enabled(self) -> bool:
+        """Get whether deterrents (sound playback) are enabled."""
+        enabled = self.get_setting("deterrents_enabled", "true")
+        return enabled.lower() in ["true", "1", "yes", "on"]
+    
     def initialize_defaults(self) -> None:
         """Initialize default settings if they don't exist."""
         defaults = {
@@ -113,7 +140,12 @@ class SettingsService:
             "snapshot_retention_days": "7",
             "yolo_enabled": os.getenv("YOLO_ENABLED", "true"),
             "yolo_confidence_threshold": os.getenv("YOLO_CONFIDENCE_THRESHOLD", "0.25"),
-            "timezone": os.getenv("TZ", "UTC")  # Default to UTC or TZ env var
+            "species_identification_enabled": os.getenv("SPECIES_IDENTIFICATION_ENABLED", "true"),
+            "species_identification_provider": os.getenv("SPECIES_IDENTIFICATION_PROVIDER", config.SPECIES_IDENTIFICATION_PROVIDER),
+            "species_model": os.getenv("SPECIES_MODEL", config.SPECIES_MODEL),
+            "species_crop_padding": os.getenv("SPECIES_CROP_PADDING", str(config.SPECIES_CROP_PADDING)),
+            "timezone": os.getenv("TZ", "UTC"),  # Default to UTC or TZ env var
+            "deterrents_enabled": os.getenv("DETERRENTS_ENABLED", "true")  # Default to enabled
         }
         
         for key, default_value in defaults.items():

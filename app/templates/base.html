@@ -76,6 +76,19 @@
                 </ul>
             </div>
             
+            <!-- Deterrent toggle -->
+            <label class="swap swap-rotate btn btn-ghost btn-circle btn-sm" title="{{ t('nav.deterrents', request) }}" id="deterrent-toggle-wrapper">
+                <input type="checkbox" id="deterrent-toggle" checked />
+                <!-- Sound on icon -->
+                <svg class="swap-on fill-current w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/>
+                </svg>
+                <!-- Sound off icon -->
+                <svg class="swap-off fill-current w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M12,4L9.91,6.09L12,8.18M4.27,3L3,4.27L7.73,9H3V15H7L12,20V13.27L16.25,17.53C15.58,18.04 14.83,18.46 14,18.7V20.77C15.38,20.45 16.63,19.82 17.68,18.96L19.73,21L21,19.73L12,10.73M19,12C19,12.94 18.8,13.82 18.46,14.64L19.97,16.15C20.62,14.91 21,13.5 21,12C21,7.72 18,4.14 14,3.23V5.29C16.89,6.15 19,8.83 19,12M16.5,12C16.5,10.23 15.5,8.71 14,7.97V10.18L16.45,12.63C16.5,12.43 16.5,12.21 16.5,12Z"/>
+                </svg>
+            </label>
+            
             <!-- Auto-refresh toggle -->
             <label class="swap swap-rotate btn btn-ghost btn-circle btn-sm" title="Auto-refresh">
                 <input type="checkbox" id="auto-refresh-toggle" checked />
@@ -154,6 +167,45 @@
     
     <!-- Global functionality -->
     <script>
+        // Deterrent toggle functionality
+        const deterrentToggle = document.getElementById('deterrent-toggle');
+        
+        // Load initial deterrent state
+        async function loadDeterrentState() {
+            try {
+                const response = await fetch('/api/settings/deterrents/status');
+                const data = await response.json();
+                deterrentToggle.checked = data.deterrents_enabled;
+            } catch (error) {
+                console.error('Failed to load deterrent state:', error);
+            }
+        }
+        
+        // Toggle deterrent state
+        async function toggleDeterrents() {
+            try {
+                const response = await fetch('/api/settings/deterrents/toggle', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                // Update toggle state based on server response
+                deterrentToggle.checked = data.deterrents_enabled;
+            } catch (error) {
+                console.error('Failed to toggle deterrents:', error);
+                // Revert toggle on error
+                deterrentToggle.checked = !deterrentToggle.checked;
+            }
+        }
+        
+        // Initialize deterrent toggle
+        if (deterrentToggle) {
+            loadDeterrentState();
+            deterrentToggle.addEventListener('change', toggleDeterrents);
+        }
+        
         // Auto-refresh functionality
         let autoRefreshInterval;
         const autoRefreshToggle = document.getElementById('auto-refresh-toggle');

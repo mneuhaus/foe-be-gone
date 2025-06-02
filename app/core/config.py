@@ -31,6 +31,19 @@ class Config:
     YOLO_CONFIDENCE_THRESHOLD: float = float(os.getenv("YOLO_CONFIDENCE_THRESHOLD", "0.25"))
     YOLO_ENABLED: bool = os.getenv("YOLO_ENABLED", "true").lower() == "true"
     
+    # Species identification settings
+    SPECIES_IDENTIFICATION_ENABLED: bool = os.getenv("SPECIES_IDENTIFICATION_ENABLED", "true").lower() == "true"
+    SPECIES_IDENTIFICATION_PROVIDER: str = os.getenv("SPECIES_IDENTIFICATION_PROVIDER", "ollama")  # "qwen" or "ollama"
+    
+    # Qwen settings (when using provider="qwen")
+    SPECIES_MODEL: str = os.getenv("SPECIES_MODEL", "qwen/qwen2-vl-3b-instruct")  # LiteLLM format
+    SPECIES_CROP_PADDING: float = float(os.getenv("SPECIES_CROP_PADDING", "0.5"))  # 50% padding around bbox
+    SPECIES_MIN_CROP_SIZE: int = int(os.getenv("SPECIES_MIN_CROP_SIZE", "224"))  # Minimum crop size in pixels
+    
+    # Ollama settings (when using provider="ollama")
+    OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llava:13b")  # Vision model for Ollama
+    
     # Sound player settings
     SOUNDS_DIR: Path = Path("public/sounds")
     SUPPORTED_AUDIO_FORMATS: list[str] = [".mp3", ".wav"]
@@ -50,6 +63,10 @@ class Config:
     
     # Network settings
     RTSP_PORT: int = int(os.getenv("RTSP_PORT", "7447"))  # UniFi Protect RTSP port
+    
+    # Rate limiting settings
+    UNIFI_RATE_LIMIT_CALLS_PER_SECOND: float = float(os.getenv("UNIFI_RATE_LIMIT_CPS", "0.5"))  # 2 seconds between calls
+    UNIFI_RATE_LIMIT_BURST: int = int(os.getenv("UNIFI_RATE_LIMIT_BURST", "2"))  # Allow 2 immediate calls
     
     # Video capture settings
     VIDEO_CAPTURE_DURATION: int = int(os.getenv("VIDEO_CAPTURE_DURATION", "15"))  # seconds

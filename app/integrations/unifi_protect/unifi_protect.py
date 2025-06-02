@@ -195,26 +195,59 @@ class UniFiProtectDevice(DeviceInterface):
         
     async def get_snapshot(self) -> Optional[bytes]:
         """Get current snapshot from camera."""
-        try:
-            # Get snapshot URL from UniFi Protect API
-            url = f"{self.integration.host}/proxy/protect/integration/v1/cameras/{self.device_id}/snapshot"
-            response = await self.integration._client.get(url)
+        from app.utils.rate_limiter import camera_rate_limiter
+        
+        # Rate limit per integration instance
+        from app.core.config import config
+        await camera_rate_limiter.acquire(
+            resource_id=self.integration.instance.id,
+            calls_per_second=config.UNIFI_RATE_LIMIT_CALLS_PER_SECOND,
+            burst=config.UNIFI_RATE_LIMIT_BURST
+        )
+        
+        # Retry with exponential backoff for rate limits
+        max_retries = 3
+        retry_delay = 2.0
+        
+        for attempt in range(max_retries):
+            try:
+                # Get snapshot URL from UniFi Protect API
+                url = f"{self.integration.host}/proxy/protect/integration/v1/cameras/{self.device_id}/snapshot"
+                response = await self.integration._client.get(url)
             
-            if response.status_code == 200:
-                return response.content
-            else:
-                error_msg = f"Failed to get snapshot: HTTP {response.status_code}"
-                if response.status_code == 500:
-                    error_msg += " - Camera may be offline or experiencing issues"
-                elif response.status_code == 404:
-                    error_msg += " - Camera not found"
-                elif response.status_code == 403:
-                    error_msg += " - Permission denied"
-                logger.error(error_msg)
-                raise Exception(error_msg)
-        except Exception as e:
-            logger.error(f"Error getting snapshot: {str(e)}")
-            return None
+                if response.status_code == 200:
+                    return response.content
+                elif response.status_code == 429:
+                    # Rate limit - retry with backoff
+                    if attempt < max_retries - 1:
+                        wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                        logger.warning(f"Rate limit hit for {self.name}, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        logger.error(f"Rate limit exceeded for {self.name} after {max_retries} attempts")
+                        return None
+                else:
+                    error_msg = f"Failed to get snapshot: HTTP {response.status_code}"
+                    if response.status_code == 500:
+                        error_msg += " - Camera may be offline or experiencing issues"
+                    elif response.status_code == 404:
+                        error_msg += " - Camera not found"
+                    elif response.status_code == 403:
+                        error_msg += " - Permission denied"
+                    logger.error(error_msg)
+                    raise Exception(error_msg)
+            except Exception as e:
+                if attempt < max_retries - 1 and "429" not in str(e):
+                    # Retry for other errors too
+                    logger.warning(f"Error getting snapshot from {self.name}, retrying: {str(e)}")
+                    await asyncio.sleep(retry_delay)
+                    continue
+                else:
+                    logger.error(f"Error getting snapshot from {self.name}: {str(e)}")
+                    return None
+        
+        return None  # Should not reach here
         
     async def get_status(self) -> Dict[str, Any]:
         """Get current device status."""
