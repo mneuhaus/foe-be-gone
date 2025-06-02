@@ -54,6 +54,9 @@ class DetectionWorker:
         # Clean up camera manager
         await self.camera_manager.cleanup()
         
+        # Clean up detection processor
+        await self.detection_processor.cleanup()
+        
         if self._thread:
             self._thread.join(timeout=5)
         logger.info("Detection worker stopped")
@@ -89,9 +92,36 @@ class DetectionWorker:
             
         logger.debug(f"Checking {len(cameras)} cameras")
         
-        # Check cameras concurrently
-        tasks = [self._check_camera(camera) for camera in cameras]
-        await asyncio.gather(*tasks, return_exceptions=True)
+        # Group cameras by integration to apply rate limiting
+        cameras_by_integration = {}
+        for camera in cameras:
+            integration_id = camera.integration_id
+            if integration_id not in cameras_by_integration:
+                cameras_by_integration[integration_id] = []
+            cameras_by_integration[integration_id].append(camera)
+        
+        # Check cameras with staggered timing per integration
+        all_tasks = []
+        for integration_id, integration_cameras in cameras_by_integration.items():
+            logger.debug(f"Scheduling {len(integration_cameras)} cameras for integration {integration_id}")
+            # Add a small delay between cameras from the same integration
+            for i, camera in enumerate(integration_cameras):
+                if i > 0:
+                    # Add 2 second delay between cameras from same integration
+                    delay = i * 2.0
+                    logger.debug(f"Scheduling camera {camera.name} with {delay}s delay")
+                    task = self._check_camera_with_delay(camera, delay=delay)
+                else:
+                    logger.debug(f"Scheduling camera {camera.name} immediately")
+                    task = self._check_camera(camera)
+                all_tasks.append(task)
+        
+        await asyncio.gather(*all_tasks, return_exceptions=True)
+    
+    async def _check_camera_with_delay(self, camera, delay: float):
+        """Check a camera after a delay."""
+        await asyncio.sleep(delay)
+        return await self._check_camera(camera)
         
     async def _check_camera(self, camera):
         """Check a single camera for foes."""
@@ -145,86 +175,104 @@ class DetectionWorker:
                 if fresh_detection and fresh_detection.foes:
                     initial_foes = [foe for foe in fresh_detection.foes]
             
+            # Check if deterrents are enabled
+            deterrents_enabled = True
+            with get_db_session() as settings_session:
+                from app.services.settings_service import SettingsService
+                settings_service = SettingsService(settings_session)
+                deterrents_enabled = settings_service.get_deterrents_enabled()
+            
             # Play deterrent sound
             played_sounds = []
             selected_sound_file = None
             
-            # Try to play on camera first
-            sound_files = sound_player.get_available_sounds(foe_type)
-            if sound_files:
-                import random
+            # Only play sounds if deterrents are enabled
+            if deterrents_enabled:
+                # Try to play on camera first
+                sound_files = sound_player.get_available_sounds(foe_type)
+                if sound_files:
+                    import random
                 
-                # 50% chance to explore new sounds vs exploit best known
-                use_best_sound = random.random() < 0.5
-                
-                if use_best_sound:
-                    # Try to use the most effective sound based on statistics
-                    best_sound_name = effectiveness_tracker.get_best_sound_for_foe(
-                        foe_type, 
-                        hour=datetime.now().hour
-                    )
+                    # 50% chance to explore new sounds vs exploit best known
+                    use_best_sound = random.random() < 0.5
                     
-                    if best_sound_name:
-                        # Find the best sound in available files
-                        selected_sound = next(
-                            (f for f in sound_files if f.name == best_sound_name),
-                            None
+                    if use_best_sound:
+                        # Try to use the most effective sound based on statistics
+                        best_sound_name = effectiveness_tracker.get_best_sound_for_foe(
+                            foe_type, 
+                            hour=datetime.now().hour
                         )
-                        if selected_sound:
-                            logger.info(f"Using statistically best sound: {best_sound_name}")
+                        
+                        if best_sound_name:
+                            # Find the best sound in available files
+                            selected_sound = next(
+                                (f for f in sound_files if f.name == best_sound_name),
+                                None
+                            )
+                            if selected_sound:
+                                logger.info(f"Using statistically best sound: {best_sound_name}")
+                            else:
+                                # Fall back to random if best not available
+                                selected_sound = sound_player._select_random_sound(sound_files)
+                                logger.info(f"Best sound not available, using random: {selected_sound.name}")
                         else:
-                            # Fall back to random if best not available
+                            # No statistics yet, use random
                             selected_sound = sound_player._select_random_sound(sound_files)
-                            logger.info(f"Best sound not available, using random: {selected_sound.name}")
+                            logger.info(f"No statistics yet, using random: {selected_sound.name}")
                     else:
-                        # No statistics yet, use random
-                        selected_sound = sound_player._select_random_sound(sound_files)
-                        logger.info(f"No statistics yet, using random: {selected_sound.name}")
-                else:
-                    # Exploration: prefer least-tested sounds
-                    sound_names = [f.name for f in sound_files]
-                    least_tested = effectiveness_tracker.get_least_tested_sound(foe_type, sound_names)
+                        # Exploration: prefer least-tested sounds
+                        sound_names = [f.name for f in sound_files]
+                        least_tested = effectiveness_tracker.get_least_tested_sound(foe_type, sound_names)
+                        
+                        if least_tested:
+                            selected_sound = next(
+                                (f for f in sound_files if f.name == least_tested),
+                                None
+                            )
+                            if selected_sound:
+                                logger.info(f"Exploring least-tested sound: {selected_sound.name}")
+                            else:
+                                selected_sound = sound_player._select_random_sound(sound_files)
+                                logger.info(f"Fallback to random exploration: {selected_sound.name}")
+                        else:
+                            # Fallback to pure random
+                            selected_sound = sound_player._select_random_sound(sound_files)
+                            logger.info(f"Random exploration (no usage data): {selected_sound.name}")
                     
-                    if least_tested:
-                        selected_sound = next(
-                            (f for f in sound_files if f.name == least_tested),
-                            None
-                        )
-                        if selected_sound:
-                            logger.info(f"Exploring least-tested sound: {selected_sound.name}")
-                        else:
-                            selected_sound = sound_player._select_random_sound(sound_files)
-                            logger.info(f"Fallback to random exploration: {selected_sound.name}")
-                    else:
-                        # Fallback to pure random
-                        selected_sound = sound_player._select_random_sound(sound_files)
-                        logger.info(f"Random exploration (no usage data): {selected_sound.name}")
-                
-                selected_sound_file = selected_sound.name
-                camera_success = await self.camera_manager.play_sound_on_camera(camera, selected_sound)
-                
-                playback_method = None
-                if camera_success:
-                    played_sounds.append(f"camera:{selected_sound.name}")
-                    playback_method = "camera"
-                    self.detection_processor.record_deterrent_action(
-                        detection_id,
-                        f"sound_camera_{foe_type}",
-                        True,
-                        f"Played {selected_sound.name} on camera"
-                    )
-                else:
-                    # Fall back to local playback
-                    local_success = sound_player.play_sound(selected_sound)
-                    if local_success:
-                        played_sounds.append(f"local:{selected_sound.name}")
-                        playback_method = "local"
+                    selected_sound_file = selected_sound.name
+                    camera_success = await self.camera_manager.play_sound_on_camera(camera, selected_sound)
+                    
+                    playback_method = None
+                    if camera_success:
+                        played_sounds.append(f"camera:{selected_sound.name}")
+                        playback_method = "camera"
                         self.detection_processor.record_deterrent_action(
                             detection_id,
-                            f"sound_local_{foe_type}",
+                            f"sound_camera_{foe_type}",
                             True,
-                            f"Played {selected_sound.name} locally"
+                            f"Played {selected_sound.name} on camera"
                         )
+                    else:
+                        # Fall back to local playback
+                        local_success = sound_player.play_sound(selected_sound)
+                        if local_success:
+                            played_sounds.append(f"local:{selected_sound.name}")
+                            playback_method = "local"
+                            self.detection_processor.record_deterrent_action(
+                                detection_id,
+                                f"sound_local_{foe_type}",
+                                True,
+                                f"Played {selected_sound.name} locally"
+                            )
+            else:
+                # Deterrents are disabled
+                logger.info(f"Deterrents disabled - skipping sound playback for {foe_type}")
+                self.detection_processor.record_deterrent_action(
+                    detection_id,
+                    f"deterrents_disabled_{foe_type}",
+                    False,
+                    "Deterrents are disabled by user"
+                )
             
             # Wait for deterrent to take effect
             if selected_sound_file and playback_method:
@@ -255,8 +303,13 @@ class DetectionWorker:
                         f"{camera.name}_followup"
                     )
                     
-                    # Run AI detection on follow-up snapshot
-                    follow_up_result = self.detection_processor.ai_detector.detect_foes(follow_up_snapshot)
+                    # Run YOLO + species detection on follow-up snapshot
+                    follow_up_detection = await self.detection_processor.process_snapshot(camera, follow_up_snapshot)
+                    
+                    # Extract foes from the detection result
+                    follow_up_foes = []
+                    if follow_up_detection and follow_up_detection.foes:
+                        follow_up_foes = list(follow_up_detection.foes)
                     
                     # Record effectiveness
                     effectiveness_tracker.record_effectiveness(
@@ -265,15 +318,15 @@ class DetectionWorker:
                         sound_file=selected_sound_file,
                         playback_method=playback_method,
                         foes_before=initial_foes,
-                        foes_after=follow_up_result.foes if follow_up_result.foes_detected else [],
+                        foes_after=follow_up_foes,
                         follow_up_image_path=str(follow_up_path),
                         wait_duration=sound_duration  # Just the sound duration
                     )
                     
                     # Log result
-                    if not follow_up_result.foes_detected:
+                    if not follow_up_foes:
                         logger.info(f"SUCCESS: {foe_type} deterred by {selected_sound_file}!")
-                    elif len(follow_up_result.foes) < len(initial_foes):
+                    elif len(follow_up_foes) < len(initial_foes):
                         logger.info(f"PARTIAL: Reduced {foe_type} count with {selected_sound_file}")
                     else:
                         logger.warning(f"FAILURE: {selected_sound_file} did not deter {foe_type}")

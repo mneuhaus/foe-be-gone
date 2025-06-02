@@ -16,6 +16,7 @@ from sqlalchemy.orm import selectinload
 from app.core.database import get_session
 from app.core.templates import templates
 from app.core.responses import success_response, error_response
+from app.core.config import config
 from app.models.detection import Detection, Foe
 from app.models.device import Device
 from app.services.detection_worker import detection_worker
@@ -118,7 +119,6 @@ async def detections_page(
     
     # Get current detection settings
     snapshot_capture_level = 1
-    phash_threshold = 10
     
     capture_level_setting = session.get(Setting, 'snapshot_capture_level')
     if capture_level_setting:
@@ -127,19 +127,11 @@ async def detections_page(
         except ValueError:
             pass
     
-    phash_setting = session.get(Setting, 'phash_threshold')
-    if phash_setting:
-        try:
-            phash_threshold = int(phash_setting.value)
-        except ValueError:
-            pass
-    
     # Map capture levels to human-readable labels
     capture_level_labels = {
-        0: "Foe Deterred Only",
-        1: "AI Detection",
-        2: "Threshold Crossed",
-        3: "All Snapshots"
+        0: "Foe Identified",      # Only save when a foe (crow, rat, etc.) is detected
+        1: "Object Recognized",   # Save when any object/animal is detected
+        2: "All Snapshots"        # Save all snapshots regardless of detection
     }
     
     # Get timezone setting
@@ -157,7 +149,6 @@ async def detections_page(
         "current_interval": detection_worker.check_interval,
         "snapshot_capture_level": snapshot_capture_level,
         "capture_level_label": capture_level_labels.get(snapshot_capture_level, "Unknown"),
-        "phash_threshold": phash_threshold,
         "timezone": timezone
     }
     
@@ -229,20 +220,30 @@ async def set_detection_interval(
         raise HTTPException(status_code=400, detail="Interval must be between 1 and 30 seconds")
     
     # Update the detection worker interval
+    old_interval = detection_worker.check_interval
     detection_worker.check_interval = interval
+    logger.info(f"Updated detection interval from {old_interval}s to {interval}s")
+    
     # Persist interval to settings
     try:
         setting = session.get(Setting, 'detection_interval')
         if setting:
             setting.value = str(interval)
+            logger.debug(f"Updated existing detection_interval setting to {interval}")
         else:
             setting = Setting(key='detection_interval', value=str(interval))
             session.add(setting)
+            logger.debug(f"Created new detection_interval setting with value {interval}")
         session.commit()
+        logger.info(f"Successfully persisted detection interval {interval}s to database")
     except Exception as e:
         # Log and continue
-        logging.getLogger(__name__).warning(f"Failed to persist detection interval: {e}")
-    return {"interval": interval, "message": f"Detection interval updated to {interval} seconds"}
+        logger.error(f"Failed to persist detection interval: {e}")
+    return {
+        "interval": interval, 
+        "message": f"Detection interval updated to {interval} seconds",
+        "persisted": True
+    }
 
 
 @router.get("/api/sounds", summary="List available deterrent sounds", response_model=Dict[str, Dict[str, Any]])
@@ -484,6 +485,70 @@ async def serve_detection_image_with_boxes(
         return FileResponse(detection.image_path)
 
 
+@router.get("/cropped-image/{detection_id}/{crop_index}", include_in_schema=False)
+async def serve_cropped_species_image(
+    detection_id: int,
+    crop_index: int,
+    session: Session = Depends(get_session)
+):
+    """Serve cropped image used for species identification."""
+    detection = session.get(Detection, detection_id)
+    if not detection:
+        raise HTTPException(status_code=404, detail="Detection not found")
+    
+    if not detection.image_path or not Path(detection.image_path).exists():
+        raise HTTPException(status_code=404, detail="No image available for this detection")
+    
+    # Check if species results exist
+    species_results = detection.ai_response.get("species_results") if detection.ai_response else None
+    if not species_results or not species_results.get("species_identifications"):
+        raise HTTPException(status_code=404, detail="No species identification data available")
+    
+    species_identifications = species_results.get("species_identifications", [])
+    if crop_index >= len(species_identifications):
+        raise HTTPException(status_code=404, detail="Crop index out of range")
+    
+    try:
+        # Load the original image
+        image = Image.open(detection.image_path).convert('RGB')
+        
+        # Get the bounding box for this crop
+        species_data = species_identifications[crop_index]
+        bbox = species_data.get("bbox")
+        
+        if not bbox or len(bbox) != 4:
+            raise HTTPException(status_code=400, detail="Invalid bounding box data")
+        
+        # Import the cropping functionality
+        from app.utils.image_utils import crop_image_with_padding
+        from app.core.config import config
+        
+        # Crop the image with the same padding used during analysis
+        cropped_image = crop_image_with_padding(
+            image, 
+            tuple(bbox), 
+            padding_percent=config.SPECIES_CROP_PADDING
+        )
+        
+        # Convert to bytes
+        img_buffer = io.BytesIO()
+        cropped_image.save(img_buffer, format='JPEG', quality=85)
+        img_buffer.seek(0)
+        
+        return Response(
+            content=img_buffer.getvalue(),
+            media_type="image/jpeg",
+            headers={
+                "Cache-Control": "public, max-age=3600",  # Cache for 1 hour
+                "Content-Disposition": f"inline; filename=detection_{detection_id}_crop_{crop_index}.jpg"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generating cropped image: {e}")
+        raise HTTPException(status_code=500, detail="Error generating cropped image")
+
+
 @router.get("/video/{detection_id}", include_in_schema=False)
 async def serve_detection_video(detection_id: int, session: Session = Depends(get_session)):
     """Serve video file for a detection."""
@@ -627,8 +692,7 @@ async def get_detection_settings(session: Session = Depends(get_session)) -> Dic
     """
     # Default values
     settings = {
-        "capture_all_snapshots": False,
-        "phash_threshold": 10
+        "capture_all_snapshots": False
     }
     
     # Get capture_all_snapshots setting
@@ -636,13 +700,6 @@ async def get_detection_settings(session: Session = Depends(get_session)) -> Dic
     if capture_all:
         settings["capture_all_snapshots"] = capture_all.value.lower() == 'true'
     
-    # Get phash_threshold setting
-    phash = session.get(Setting, 'phash_threshold')
-    if phash:
-        try:
-            settings["phash_threshold"] = int(phash.value)
-        except ValueError:
-            pass
     
     return settings
 
@@ -654,12 +711,9 @@ class CaptureAllUpdate(BaseModel):
 
 class CaptureLevelUpdate(BaseModel):
     """Request model for updating snapshot capture level."""
-    level: int = Field(ge=0, le=3, description="Capture level (0-3)")
+    level: int = Field(ge=0, le=2, description="Capture level (0-2)")
 
 
-class PhashThresholdUpdate(BaseModel):
-    """Request model for updating phash threshold."""
-    threshold: int = Field(ge=1, le=30, description="Phash threshold (1-30)")
 
 
 @router.post("/api/settings/capture-all", summary="Set capture all snapshots setting", response_model=Dict[str, Any])
@@ -689,34 +743,6 @@ async def set_capture_all_snapshots(
     return success_response(f"Capture all snapshots {'enabled' if enabled else 'disabled'}")
 
 
-@router.post("/api/settings/phash-threshold", summary="Set phash threshold", response_model=Dict[str, Any])
-async def set_phash_threshold(
-    update: PhashThresholdUpdate,
-    session: Session = Depends(get_session)
-) -> Dict[str, Any]:
-    """Set the perceptual hash threshold for change detection.
-    
-    Args:
-        update: PhashThresholdUpdate request body
-        session: Database session
-        
-    Returns:
-        Dict with success status
-    """
-    threshold = update.threshold
-    if not 1 <= threshold <= 30:
-        raise HTTPException(status_code=400, detail="Threshold must be between 1 and 30")
-    
-    setting = session.get(Setting, 'phash_threshold')
-    if setting:
-        setting.value = str(threshold)
-    else:
-        setting = Setting(key='phash_threshold', value=str(threshold))
-        session.add(setting)
-    
-    session.commit()
-    
-    return success_response(f"Change threshold set to {threshold}")
 
 
 @router.post("/api/settings/capture-level", summary="Set snapshot capture level", response_model=Dict[str, Any])
@@ -735,10 +761,9 @@ async def set_capture_level(
     """
     level = update.level
     level_names = {
-        0: "Foe Deterred Only",
-        1: "AI Detection",
-        2: "Threshold Crossed",
-        3: "All Snapshots"
+        0: "Foe Identified",
+        1: "Object Recognized",
+        2: "All Snapshots"
     }
     
     setting = session.get(Setting, 'snapshot_capture_level')
@@ -751,3 +776,32 @@ async def set_capture_level(
     session.commit()
     
     return success_response(f"Capture level set to: {level_names.get(level, 'Unknown')}")
+
+
+@router.get("/api/species-detector/health", summary="Get species detector health status")
+async def get_species_detector_health(session: Session = Depends(get_session)) -> Dict[str, Any]:
+    """Get health status of the species identification system.
+    
+    Returns:
+        Dict containing health status and configuration
+    """
+    try:
+        species_detector = QwenSpeciesDetector(session=session)
+        health_status = species_detector.health_check()
+        
+        return {
+            "status": "healthy" if health_status["model_loaded"] else "degraded",
+            "details": health_status,
+            "enabled": config.SPECIES_IDENTIFICATION_ENABLED,
+            "model_type": "local",
+            "crop_padding": config.SPECIES_CROP_PADDING
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "enabled": config.SPECIES_IDENTIFICATION_ENABLED,
+            "model": config.SPECIES_MODEL,
+            "crop_padding": config.SPECIES_CROP_PADDING
+        }

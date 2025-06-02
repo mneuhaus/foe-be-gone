@@ -169,42 +169,19 @@
                                 type="range" 
                                 id="snapshot-capture-level" 
                                 min="0" 
-                                max="3" 
+                                max="2" 
                                 value="{{ snapshot_capture_level }}"
                                 class="range range-primary" 
                                 step="1"
                                 onchange="updateSnapshotCaptureLevel(this.value)"
                             >
                             <div class="w-full flex justify-between text-xs px-2">
-                                <span>{{ t('detections.foe_deterred', request)|replace(' ', '<br>')|safe }}</span>
-                                <span>{{ t('detections.ai_detection', request)|replace(' ', '<br>')|safe }}</span>
-                                <span>{{ t('detections.threshold_crossed', request)|replace(' ', '<br>')|safe }}</span>
+                                <span>{{ t('detections.foe_identified', request)|replace(' ', '<br>')|safe }}</span>
+                                <span>{{ t('detections.object_recognized', request)|replace(' ', '<br>')|safe }}</span>
                                 <span>{{ t('detections.all_snapshots', request)|replace(' ', '<br>')|safe }}</span>
                             </div>
                         </div>
                         
-                        <!-- Change Detection Threshold -->
-                        <div class="space-y-2">
-                            <div class="flex items-center gap-2">
-                                <span class="font-medium text-sm">{{ t('detections.change_detection_sensitivity_label', request) }}</span>
-                                <span id="phash-display" class="badge badge-secondary badge-sm">{{ phash_threshold }}</span>
-                            </div>
-                            
-                            <input 
-                                type="range" 
-                                id="phash-slider" 
-                                min="1" 
-                                max="30" 
-                                value="{{ phash_threshold }}" 
-                                class="range range-secondary range-sm"
-                                oninput="updatePhashThreshold(this.value)"
-                            >
-                            <div class="flex justify-between text-xs text-base-content/60 px-2">
-                                <span>{{ t('detections.very_sensitive', request) }}</span>
-                                <span>{{ t('detections.normal', request) }}</span>
-                                <span>{{ t('detections.less_sensitive', request) }}</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -573,7 +550,6 @@ async function updateInterval(value) {
     // Update UI immediately
     document.getElementById('interval-display').textContent = value + 's';
     document.getElementById('interval-status').textContent = `{{ t('detections.current_every', request, seconds='') }}`.replace('{seconds}', value);
-    document.getElementById('worker-interval').textContent = value;
     
     // Debounce API calls
     clearTimeout(updateTimeout);
@@ -611,10 +587,9 @@ async function updateInterval(value) {
 
 async function updateSnapshotCaptureLevel(level) {
     const levelLabels = {
-        '0': '{{ t('detections.foe_deterred_only', request) }}',
-        '1': '{{ t('detections.ai_detection_level', request) }}',
-        '2': '{{ t('detections.threshold_crossed_level', request) }}',
-        '3': '{{ t('detections.all_snapshots_level', request) }}'
+        '0': '{{ t('detections.foe_identified_level', request) }}',
+        '1': '{{ t('detections.object_recognized_level', request) }}',
+        '2': '{{ t('detections.all_snapshots_level', request) }}'
     };
     
     try {
@@ -645,36 +620,6 @@ async function updateSnapshotCaptureLevel(level) {
     }
 }
 
-let phashUpdateTimeout;
-async function updatePhashThreshold(value) {
-    // Update UI immediately
-    document.getElementById('phash-display').textContent = value;
-    
-    // Debounce API calls
-    clearTimeout(phashUpdateTimeout);
-    
-    phashUpdateTimeout = setTimeout(async () => {
-        try {
-            const response = await fetch(apiUrl('/detections/api/settings/phash-threshold'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ threshold: parseInt(value) })
-            });
-            
-            if (response.ok) {
-                const result = await response.json();
-                console.log('Phash threshold updated:', result.message);
-                
-                // Show notification
-                showNotification(result.message, 'success');
-            } else {
-                console.error('Failed to update phash threshold');
-            }
-        } catch (error) {
-            console.error('Error updating phash threshold:', error);
-        }
-    }, 500);
-}
 
 let currentDetectionId = null;
 let detectionIds = [];
@@ -768,6 +713,90 @@ function showDetectionModal(detectionId) {
                 </div>
             </div>` : ''}
             
+            <!-- Species Identification Results (If Available) -->
+            ${detection.ai_response && detection.ai_response.species_results ? `
+            <div>
+                <h4 class="text-lg font-bold mb-4">🔬 {{ t('common.species_identification', request) }}</h4>
+                <div class="bg-gradient-to-r from-info/5 to-primary/5 rounded-lg border border-info/20">
+                    ${detection.ai_response.species_results.species_identifications && detection.ai_response.species_results.species_identifications.length > 0 ? 
+                        detection.ai_response.species_results.species_identifications.map((speciesData, index) => `
+                        <div class="p-4 ${index > 0 ? 'border-t border-info/10' : ''}">
+                            <!-- Cropped Image -->
+                            <div class="flex flex-col lg:flex-row gap-4 mb-4">
+                                <div class="lg:w-1/3">
+                                    <div class="bg-base-100 rounded-lg p-2 border">
+                                        <div class="text-xs text-base-content/60 mb-2">{{ t('common.cropped_analysis_region', request) }}:</div>
+                                        <div class="relative bg-base-200 rounded aspect-square overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                                             onclick="openImageModal('${getBaseUrl()}/detections/cropped-image/${detection.id}/${index}')">
+                                            <img 
+                                                src="${getBaseUrl()}/detections/cropped-image/${detection.id}/${index}" 
+                                                alt="Cropped analysis region ${index + 1}"
+                                                class="w-full h-full object-cover"
+                                                loading="lazy"
+                                                onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\"text-center text-base-content/50 p-4\\"><svg class=\\"w-8 h-8 mx-auto mb-2\\" fill=\\"none\\" viewBox=\\"0 0 24 24\\" stroke=\\"currentColor\\"><path stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\" stroke-width=\\"2\\" d=\\"M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z\\" /></svg><div class=\\"text-xs\\">Error loading crop</div></div>';"
+                                            />
+                                            <!-- Overlay with crop dimensions -->
+                                            <div class="absolute bottom-1 right-1 bg-black/60 text-white text-xs px-1 py-0.5 rounded">
+                                                ${speciesData.bbox ? 
+                                                    Math.round(speciesData.bbox[2] - speciesData.bbox[0]) + '×' + 
+                                                    Math.round(speciesData.bbox[3] - speciesData.bbox[1]) : 'N/A'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Species Information -->
+                                <div class="lg:w-2/3">
+                                    ${speciesData.species_result.identifications && speciesData.species_result.identifications.length > 0 ?
+                                        speciesData.species_result.identifications.map(id => `
+                                        <div class="space-y-3">
+                                            <div class="flex items-center justify-between">
+                                                <div>
+                                                    <div class="font-bold text-lg">${id.species}</div>
+                                                    <div class="text-base-content/70">${id.common_name}</div>
+                                                </div>
+                                                <div class="text-right">
+                                                    <div class="badge badge-primary badge-lg">${(id.confidence * 100).toFixed(0)}%</div>
+                                                    ${id.foe_type ? `<div class="badge ${getFoeBadgeClass(id.foe_type)} badge-sm mt-1">${id.foe_type}</div>` : ''}
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="bg-base-100/50 rounded-lg p-3">
+                                                <div class="text-sm font-medium mb-1">{{ t('common.identifying_features', request) }}:</div>
+                                                <div class="text-sm text-base-content/80">${id.description}</div>
+                                            </div>
+                                            
+                                            <details class="collapse collapse-arrow bg-base-100/30">
+                                                <summary class="collapse-title text-sm font-medium py-2">{{ t('common.analysis_reasoning', request) }}</summary>
+                                                <div class="collapse-content text-sm text-base-content/80">
+                                                    ${id.reasoning}
+                                                </div>
+                                            </details>
+                                        </div>
+                                        `).join('') : 
+                                        `<div class="text-center text-base-content/50 py-4">
+                                            ${speciesData.species_result.scene_description.includes('No API key') ? 
+                                                '<div class="alert alert-warning"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" /></svg><span>Species identification requires API key configuration</span></div>' : 
+                                                'No species identified'
+                                            }
+                                        </div>`
+                                    }
+                                </div>
+                            </div>
+                            
+                            <!-- Analysis Metadata -->
+                            <div class="flex flex-wrap gap-4 text-xs text-base-content/60 pt-2 border-t border-info/10">
+                                <span>Scene: ${speciesData.species_result.scene_description}</span>
+                                ${speciesData.species_result.cost ? `<span>Cost: $${speciesData.species_result.cost.toFixed(6)}</span>` : ''}
+                                <span>Model: ${detection.ai_response.performance_metrics?.species_identification_enabled ? 'Qwen2.5-VL-3B' : 'N/A'}</span>
+                            </div>
+                        </div>
+                        `).join('') : 
+                        '<div class="p-4 text-center text-base-content/50">No species identifications available</div>'
+                    }
+                </div>
+            </div>` : ''}
+            
             <!-- Technical Details (Collapsed by Default) -->
             <details class="collapse collapse-arrow bg-base-200">
                 <summary class="collapse-title font-medium">{{ t('common.technical_details', request) }}</summary>
@@ -781,16 +810,25 @@ function showDetectionModal(detectionId) {
                             <span class="font-medium">{{ t('common.status', request) }}:</span>
                             <span class="badge badge-xs ${getStatusBadgeClass(detection.status)} ml-2">${detection.status}</span>
                         </div>
-                        ${detection.ai_response && detection.ai_response.hash_distance !== null ? `
-                        <div>
-                            <span class="font-medium">{{ t('common.change_level', request) }}:</span>
-                            <span class="ml-2">${detection.ai_response.hash_distance}</span>
-                        </div>` : ''}
                         ${detection.ai_cost_usd ? `
                         <div>
                             <span class="font-medium">{{ t('common.ai_cost', request) }}:</span>
                             <span class="ml-2 font-mono">$${detection.ai_cost_usd.toFixed(4)}</span>
                         </div>` : ''}
+                        ${detection.ai_response && detection.ai_response.species_results ? `
+                        <div>
+                            <span class="font-medium">Species ID Enabled:</span>
+                            <span class="ml-2">${detection.ai_response.performance_metrics?.species_identification_enabled ? 'Yes' : 'No'}</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">Species Identifications:</span>
+                            <span class="ml-2">${detection.ai_response.species_results.identifications_count || 0}</span>
+                        </div>
+                        ${detection.ai_response.species_results.total_cost ? `
+                        <div>
+                            <span class="font-medium">Species ID Cost:</span>
+                            <span class="ml-2 font-mono">$${detection.ai_response.species_results.total_cost.toFixed(6)}</span>
+                        </div>` : ''}` : ''}
                     </div>
                 </div>
             </details>
@@ -1063,7 +1101,6 @@ function updateDetectionCount() {
 // Function to create detection card HTML
 function createDetectionCard(detection) {
     const foeTypes = detection.foes.map(foe => foe.foe_type);
-    const hashDistance = detection.ai_response?.hash_distance;
     
     return `
         <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all duration-300 border border-base-300/50 hover:border-primary/20 overflow-hidden">
@@ -1136,11 +1173,6 @@ function createDetectionCard(detection) {
                     </svg>
                     <div class="text-xs text-base-content/70">
                         <div>${new Date(detection.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${new Date(detection.timestamp).toLocaleTimeString('en-US', { hour12: false })}</div>
-                        ${hashDistance !== null && hashDistance !== undefined ? `
-                        <div class="text-base-content/50">
-                            Change score: ${hashDistance}
-                        </div>
-                        ` : ''}
                     </div>
                 </div>
                 

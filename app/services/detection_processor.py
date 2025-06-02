@@ -8,14 +8,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-import imagehash
 from PIL import Image
 from sqlmodel import Session, select
 
 from app.models.device import Device
 from app.models.detection import Detection, Foe, DetectionStatus, DeterrentAction, FoeType
 from app.models.setting import Setting
-from app.services.ai_detector import AIDetector
 from app.services.yolo_detector import YOLOv11DetectionService, YOLODetection
 from app.core.session import get_db_session, safe_commit
 from app.core.config import config
@@ -26,18 +24,18 @@ logger = logging.getLogger(__name__)
 class DetectionProcessor:
     """Processes camera snapshots to detect foes and manage detection records."""
     
-    def __init__(self, change_threshold: int = 10, use_yolo: Optional[bool] = None):
+    def __init__(self, use_yolo: Optional[bool] = None):
         """
         Initialize the detection processor.
         
         Args:
-            change_threshold: Hamming distance threshold for significant image changes
             use_yolo: Whether to use YOLO for initial animal detection (None = use config)
         """
-        self.change_threshold = change_threshold
         self.use_yolo = use_yolo if use_yolo is not None else config.YOLO_ENABLED
         self.yolo_confidence_threshold = config.YOLO_CONFIDENCE_THRESHOLD
         self.yolo_detector = None
+        self.species_detector = None
+        self._ollama_detector = None  # Keep reference for cleanup
         
         # Initialize YOLO detector if enabled
         if self.use_yolo:
@@ -48,44 +46,31 @@ class DetectionProcessor:
                 logger.error(f"Failed to initialize YOLO detector: {e}")
                 self.use_yolo = False
         
-    def calculate_image_hash(self, image_data: bytes) -> str:
-        """Calculate perceptual hash of image data."""
-        try:
-            image = Image.open(io.BytesIO(image_data))
-            # Use average hash for good balance of speed and accuracy
-            hash_value = imagehash.average_hash(image)
-            return str(hash_value)
-        except Exception as e:
-            logger.error(f"Error calculating image hash: {e}")
-            return ""
-    
-    def has_significant_change(self, current_hash: str, previous_hash: Optional[str]) -> bool:
-        """Check if image has changed significantly from previous."""
-        if not previous_hash or not current_hash:
-            return True
-            
-        try:
-            # Get threshold from settings
-            threshold = self.change_threshold
-            with get_db_session() as session:
-                phash_setting = session.get(Setting, 'phash_threshold')
-                if phash_setting:
-                    try:
-                        threshold = int(phash_setting.value)
-                    except ValueError:
-                        pass
-            
-            hash1 = imagehash.hex_to_hash(current_hash)
-            hash2 = imagehash.hex_to_hash(previous_hash)
-            distance = hash1 - hash2
-            
-            logger.debug(f"Image hash distance: {distance} (threshold: {threshold})")
-            return distance >= threshold
-            
-        except Exception as e:
-            logger.error(f"Error comparing image hashes: {e}")
-            return True
-    
+        # Initialize species detector if enabled
+        self.use_species_identification = config.SPECIES_IDENTIFICATION_ENABLED
+        if self.use_species_identification:
+            try:
+                if config.SPECIES_IDENTIFICATION_PROVIDER == "ollama":
+                    from app.services.ollama_species_detector import OllamaSpeciesDetector
+                    self._ollama_detector = OllamaSpeciesDetector(
+                        model=config.OLLAMA_MODEL,
+                        ollama_host=config.OLLAMA_HOST
+                    )
+                    self.species_detector = self._ollama_detector
+                    logger.info(f"Ollama species detector initialized with model: {config.OLLAMA_MODEL}")
+                else:
+                    # Use Qwen detector - import only when needed
+                    from app.services.qwen_species_detector import QwenSpeciesDetector
+                    self.species_detector = QwenSpeciesDetector()
+                    logger.info("Qwen species detector initialized successfully")
+            except Exception as e:
+                logger.warning(f"Failed to initialize species detector ({config.SPECIES_IDENTIFICATION_PROVIDER}): {e}")
+                self.species_detector = None
+                self.use_species_identification = False
+        else:
+            self.species_detector = None
+            logger.info("Species identification disabled via config")
+        
     def save_snapshot(self, image_data: bytes, camera_name: str) -> Path:
         """Save snapshot image to disk."""
         # Create snapshots directory if needed
@@ -119,8 +104,8 @@ class DetectionProcessor:
             # Convert bytes to PIL Image
             image = Image.open(io.BytesIO(image_data))
             
-            # Get YOLO detections with configured confidence threshold
-            detections, foe_classifications = self.yolo_detector.get_all_detections_with_foe_classification(
+            # Get YOLO detections (animals only) with configured confidence threshold
+            detections = self.yolo_detector.detect_animals(
                 image, 
                 confidence_threshold=self.yolo_confidence_threshold
             )
@@ -132,219 +117,181 @@ class DetectionProcessor:
                     "class_name": det.class_name,
                     "confidence": det.confidence,
                     "bbox": det.bbox,
-                    "category": det.category,
-                    "is_foe": any(det in foe_list for foe_list in foe_classifications.values())
+                    "category": det.category
                 })
             
             return {
                 "detections": detection_data,
-                "foe_classifications": {
-                    foe_type: [{"class_name": d.class_name, "confidence": d.confidence} 
-                              for d in dets]
-                    for foe_type, dets in foe_classifications.items()
-                },
-                "total_animals": len(detections),
-                "total_foes": sum(len(dets) for dets in foe_classifications.values())
+                "foe_classifications": {},  # No longer done by YOLO
+                "total_animals": len(detections),  # All detections are animals
+                "total_foes": 0  # Will be determined by species ID
             }
             
         except Exception as e:
             logger.error(f"Error running YOLO detection: {e}")
             return {"detections": [], "foe_classifications": {}, "error": str(e)}
     
+    async def run_species_identification(self, image_data: bytes, yolo_results: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Run species identification on detected objects using Qwen2.5-VL.
+        
+        Args:
+            image_data: Raw image bytes
+            yolo_results: Results from YOLO detection
+            
+        Returns:
+            Dict containing species identification results
+        """
+        if not self.species_detector or not yolo_results.get("detections"):
+            return {"species_identifications": [], "total_cost": 0.0}
+        
+        try:
+            # Convert bytes to PIL Image
+            image = Image.open(io.BytesIO(image_data))
+            
+            species_results = []
+            total_cost = 0.0
+            
+            # Identify species for each detected object
+            for detection in yolo_results["detections"]:
+                bbox = detection.get("bbox")
+                if not bbox or len(bbox) != 4:
+                    continue
+                
+                try:
+                    # Run species identification on cropped region
+                    species_result = await self.species_detector.identify_species(
+                        image, 
+                        tuple(bbox)  # Convert to tuple (x1, y1, x2, y2)
+                    )
+                    
+                    # Add detection context
+                    result_dict = {
+                        "original_detection": detection,
+                        "species_result": species_result.model_dump(),
+                        "bbox": bbox
+                    }
+                    
+                    species_results.append(result_dict)
+                    
+                    if species_result.cost:
+                        total_cost += species_result.cost
+                    
+                    # Log the identification
+                    if species_result.identifications:
+                        species_id = species_result.identifications[0]
+                        logger.info(f"Species identified: {species_id.species} "
+                                  f"(foe_type: {species_id.foe_type}, "
+                                  f"confidence: {species_id.confidence:.2f})")
+                
+                except Exception as e:
+                    logger.error(f"Error identifying species for detection: {e}")
+                    continue
+            
+            return {
+                "species_identifications": species_results,
+                "total_cost": total_cost,
+                "identifications_count": len(species_results)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error during species identification: {e}")
+            return {"species_identifications": [], "total_cost": 0.0, "error": str(e)}
+    
     async def process_snapshot(self, camera: Device, image_data: bytes) -> Optional[Detection]:
         """
-        Process a camera snapshot to detect foes.
+        Process a camera snapshot using YOLO + Ollama species identification.
+        
+        Uses YOLO for fast animal detection, then Ollama for species identification
+        to determine if detected animals are foes. No OpenAI API calls are made.
         
         Args:
             camera: Camera device that captured the image
             image_data: Raw image bytes
             
         Returns:
-            Detection record if foes were found, None otherwise
+            Detection record if snapshot should be saved based on capture level, None otherwise
         """
         # Get settings from database
         snapshot_capture_level = 1  # Default: AI Detection
-        phash_threshold = self.change_threshold
         
         with get_db_session() as session:
-            # Get snapshot capture level (0=Foe Deterred, 1=AI Detection, 2=Threshold Crossed, 3=All)
+            # Get snapshot capture level (0=Foe Deterred, 1=AI Detection, 2=All Snapshots)
             capture_level_setting = session.get(Setting, 'snapshot_capture_level')
             if capture_level_setting:
                 try:
                     snapshot_capture_level = int(capture_level_setting.value)
                 except ValueError:
                     pass
-            
-            # Get phash threshold
-            phash_setting = session.get(Setting, 'phash_threshold')
-            if phash_setting:
-                try:
-                    phash_threshold = int(phash_setting.value)
-                except ValueError:
-                    pass
-        
-        # Calculate image hash
-        current_hash = self.calculate_image_hash(image_data)
-        
-        # Check if image has changed significantly
-        if camera.last_image_hash and current_hash:
-            try:
-                hash1 = imagehash.hex_to_hash(current_hash)
-                hash2 = imagehash.hex_to_hash(camera.last_image_hash)
-                hash_distance = hash1 - hash2
-                logger.info(f"Image change detected in {camera.name}: hash distance = {hash_distance} (threshold = {phash_threshold})")
-            except Exception as e:
-                logger.error(f"Error calculating hash distance: {e}")
-                hash_distance = None
-        else:
-            hash_distance = None
-            logger.info(f"No previous hash for {camera.name}, processing snapshot")
-        
-        # Check if there's significant change
-        has_change = self.has_significant_change(current_hash, camera.last_image_hash)
-        
-        # Determine if we should skip based on capture level
-        # Level 3 (All) - Always capture
-        # Level 2 (Threshold Crossed) - Capture if threshold crossed
-        # Level 1 (AI Detection) - Default, process with AI
-        # Level 0 (Foe Deterred) - Only capture if foe is deterred
-        
-        if not has_change and snapshot_capture_level < 3:
-            logger.debug(f"No significant change in {camera.name}, skipping detection")
-            return None
-        
-        # Update camera's last image hash
-        with get_db_session() as session:
-            camera_db = session.get(Device, camera.id)
-            if camera_db:
-                camera_db.last_image_hash = current_hash
-                safe_commit(session)
         
         # Save snapshot
         image_path = self.save_snapshot(image_data, camera.name)
         
-        # Determine if we should run AI detection based on capture level and change
-        should_run_ai = False
-        should_save_snapshot = False
-        
-        if snapshot_capture_level == 3:  # All snapshots
-            should_save_snapshot = True
-            should_run_ai = has_change
-        elif snapshot_capture_level == 2:  # Threshold crossed
-            should_save_snapshot = has_change
-            should_run_ai = has_change
-        elif snapshot_capture_level == 1:  # AI detection (default)
-            should_run_ai = has_change
-            # We'll only save if AI detects something
-        elif snapshot_capture_level == 0:  # Foe deterred only
-            should_run_ai = has_change
-            # We'll only save if foe is deterred
-        
         # Run YOLO detection first if enabled
         yolo_results = None
-        yolo_foes_detected = False
-        if should_run_ai and self.use_yolo:
-            logger.info(f"Running YOLO detection for {camera.name}")
+        species_results = None
+        animals_detected = False
+        foes_detected = False
+        total_ai_cost = 0.0
+        
+        if self.use_yolo:
+            logger.info(f"Running YOLO animal detection for {camera.name}")
             yolo_results = self.run_yolo_detection(image_data)
+            animals_detected = yolo_results.get("total_animals", 0) > 0
             
-            # Check if YOLO detected any foes
-            if yolo_results.get("foe_classifications"):
-                yolo_foes_detected = True
-                logger.info(f"YOLO detected foes in {camera.name}: {list(yolo_results['foe_classifications'].keys())}")
-                should_run_ai = False  # Skip OpenAI if YOLO found foes
-            elif yolo_results.get("total_animals", 0) == 0:
-                logger.info(f"YOLO found no animals in {camera.name}, skipping AI detection")
-                should_run_ai = False
+            # Run species identification on detected animals
+            if yolo_results.get("detections") and self.species_detector:
+                logger.info(f"Running species identification for {len(yolo_results['detections'])} detected animals in {camera.name}")
+                species_results = await self.run_species_identification(image_data, yolo_results)
+                total_ai_cost += species_results.get("total_cost", 0.0)
+                
+                # Check if species identification found any foes
+                for species_data in species_results.get("species_identifications", []):
+                    species_result = species_data.get("species_result", {})
+                    for identification in species_result.get("identifications", []):
+                        if identification.get("foe_type"):
+                            foes_detected = True
+                            break
+                    if foes_detected:
+                        break
+                
+                if foes_detected:
+                    logger.info(f"Species identification found foes in {camera.name}")
+                elif animals_detected:
+                    logger.info(f"YOLO found {yolo_results.get('total_animals', 0)} animals in {camera.name}, but no foes identified by species detector")
+            elif animals_detected:
+                logger.info(f"YOLO found {yolo_results.get('total_animals', 0)} animals in {camera.name}, but no species detector available")
+            else:
+                logger.info(f"YOLO found no animals in {camera.name}")
         
-        # Run AI detection if needed (only if YOLO didn't find foes)
-        if should_run_ai and not yolo_foes_detected:
-            logger.info(f"Running AI detection for {camera.name} (change threshold exceeded)")
-            try:
-                with get_db_session() as ai_session:
-                    ai_detector = AIDetector(session=ai_session)
-                    result = await ai_detector.detect_foes(image_data)
-                
-                # Check if we should save based on capture level
-                if result.foes_detected:
-                    # Foes detected - save at all levels
-                    should_save_snapshot = True
-                elif snapshot_capture_level == 1:
-                    # AI Detection level - don't save if no foes
-                    should_save_snapshot = False
-                elif snapshot_capture_level == 0:
-                    # Foe Deterred level - only save if deterrent was activated
-                    # (This would need to be implemented with deterrent tracking)
-                    should_save_snapshot = False
-                
-                if should_save_snapshot and result.foes_detected:
-                    # Create detection record with foes
-                    with get_db_session() as session:
-                        detection = Detection(
-                            device_id=camera.id,
-                            image_path=str(image_path),
-                            timestamp=datetime.utcnow(),
-                            status=DetectionStatus.PROCESSED,
-                            ai_response={
-                                "scene_description": result.scene_description,
-                                "hash_distance": hash_distance,
-                                "phash_threshold": phash_threshold,
-                                "yolo_results": yolo_results,
-                                "performance_metrics": {
-                                    "yolo_enabled": self.use_yolo,
-                                    "yolo_threshold": self.yolo_confidence_threshold if self.use_yolo else None
-                                }
-                            },
-                            processed_at=datetime.utcnow(),
-                            ai_cost=result.cost
-                        )
-                        
-                        # Add detected foes
-                        for detected_foe in result.foes:
-                            # Normalize foe type to uppercase string
-                            foe_type_str = detected_foe.foe_type.upper()
-                            # Validate it's a known type
-                            if foe_type_str not in ["RATS", "CROWS", "CATS", "HERONS", "PIGEONS", "UNKNOWN"]:
-                                foe_type_str = "UNKNOWN"
-                            
-                            foe = Foe(
-                                detection=detection,
-                                foe_type=foe_type_str,  # Store as string
-                                confidence=detected_foe.confidence,
-                                bounding_box=detected_foe.bounding_box,
-                                description=detected_foe.description
-                            )
-                            detection.foes.append(foe)
-                        
-                        session.add(detection)
-                        safe_commit(session)
-                        
-                        logger.info(
-                            f"Created detection for {camera.name}: "
-                            f"{len(detection.foes)} foe(s) detected"
-                        )
-                        
-                        return detection
+        # Determine if we should save this snapshot based on capture level and what we found
+        should_save_snapshot = False
+        
+        if snapshot_capture_level == 2:  # All snapshots
+            should_save_snapshot = True
+            logger.info(f"Saving snapshot for {camera.name} (capture level: all snapshots)")
+        elif snapshot_capture_level == 1:  # Object recognized
+            should_save_snapshot = animals_detected
+            if should_save_snapshot:
+                logger.info(f"Saving snapshot for {camera.name} (capture level: object recognized, animals detected)")
+        elif snapshot_capture_level == 0:  # Foe identified only
+            should_save_snapshot = foes_detected
+            if should_save_snapshot:
+                logger.info(f"Saving snapshot for {camera.name} (capture level: foe identified, foes detected)")
+        
+        # Save detection if we should
+        if should_save_snapshot:
+            # Create appropriate scene description
+            if foes_detected:
+                scene_description = f"YOLO detected {yolo_results.get('total_animals', 0)} animal(s), species identification found foes"
+            elif animals_detected:
+                if self.species_detector:
+                    scene_description = f"YOLO detected {yolo_results.get('total_animals', 0)} animal(s), species identification found no foes"
                 else:
-                    logger.info(f"No foes detected in {camera.name}, not saving (capture level: {snapshot_capture_level})")
-                    # Delete the saved image since we're not keeping it
-                    try:
-                        os.remove(image_path)
-                    except Exception:
-                        pass
-                    return None
-                    
-            except Exception as e:
-                logger.error(f"Error processing detection for {camera.name}: {e}")
-                # Delete the saved image on error
-                try:
-                    os.remove(image_path)
-                except Exception:
-                    pass
-                return None
-        
-        # Handle YOLO-only detection with foes
-        elif yolo_foes_detected:
-            logger.info(f"Creating detection from YOLO results for {camera.name}")
+                    scene_description = f"YOLO detected {yolo_results.get('total_animals', 0)} animal(s), no species identification available"
+            else:
+                scene_description = f"Snapshot saved without animal detection (capture level: {snapshot_capture_level})"
+            
             with get_db_session() as session:
                 detection = Detection(
                     device_id=camera.id,
@@ -352,117 +299,75 @@ class DetectionProcessor:
                     timestamp=datetime.utcnow(),
                     status=DetectionStatus.PROCESSED,
                     ai_response={
-                        "scene_description": "YOLO detection - OpenAI skipped",
-                        "hash_distance": hash_distance,
-                        "phash_threshold": phash_threshold,
+                        "scene_description": scene_description,
                         "yolo_results": yolo_results,
-                        "yolo_only": True
+                        "species_results": species_results,
+                        "yolo_only": True,  # No OpenAI used
+                        "performance_metrics": {
+                            "yolo_enabled": self.use_yolo,
+                            "yolo_threshold": self.yolo_confidence_threshold if self.use_yolo else None,
+                            "species_identification_enabled": bool(self.species_detector)
+                        }
                     },
                     processed_at=datetime.utcnow(),
-                    ai_cost=0.0  # No OpenAI cost
+                    ai_cost=total_ai_cost  # Only Ollama costs, no OpenAI
                 )
                 session.add(detection)
                 session.flush()  # Flush to get the detection ID
                 
-                # Add foes from YOLO results
-                for animal_type, detections_list in yolo_results.get("foe_classifications", {}).items():
-                    # Map animal types to foe types
-                    foe_type = self.map_yolo_to_foe_type(animal_type)
-                    if foe_type and detections_list:
-                        # Get the highest confidence detection for this foe type
-                        best_detection = max(detections_list, key=lambda d: d.get("confidence", 0))
-                        confidence = best_detection.get("confidence", 0.0)
+                # Add foes from species identification results if any
+                if foes_detected and species_results:
+                    for species_data in species_results.get("species_identifications", []):
+                        species_result = species_data.get("species_result", {})
+                        bbox = species_data.get("bbox", [])
                         
-                        foe = Foe(
-                            foe_type=foe_type,
-                            confidence=confidence,
-                            bounding_box={},  # YOLO bbox format is different, would need conversion
-                            detection_id=detection.id
-                        )
-                        session.add(foe)
-                        logger.info(f"Added {foe_type} foe with confidence {confidence:.2f}")
+                        for identification in species_result.get("identifications", []):
+                            foe_type = identification.get("foe_type")
+                            if foe_type:
+                                # Convert bbox format if available
+                                bounding_box = {}
+                                if len(bbox) == 4:
+                                    bounding_box = {
+                                        "x": bbox[0],
+                                        "y": bbox[1], 
+                                        "width": bbox[2] - bbox[0],
+                                        "height": bbox[3] - bbox[1]
+                                    }
+                                
+                                foe = Foe(
+                                    foe_type=foe_type,
+                                    confidence=identification.get("confidence", 0.0),
+                                    bounding_box=bounding_box,
+                                    detection_id=detection.id,
+                                    description=f"Species: {identification.get('species', 'Unknown')} - {identification.get('description', '')}"
+                                )
+                                session.add(foe)
+                                logger.info(f"Added species ID {foe_type} foe: {identification.get('species')} "
+                                          f"(confidence: {identification.get('confidence', 0.0):.2f})")
                 
                 safe_commit(session)
                 
-                logger.info(f"Created YOLO-only detection for {camera.name} with {len(detection.foes)} foe(s)")
+                if foes_detected:
+                    logger.info(f"Created detection for {camera.name} with {len(detection.foes)} foe(s), "
+                              f"cost: ${total_ai_cost:.6f}")
+                else:
+                    logger.info(f"Created detection for {camera.name} with no foes (animals detected: {animals_detected})")
                 
                 return detection
         
-        # No AI detection needed but might still save snapshot
-        elif should_save_snapshot or (yolo_results and yolo_results.get("total_animals", 0) == 0):
-            # Save snapshot if required by capture level or if YOLO found no animals
-            logger.info(f"Saving snapshot for {camera.name} without AI detection (capture level: {snapshot_capture_level})")
-            with get_db_session() as session:
-                detection = Detection(
-                    device_id=camera.id,
-                    image_path=str(image_path),
-                    timestamp=datetime.utcnow(),
-                    status=DetectionStatus.PROCESSED,
-                    ai_response={
-                        "scene_description": f"Snapshot saved without AI analysis (capture level: {snapshot_capture_level})",
-                        "hash_distance": hash_distance,
-                        "phash_threshold": phash_threshold,
-                        "skipped_ai": True,
-                        "yolo_results": yolo_results
-                    },
-                    processed_at=datetime.utcnow(),
-                    ai_cost=0.0  # No AI cost
-                )
-                session.add(detection)
-                safe_commit(session)
-                logger.info(f"Saved snapshot for {camera.name} without AI analysis")
-                return detection
+        # If we reach here, we're not saving the snapshot
+        if animals_detected:
+            
+            logger.info(f"Not saving snapshot for {camera.name} - animals detected but capture level requires foes (level: {snapshot_capture_level})")
         else:
-            logger.debug(f"Not saving snapshot for {camera.name} (capture level: {snapshot_capture_level}, has_change: {has_change})")
-            # Delete the saved image since we're not keeping it
-            try:
-                os.remove(image_path)
-            except Exception:
-                pass
-            return None
-    
-    def map_yolo_to_foe_type(self, animal_type: str) -> Optional[str]:
-        """Map YOLO animal type to our foe type enum."""
-        # Convert to uppercase to match FoeType enum
-        animal_upper = animal_type.upper()
+            logger.debug(f"Not saving snapshot for {camera.name} - no animals detected and capture level {snapshot_capture_level} doesn't require saving")
         
-        # Direct mappings
-        if animal_upper in ["RATS", "CROWS", "CATS", "HERONS", "PIGEONS"]:
-            return animal_upper
-        
-        # Handle variations
-        if animal_upper in ["RAT", "MOUSE", "RODENT"]:
-            return "RATS"
-        elif animal_upper in ["CROW", "RAVEN", "MAGPIE", "JACKDAW"]:
-            return "CROWS"
-        elif animal_upper == "CAT":
-            return "CATS"
-        elif animal_upper == "HERON":
-            return "HERONS"
-        elif animal_upper in ["PIGEON", "DOVE"]:
-            return "PIGEONS"
-        
+        # Delete the saved image since we're not keeping it
+        try:
+            os.remove(image_path)
+        except Exception:
+            pass
         return None
-    
-    def get_primary_foe_from_yolo(self, yolo_results: Dict[str, Any]) -> Optional[str]:
-        """Get the primary foe type from YOLO results (highest confidence)."""
-        foe_classifications = yolo_results.get("foe_classifications", {})
-        if not foe_classifications:
-            return None
-        
-        # Find the foe with highest confidence
-        best_foe = None
-        best_confidence = 0.0
-        
-        for foe_type, detections_list in foe_classifications.items():
-            if detections_list:
-                # Get the highest confidence for this foe type
-                max_confidence = max(d.get("confidence", 0) for d in detections_list)
-                if max_confidence > best_confidence:
-                    best_confidence = max_confidence
-                    best_foe = foe_type
-        
-        return self.map_yolo_to_foe_type(best_foe) if best_foe else None
     
     def get_primary_foe_type(self, detection_id: int) -> Optional[str]:
         """Get the primary foe type from a detection (highest confidence)."""
@@ -504,3 +409,8 @@ class DetectionProcessor:
             if detection:
                 detection.status = DetectionStatus.DETERRED if success else DetectionStatus.FAILED
                 safe_commit(session)
+    
+    async def cleanup(self):
+        """Clean up resources like HTTP clients."""
+        if self._ollama_detector:
+            await self._ollama_detector.close()

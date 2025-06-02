@@ -29,7 +29,6 @@ class Device(SQLModel, table=True):
     
     # Current state
     current_image_url: Optional[str] = None  # For cameras
-    last_image_hash: Optional[str] = None  # Perceptual hash of last processed image
     last_detection: Optional[datetime] = None
     last_seen: datetime = Field(default_factory=datetime.utcnow)
     

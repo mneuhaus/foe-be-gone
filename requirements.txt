@@ -10,10 +10,11 @@ python-dotenv>=1.1.0
 # API and image processing
 httpx>=0.28.1
 pillow>=11.2.1
-imagehash>=4.3.2
 
 # AI integration
 litellm>=1.57.0
+transformers>=4.46.0
+accelerate>=0.35.0
 
 # YOLOv11 dependencies
 ultralytics>=8.2.0
