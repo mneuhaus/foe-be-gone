@@ -168,6 +168,10 @@ app.include_router(logs.router)
 app.include_router(api_detections.router)
 app.include_router(api_settings.router)
 
+# Import and include model test router
+from app.routes import model_test
+app.include_router(model_test.router)
+
 # Add API documentation info
 @app.get("/api", tags=["documentation"], summary="API Documentation")
 async def api_docs_redirect():

@@ -68,6 +68,94 @@ class OllamaSpeciesDetector:
             logger.error(f"Failed to connect to Ollama at {self.ollama_host}: {e}")
             logger.info("Make sure Ollama is running: https://ollama.ai")
     
+    def crop_image_with_padding(self, image: Image.Image, bbox: Tuple[int, int, int, int], 
+                               padding_percent: float = 0.5, min_size: int = None) -> Image.Image:
+        """
+        Crop image with padding around bounding box and minimum size enforcement.
+        
+        Args:
+            image: PIL Image object
+            bbox: Bounding box (x1, y1, x2, y2) of the animal
+            padding_percent: Percentage of bbox size to add as padding (default: 0.5 = 50%)
+            min_size: Minimum crop size in pixels (default: from config)
+            
+        Returns:
+            Cropped PIL Image
+        """
+        x1, y1, x2, y2 = bbox
+        
+        # Calculate bbox dimensions
+        bbox_width = x2 - x1
+        bbox_height = y2 - y1
+        
+        # Use 50% padding like identify_species method
+        padding_x = bbox_width * padding_percent
+        padding_y = bbox_height * padding_percent
+        
+        # Calculate initial crop with padding
+        crop_x1 = x1 - padding_x
+        crop_y1 = y1 - padding_y
+        crop_x2 = x2 + padding_x
+        crop_y2 = y2 + padding_y
+        
+        # Calculate current crop dimensions
+        crop_width = crop_x2 - crop_x1
+        crop_height = crop_y2 - crop_y1
+        
+        # Enforce minimum size from config (default 224px)
+        if min_size is None:
+            min_size = config.SPECIES_MIN_CROP_SIZE
+        
+        if crop_width < min_size:
+            # Expand width to minimum
+            width_deficit = min_size - crop_width
+            expand_x = width_deficit / 2
+            crop_x1 -= expand_x
+            crop_x2 += expand_x
+            crop_width = min_size
+        
+        if crop_height < min_size:
+            # Expand height to minimum
+            height_deficit = min_size - crop_height
+            expand_y = height_deficit / 2
+            crop_y1 -= expand_y
+            crop_y2 += expand_y
+            crop_height = min_size
+        
+        # Same boundary logic as identify_species method
+        if crop_width > image.width:
+            crop_x1 = 0
+            crop_x2 = image.width
+        else:
+            if crop_x1 < 0:
+                crop_x2 -= crop_x1
+                crop_x1 = 0
+            if crop_x2 > image.width:
+                crop_x1 -= (crop_x2 - image.width)
+                crop_x2 = image.width
+                crop_x1 = max(0, crop_x1)
+        
+        if crop_height > image.height:
+            crop_y1 = 0
+            crop_y2 = image.height
+        else:
+            if crop_y1 < 0:
+                crop_y2 -= crop_y1
+                crop_y1 = 0
+            if crop_y2 > image.height:
+                crop_y1 -= (crop_y2 - image.height)
+                crop_y2 = image.height
+                crop_y1 = max(0, crop_y1)
+        
+        # Final boundary check
+        crop_x1 = max(0, crop_x1)
+        crop_y1 = max(0, crop_y1)
+        crop_x2 = min(image.width, crop_x2)
+        crop_y2 = min(image.height, crop_y2)
+        
+        # Crop and return the image
+        return image.crop((crop_x1, crop_y1, crop_x2, crop_y2))
+
     async def identify_species(self, image: Image.Image, bbox: Tuple[int, int, int, int]) -> SpeciesDetectionResult:
         """
         Identify species in a cropped region of an image.
