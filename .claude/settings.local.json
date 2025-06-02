@@ -57,7 +57,14 @@
       "Bash(./test-addon-local.sh:*)",
       "Bash(git branch:*)",
       "Bash(./venv/bin/pip install pytz)",
-      "Bash(alembic current:*)"
+      "Bash(alembic current:*)",
+      "Bash(ollama list:*)",
+      "Bash(source:*)",
+      "Bash(alembic upgrade:*)",
+      "Bash(alembic heads:*)",
+      "Bash(alembic merge:*)",
+      "Bash(alembic stamp:*)",
+      "Bash(./venv/bin/python:*)"
     ],
     "deny": []
   },

@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold mb-4">Cloud AI Providers</h1>
+        <p class="text-base-content/70 mb-6">Configure cloud AI providers to compare against local Ollama models. These providers will be available in the model testing page.</p>
+        
+        <div class="flex items-center gap-4 text-sm text-base-content/70">
+            <a href="/settings" class="link link-primary">← Back to Settings</a>
+            <span>•</span>
+            <span>Supported: OpenAI, OpenRouter, Anthropic, Google Gemini</span>
+        </div>
+    </div>
+
+    <!-- Add New Provider -->
+    <div class="card bg-base-100 shadow-xl mb-8">
+        <div class="card-body">
+            <h2 class="card-title mb-4">Add New Provider</h2>
+            
+            <form method="post" action="/settings/providers/add" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Provider</span>
+                        </label>
+                        <select name="provider_name" class="select select-bordered" required>
+                            <option value="">Select a provider...</option>
+                            {% for key, config in default_providers.items() %}
+                                {% set exists = providers | selectattr('name', 'equalto', key) | list | length > 0 %}
+                                <option value="{{ key }}" {% if exists %}disabled{% endif %}>
+                                    {{ config.display_name }}
+                                    {% if exists %} (Already added){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">API Key</span>
+                        </label>
+                        <input type="password" name="api_key" class="input input-bordered" 
+                               placeholder="Enter your API key" required>
+                    </div>
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">API Base URL (Optional)</span>
+                    </label>
+                    <input type="url" name="api_base" class="input input-bordered" 
+                           placeholder="Custom API endpoint (leave empty for default)">
+                </div>
+                
+                <div class="form-control">
+                    <label class="label cursor-pointer justify-start gap-3">
+                        <input type="checkbox" name="enabled" value="true" class="checkbox checkbox-primary">
+                        <span class="label-text">Enable this provider</span>
+                    </label>
+                </div>
+                
+                <div class="card-actions justify-end">
+                    <button type="submit" class="btn btn-primary">
+                        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Provider
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing Providers -->
+    {% if providers %}
+    <div class="space-y-6">
+        <h2 class="text-2xl font-bold">Configured Providers</h2>
+        
+        {% for provider in providers %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="card-title">{{ provider.display_name }}</h3>
+                        <div class="text-sm text-base-content/70 space-y-1">
+                            <div>Type: {{ provider.provider_type }}</div>
+                            {% if provider.api_base %}
+                            <div>API Base: {{ provider.api_base }}</div>
+                            {% endif %}
+                            <div>Added: {{ format_datetime_tz(provider.created_at, timezone) }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        {% if provider.enabled %}
+                        <span class="badge badge-success">Enabled</span>
+                        {% else %}
+                        <span class="badge badge-error">Disabled</span>
+                        {% endif %}
+                        
+                        <div class="dropdown dropdown-end">
+                            <label tabindex="0" class="btn btn-ghost btn-sm">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                </svg>
+                            </label>
+                            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                <li>
+                                    <button onclick="openEditModal('{{ provider.id }}', '{{ provider.name }}', '{{ provider.api_base or '' }}', {{ provider.enabled | tojson }})" class="text-left">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                        Edit Settings
+                                    </button>
+                                </li>
+                                <li>
+                                    <button onclick="refreshModels({{ provider.id }})" class="text-left">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        Refresh Models
+                                    </button>
+                                </li>
+                                <li>
+                                    <button onclick="confirmDelete({{ provider.id }}, '{{ provider.display_name }}')" class="text-left text-error">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Delete Provider
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Models Section -->
+                <div class="divider">Available Models</div>
+                <div id="models-{{ provider.id }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div class="flex items-center justify-center p-4 text-base-content/50">
+                        <span class="loading loading-spinner loading-sm mr-2"></span>
+                        Loading models...
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card bg-base-200">
+        <div class="card-body text-center">
+            <h3 class="card-title justify-center mb-2">No Providers Configured</h3>
+            <p class="text-base-content/70 mb-4">Add your first cloud AI provider to start comparing models against local Ollama.</p>
+            <div class="text-sm text-base-content/60">
+                <div class="mb-2">Supported providers:</div>
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <span class="badge badge-outline">OpenAI</span>
+                    <span class="badge badge-outline">OpenRouter</span>
+                    <span class="badge badge-outline">Anthropic</span>
+                    <span class="badge badge-outline">Google Gemini</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Edit Provider Modal -->
+<input type="checkbox" id="edit-modal" class="modal-toggle" />
+<div class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Edit Provider Settings</h3>
+        
+        <form id="edit-form" method="post" class="space-y-4">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-medium">API Key</span>
+                </label>
+                <input type="password" name="api_key" id="edit-api-key" class="input input-bordered" 
+                       placeholder="Enter new API key (leave empty to keep current)" required>
+            </div>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-medium">API Base URL</span>
+                </label>
+                <input type="url" name="api_base" id="edit-api-base" class="input input-bordered" 
+                       placeholder="Custom API endpoint">
+            </div>
+            
+            <div class="form-control">
+                <label class="label cursor-pointer justify-start gap-3">
+                    <input type="checkbox" name="enabled" value="true" id="edit-enabled" class="checkbox checkbox-primary">
+                    <span class="label-text">Enable this provider</span>
+                </label>
+            </div>
+            
+            <div class="modal-action">
+                <label for="edit-modal" class="btn btn-ghost">Cancel</label>
+                <button type="submit" class="btn btn-primary">Update Provider</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<input type="checkbox" id="delete-modal" class="modal-toggle" />
+<div class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Delete Provider</h3>
+        <p class="mb-4">Are you sure you want to delete <span id="delete-provider-name" class="font-medium"></span>? This will also remove all associated models.</p>
+        <div class="modal-action">
+            <label for="delete-modal" class="btn btn-ghost">Cancel</label>
+            <form id="delete-form" method="post" class="inline">
+                <button type="submit" class="btn btn-error">Delete Provider</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load models for each provider on page load
+document.addEventListener('DOMContentLoaded', function() {
+    {% for provider in providers %}
+    loadModels({{ provider.id }});
+    {% endfor %}
+});
+
+async function loadModels(providerId) {
+    const container = document.getElementById(`models-${providerId}`);
+    
+    try {
+        const response = await fetch(`/settings/providers/${providerId}/models`);
+        const data = await response.json();
+        
+        if (data.models && data.models.length > 0) {
+            container.innerHTML = data.models.map(model => `
+                <div class="bg-base-200 rounded-lg p-3">
+                    <div class="font-medium text-sm">${model.display_name}</div>
+                    <div class="text-xs text-base-content/60 mt-1">
+                        ${model.model_id}
+                    </div>
+                    <div class="flex items-center justify-between mt-2">
+                        <div class="flex items-center gap-2">
+                            ${model.supports_vision ? '<span class="badge badge-primary badge-xs">Vision</span>' : ''}
+                            ${model.enabled ? '<span class="badge badge-success badge-xs">Enabled</span>' : '<span class="badge badge-error badge-xs">Disabled</span>'}
+                        </div>
+                        ${model.cost_per_1k_tokens ? `<div class="text-xs text-base-content/50">$${model.cost_per_1k_tokens}/1K</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<div class="col-span-full text-center text-base-content/50 p-4">No models configured</div>';
+        }
+    } catch (error) {
+        console.error('Error loading models:', error);
+        container.innerHTML = '<div class="col-span-full text-center text-error p-4">Failed to load models</div>';
+    }
+}
+
+function openEditModal(providerId, providerName, apiBase, enabled) {
+    document.getElementById('edit-form').action = `/settings/providers/${providerId}/update`;
+    document.getElementById('edit-api-key').value = '';
+    document.getElementById('edit-api-base').value = apiBase || '';
+    document.getElementById('edit-enabled').checked = enabled;
+    document.getElementById('edit-modal').checked = true;
+}
+
+function confirmDelete(providerId, providerName) {
+    document.getElementById('delete-provider-name').textContent = providerName;
+    document.getElementById('delete-form').action = `/settings/providers/${providerId}/delete`;
+    document.getElementById('delete-modal').checked = true;
+}
+
+async function refreshModels(providerId) {
+    const container = document.getElementById(`models-${providerId}`);
+    container.innerHTML = '<div class="col-span-full flex items-center justify-center p-4 text-base-content/50"><span class="loading loading-spinner loading-sm mr-2"></span>Refreshing models...</div>';
+    
+    try {
+        const response = await fetch(`/settings/providers/${providerId}/refresh-models`, {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            await loadModels(providerId);
+            // Show success notification
+            const notification = document.createElement('div');
+            notification.className = 'toast toast-top toast-end';
+            notification.innerHTML = '<div class="alert alert-success"><span>Models refreshed successfully!</span></div>';
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        } else {
+            throw new Error('Failed to refresh models');
+        }
+    } catch (error) {
+        console.error('Error refreshing models:', error);
+        container.innerHTML = '<div class="col-span-full text-center text-error p-4">Failed to refresh models</div>';
+    }
+}
+</script>
+{% endblock %}

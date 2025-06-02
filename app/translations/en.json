@@ -57,7 +57,9 @@
     "analysis_reasoning": "Analysis Reasoning",
     "cropped_analysis_region": "Cropped Analysis Region",
     "english": "English",
-    "deutsch": "Deutsch"
+    "deutsch": "Deutsch",
+    "enabled": "Enabled",
+    "disabled": "Disabled"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -102,6 +104,14 @@
     "live_camera_feeds": "Live Camera Feeds",
     "no_cameras_available": "No cameras available",
     "add_connect_integration": "Add and connect an integration to see live camera feeds",
+    "camera_tracking": "Camera Tracking",
+    "camera_tracking_desc": "Automatic wildlife detection and monitoring",
+    "deterrents": "Deterrents",
+    "deterrents_desc": "Sound-based wildlife deterrent system",
+    "monitoring_active": "Actively monitoring",
+    "monitoring_paused": "Monitoring paused",
+    "sounds_active": "Sounds will play",
+    "sounds_muted": "Sounds are muted",
     "setup_integrations": "Setup Integrations",
     "detection_analytics": "Detection Analytics",
     "success_rate_analytics": "Success Rate Analytics",

@@ -13,7 +13,9 @@ from sqlmodel import Session
 from app.core.database import get_session
 from app.core.templates import templates
 from app.models.detection import Detection
+from app.models.provider import Provider, ProviderModel
 from app.services.ollama_species_detector import OllamaSpeciesDetector
+from app.services.litellm_species_detector import LiteLLMSpeciesDetector
 import io
 from PIL import Image
 
@@ -132,6 +134,75 @@ def generate_model_description(name: str, size_gb: float) -> str:
     return f"{model_type} ({size_gb:.1f}GB{quant}) {speed} {speed_desc}"
 
 
+async def get_cloud_vision_models(db: Session):
+    """Get list of enabled cloud vision models grouped by provider."""
+    from sqlmodel import select
+    
+    # Get all enabled providers with their vision models
+    cloud_models_by_provider = {}
+    
+    providers = db.exec(
+        select(Provider).where(Provider.enabled == True)
+    ).all()
+    
+    for provider in providers:
+        models = db.exec(
+            select(ProviderModel)
+            .where(ProviderModel.provider_id == provider.id)
+            .where(ProviderModel.supports_vision == True)
+            .where(ProviderModel.enabled == True)
+        ).all()
+        
+        if not models:
+            continue
+            
+        provider_models = []
+        
+        for model in models:
+            # Generate description based on provider and cost
+            cost_desc = ""
+            if model.cost_per_1k_tokens == 0:
+                cost_desc = "🆓 Free"
+            elif model.cost_per_1k_tokens < 0.001:
+                cost_desc = "💰💰💰 Ultra Cheap"
+            elif model.cost_per_1k_tokens < 0.005:
+                cost_desc = "💰💰 Affordable"
+            else:
+                cost_desc = "💰 Premium"
+            
+            # Provider indicators
+            provider_emoji = {
+                "openai": "🤖",
+                "anthropic": "🧠", 
+                "google": "🔍",
+                "openrouter": "🌐"
+            }.get(provider.name, "☁️")
+            
+            description = f"{cost_desc}"
+            if model.cost_per_1k_tokens > 0:
+                description += f" (${model.cost_per_1k_tokens}/1K tokens)"
+            
+            provider_models.append({
+                "name": f"cloud:{provider.name}:{model.model_id}",
+                "display_name": model.display_name,
+                "description": description,
+                "provider": provider.name,
+                "provider_display": f"{provider_emoji} {provider.display_name}",
+                "model_id": model.model_id,
+                "cost_per_1k_tokens": model.cost_per_1k_tokens,
+                "type": "cloud"
+            })
+        
+        # Sort models within each provider by cost
+        provider_models.sort(key=lambda x: x.get('cost_per_1k_tokens', 0))
+        cloud_models_by_provider[provider.name] = {
+            "display_name": f"{provider_emoji} {provider.display_name}",
+            "models": provider_models
+        }
+    
+    return cloud_models_by_provider
+
+
 @router.get("/{detection_id}", response_class=HTMLResponse)
 async def model_test_page(
     detection_id: int,
@@ -145,15 +216,27 @@ async def model_test_page(
         raise HTTPException(status_code=404, detail="Detection not found")
     
     # Get installed vision models from Ollama
-    available_models = await get_installed_vision_models()
+    ollama_models = await get_installed_vision_models()
+    
+    # Get cloud vision models from configured providers
+    cloud_models = await get_cloud_vision_models(db)
+    
+    # Combine all models
+    available_models = {
+        "ollama": ollama_models,
+        "cloud": cloud_models
+    }
     
     # If no models found, show helpful message
-    if not available_models:
-        available_models = [{
-            "name": "no-models-found",
-            "description": "No vision models found. Install with: ollama pull llava-phi3:3.8b-mini-q4_0",
-            "size_gb": 0
-        }]
+    if not ollama_models and not cloud_models:
+        available_models = {
+            "ollama": [{
+                "name": "no-models-found",
+                "description": "No vision models found. Install with: ollama pull llava-phi3:3.8b-mini-q4_0",
+                "size_gb": 0
+            }],
+            "cloud": []
+        }
     
     return templates.TemplateResponse(
         request,
@@ -247,27 +330,79 @@ async def test_model(
         # Use full image if no detections
         bboxes = [(0, 0, image.width, image.height)]
     
-    # Step 1: Warmup model to ensure it's loaded
-    logger.info(f"Warming up model {model_name}...")
-    warmup_result = await warmup_model(model_name)
-    
-    if not warmup_result["success"]:
-        return {
-            "model": model_name,
-            "duration_seconds": 0,
-            "duration_formatted": "0s",
-            "error": f"Model warmup failed: {warmup_result.get('error', 'Unknown error')}",
-            "success": False,
-            "warmup_info": warmup_result
+    # Step 1: Warmup model to ensure it's loaded (only for Ollama models)
+    if model_name.startswith("cloud:"):
+        # Cloud models don't need warmup
+        warmup_result = {
+            "success": True,
+            "warmup_duration": 0,
+            "load_duration": 0,
+            "model_loaded": True
         }
+    else:
+        logger.info(f"Warming up model {model_name}...")
+        warmup_result = await warmup_model(model_name)
+        
+        if not warmup_result["success"]:
+            return {
+                "model": model_name,
+                "duration_seconds": 0,
+                "duration_formatted": "0s",
+                "error": f"Model warmup failed: {warmup_result.get('error', 'Unknown error')}",
+                "success": False,
+                "warmup_info": warmup_result
+            }
     
     # Step 2: Test the model (pure inference time)
     inference_start = time.time()
     results = []
     
     try:
-        # Create detector with specific model
-        detector = OllamaSpeciesDetector(model=model_name)
+        # Check if this is a cloud model or Ollama model
+        if model_name.startswith("cloud:"):
+            # Parse cloud model format: cloud:provider:model_id
+            parts = model_name.split(":", 2)
+            if len(parts) != 3:
+                raise ValueError("Invalid cloud model format")
+            
+            provider_name = parts[1]
+            model_id = parts[2]
+            
+            # Get provider and model config from database
+            from sqlmodel import select
+            provider = db.exec(
+                select(Provider).where(Provider.name == provider_name)
+            ).first()
+            
+            if not provider:
+                raise ValueError(f"Provider {provider_name} not found")
+            
+            model_config = db.exec(
+                select(ProviderModel)
+                .where(ProviderModel.provider_id == provider.id)
+                .where(ProviderModel.model_id == model_id)
+            ).first()
+            
+            if not model_config:
+                raise ValueError(f"Model {model_id} not found for provider {provider_name}")
+            
+            # Create cloud detector
+            detector = LiteLLMSpeciesDetector(
+                provider_config={
+                    "name": provider.name,
+                    "api_key": provider.api_key,
+                    "api_base": provider.api_base,
+                    "config": provider.config
+                },
+                model_config={
+                    "model_id": model_config.model_id,
+                    "cost_per_1k_tokens": model_config.cost_per_1k_tokens,
+                    "config": model_config.config
+                }
+            )
+        else:
+            # Create Ollama detector with specific model
+            detector = OllamaSpeciesDetector(model=model_name)
         
         # Test each bounding box
         for i, bbox in enumerate(bboxes):
@@ -306,7 +441,16 @@ async def test_model(
         inference_duration = time.time() - inference_start
         total_duration = warmup_result["warmup_duration"] + inference_duration
         
-        return {
+        # Calculate total cost for cloud models
+        total_cost = 0.0
+        if model_name.startswith("cloud:"):
+            for result in results:
+                if "result" in result and hasattr(result["result"], "cost"):
+                    total_cost += result["result"].cost
+                elif "result" in result and isinstance(result["result"], dict) and "cost" in result["result"]:
+                    total_cost += result["result"]["cost"]
+        
+        response = {
             "model": model_name,
             "duration_seconds": round(inference_duration, 3),  # Pure inference time
             "duration_formatted": f"{inference_duration:.1f}s" if inference_duration >= 1 else f"{int(inference_duration * 1000)}ms",
@@ -319,6 +463,13 @@ async def test_model(
                 "model_was_loaded": warmup_result.get("model_loaded", False)
             }
         }
+        
+        # Add cost information for cloud models
+        if total_cost > 0:
+            response["cost"] = round(total_cost, 6)
+            response["cost_formatted"] = f"${total_cost:.6f}" if total_cost < 0.01 else f"${total_cost:.4f}"
+        
+        return response
         
     except Exception as e:
         inference_duration = time.time() - inference_start

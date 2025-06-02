@@ -172,6 +172,10 @@ app.include_router(api_settings.router)
 from app.routes import model_test
 app.include_router(model_test.router)
 
+# Import and include providers router
+from app.routes import providers
+app.include_router(providers.router)
+
 # Add API documentation info
 @app.get("/api", tags=["documentation"], summary="API Documentation")
 async def api_docs_redirect():
@@ -231,6 +235,11 @@ async def dashboard(request: Request, session: Session = Depends(get_session)) -
                 timezone = settings_service.get_timezone()
                 last_detection_time = format_datetime_tz(last_detection.timestamp, timezone, "%m/%d %H:%M")
     
+    # Get system status
+    settings_service = SettingsService(session)
+    camera_tracking_enabled = settings_service.get_camera_tracking_enabled()
+    deterrents_enabled = settings_service.get_deterrents_enabled()
+    
     # Prepare stats for template
     stats = {
         'total_detections': overview_stats.get('total_detections', 0),
@@ -240,7 +249,9 @@ async def dashboard(request: Request, session: Session = Depends(get_session)) -
         'most_common_foe': overview_stats.get('most_common_foe', 'None'),
         'most_common_foe_count': overview_stats.get('most_common_foe_count', 0),
         'activity_status': activity_status,
-        'last_detection_time': last_detection_time
+        'last_detection_time': last_detection_time,
+        'camera_tracking_enabled': camera_tracking_enabled,
+        'deterrents_enabled': deterrents_enabled
     }
     
     context = {

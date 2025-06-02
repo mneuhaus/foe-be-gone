@@ -84,6 +84,14 @@ class DetectionWorker:
             
     async def _check_all_cameras(self):
         """Check all active cameras for foes."""
+        # Check if camera tracking is enabled
+        with get_db_session() as session:
+            from app.services.settings_service import SettingsService
+            settings_service = SettingsService(session)
+            if not settings_service.get_camera_tracking_enabled():
+                logger.debug("Camera tracking is disabled, skipping detection check")
+                return
+        
         cameras = self.camera_manager.get_active_cameras()
         
         if not cameras:

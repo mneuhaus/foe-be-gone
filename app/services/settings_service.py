@@ -129,6 +129,11 @@ class SettingsService:
         enabled = self.get_setting("deterrents_enabled", "true")
         return enabled.lower() in ["true", "1", "yes", "on"]
     
+    def get_camera_tracking_enabled(self) -> bool:
+        """Get whether camera tracking is enabled."""
+        enabled = self.get_setting("camera_tracking_enabled", "true")
+        return enabled.lower() in ["true", "1", "yes", "on"]
+    
     def initialize_defaults(self) -> None:
         """Initialize default settings if they don't exist."""
         defaults = {
@@ -145,7 +150,8 @@ class SettingsService:
             "species_model": os.getenv("SPECIES_MODEL", config.SPECIES_MODEL),
             "species_crop_padding": os.getenv("SPECIES_CROP_PADDING", str(config.SPECIES_CROP_PADDING)),
             "timezone": os.getenv("TZ", "UTC"),  # Default to UTC or TZ env var
-            "deterrents_enabled": os.getenv("DETERRENTS_ENABLED", "true")  # Default to enabled
+            "deterrents_enabled": os.getenv("DETERRENTS_ENABLED", "true"),  # Default to enabled
+            "camera_tracking_enabled": os.getenv("CAMERA_TRACKING_ENABLED", "true")  # Default to enabled
         }
         
         for key, default_value in defaults.items():

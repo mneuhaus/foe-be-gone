@@ -57,7 +57,9 @@
     "analysis_reasoning": "Analyse-Begründung",
     "cropped_analysis_region": "Ausgeschnittener Analysebereich",
     "english": "Englisch",
-    "deutsch": "Deutsch"
+    "deutsch": "Deutsch",
+    "enabled": "Aktiviert",
+    "disabled": "Deaktiviert"
   },
   "nav": {
     "dashboard": "Übersicht",
@@ -102,6 +104,14 @@
     "live_camera_feeds": "Live-Kamera-Feeds",
     "no_cameras_available": "Keine Kameras verfügbar",
     "add_connect_integration": "Integration hinzufügen und verbinden, um Live-Kamera-Feeds zu sehen",
+    "camera_tracking": "Kamera-Überwachung",
+    "camera_tracking_desc": "Automatische Wildtiererkennung und -überwachung",
+    "deterrents": "Abschreckung",
+    "deterrents_desc": "Schallbasiertes Wildtier-Abschrecksystem",
+    "monitoring_active": "Aktiv überwachend",
+    "monitoring_paused": "Überwachung pausiert",
+    "sounds_active": "Töne werden abgespielt",
+    "sounds_muted": "Töne sind stumm",
     "setup_integrations": "Integrationen einrichten",
     "detection_analytics": "Erkennungs-Analyse",
     "success_rate_analytics": "Erfolgsrate-Analyse",

@@ -52,45 +52,113 @@
     <div class="card bg-base-100 shadow-xl mb-8">
         <div class="card-body">
             <h2 class="card-title mb-4">Select Models to Test</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {% for model in available_models %}
-                {% if model.name == "no-models-found" %}
-                <div class="col-span-full bg-warning/10 border border-warning rounded-lg p-6 text-center">
-                    <div class="text-warning mb-2">
-                        <svg class="w-8 h-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                    </div>
-                    <h3 class="font-bold text-lg mb-2">No Vision Models Found</h3>
-                    <p class="text-sm text-base-content/70 mb-4">No vision-capable models are installed in Ollama.</p>
-                    <div class="bg-base-100 rounded-lg p-4 text-left">
-                        <div class="font-medium mb-2">Quick Install Commands:</div>
-                        <div class="font-mono text-xs space-y-1">
-                            <div># Ultra fast for M4 Mac</div>
-                            <div class="text-primary">ollama pull llava-phi3:3.8b-mini-q4_0</div>
-                            <div># Alternative fast model</div>
-                            <div class="text-primary">ollama pull moondream:1.8b-v2-q4_0</div>
+            <!-- Ollama Models Section -->
+            {% if available_models.ollama %}
+            <div class="mb-6">
+                <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                    </svg>
+                    Local Ollama Models
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {% for model in available_models.ollama %}
+                    {% if model.name == "no-models-found" %}
+                    <div class="col-span-full bg-warning/10 border border-warning rounded-lg p-6 text-center">
+                        <div class="text-warning mb-2">
+                            <svg class="w-8 h-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                        </div>
+                        <h4 class="font-bold text-lg mb-2">No Local Vision Models Found</h4>
+                        <p class="text-sm text-base-content/70 mb-4">No vision-capable models are installed in Ollama.</p>
+                        <div class="bg-base-100 rounded-lg p-4 text-left">
+                            <div class="font-medium mb-2">Quick Install Commands:</div>
+                            <div class="font-mono text-xs space-y-1">
+                                <div># Ultra fast for M4 Mac</div>
+                                <div class="text-primary">ollama pull llava-phi3:3.8b-mini-q4_0</div>
+                                <div># Alternative fast model</div>
+                                <div class="text-primary">ollama pull moondream:1.8b-v2-q4_0</div>
+                            </div>
                         </div>
                     </div>
+                    {% else %}
+                    <label class="flex items-start gap-3 p-3 bg-base-200 rounded-lg cursor-pointer hover:bg-base-300 transition-colors">
+                        <input type="checkbox" class="checkbox checkbox-primary" value="{{ model.name }}" 
+                               data-model-name="{{ model.name }}" onchange="toggleModel(this)">
+                        <div class="flex-1">
+                            <div class="font-medium">{{ model.name }}</div>
+                            <div class="text-sm text-base-content/70">{{ model.description }}</div>
+                            {% if model.size_gb %}
+                            <div class="text-xs text-base-content/50 mt-1">{{ model.size_gb }}GB • Local • Free</div>
+                            {% endif %}
+                        </div>
+                        <div class="model-status" id="status-{{ model.name.replace(':', '-').replace('.', '-') }}">
+                            <span class="text-success text-sm">✓ Installed</span>
+                        </div>
+                    </label>
+                    {% endif %}
+                    {% endfor %}
                 </div>
-                {% else %}
-                <label class="flex items-start gap-3 p-4 bg-base-200 rounded-lg cursor-pointer hover:bg-base-300 transition-colors">
-                    <input type="checkbox" class="checkbox checkbox-primary" value="{{ model.name }}" 
-                           data-model-name="{{ model.name }}" onchange="toggleModel(this)">
-                    <div class="flex-1">
-                        <div class="font-medium">{{ model.name }}</div>
-                        <div class="text-sm text-base-content/70">{{ model.description }}</div>
-                        {% if model.size_gb %}
-                        <div class="text-xs text-base-content/50 mt-1">{{ model.size_gb }}GB installed</div>
-                        {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Cloud Models Section -->
+            {% if available_models.cloud %}
+            <div class="mb-6">
+                <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+                    </svg>
+                    Cloud AI Models
+                </h3>
+                
+                <!-- Group models by provider -->
+                {% for provider_name, provider_data in available_models.cloud.items() %}
+                <div class="mb-4">
+                    <h4 class="font-semibold text-base mb-2 text-secondary">{{ provider_data.display_name }}</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {% for model in provider_data.models %}
+                        <label class="flex items-start gap-3 p-3 bg-secondary/10 border border-secondary/20 rounded-lg cursor-pointer hover:bg-secondary/20 transition-colors">
+                            <input type="checkbox" class="checkbox checkbox-secondary" value="{{ model.name }}" 
+                                   data-model-name="{{ model.name }}" onchange="toggleModel(this)">
+                            <div class="flex-1">
+                                <div class="font-medium">{{ model.display_name }}</div>
+                                <div class="text-sm text-base-content/70">{{ model.description }}</div>
+                            </div>
+                            <div class="model-status">
+                                <span class="text-secondary text-sm">☁️ Ready</span>
+                            </div>
+                        </label>
+                        {% endfor %}
                     </div>
-                    <div class="model-status" id="status-{{ model.name.replace(':', '-').replace('.', '-') }}">
-                        <span class="text-success text-sm">✓ Installed</span>
-                    </div>
-                </label>
-                {% endif %}
+                </div>
                 {% endfor %}
             </div>
+            {% endif %}
+
+            {% if not available_models.ollama and not available_models.cloud %}
+            <div class="bg-warning/10 border border-warning rounded-lg p-6 text-center">
+                <div class="text-warning mb-2">
+                    <svg class="w-8 h-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                </div>
+                <h3 class="font-bold text-lg mb-2">No Models Available</h3>
+                <p class="text-sm text-base-content/70 mb-4">Configure cloud providers or install local Ollama models to start testing.</p>
+                <div class="flex gap-4 justify-center">
+                    <a href="/settings/providers" class="btn btn-primary btn-sm">
+                        <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+                        </svg>
+                        Add Cloud Providers
+                    </a>
+                    <div class="btn btn-ghost btn-sm">
+                        Install Local: ollama pull llava-phi3:3.8b-mini-q4_0
+                    </div>
+                </div>
+            </div>
+            {% endif %}
             
             <div class="divider"></div>
             
@@ -145,6 +213,13 @@
 const selectedModels = new Set();
 const detectionId = {{ detection.id }};
 let testResults = {};
+
+// Helper function to escape HTML for safe display
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
 // All displayed models are already installed, no need to check availability
 
@@ -320,6 +395,22 @@ async function testModel(modelName) {
                                                 ` : `
                                                     <div class="text-base-content/50">No species identified</div>
                                                 `}
+                                                
+                                                ${result.result.raw_response ? (() => {
+                                                    const escapedResponse = escapeHtml(result.result.raw_response);
+                                                    return `
+                                                        <details class="mt-3">
+                                                            <summary class="cursor-pointer text-xs text-primary hover:underline">Show raw API response</summary>
+                                                            <pre class="mt-2 p-2 bg-base-200 rounded text-xs overflow-x-auto whitespace-pre-wrap">${escapedResponse}</pre>
+                                                        </details>
+                                                    `;
+                                                })() : ''}
+                                                
+                                                ${result.result.error ? `
+                                                    <div class="mt-2 alert alert-error">
+                                                        <div class="text-sm">${result.result.error}</div>
+                                                    </div>
+                                                ` : ''}
                                             </div>
                                         </div>
                                     `}
@@ -334,6 +425,8 @@ async function testModel(modelName) {
                             <div>Total: <span class="font-mono">${data.total_duration_seconds || data.duration_seconds}s</span></div>
                             ${warmupInfo.warmup_duration ? `<div>Warmup: <span class="font-mono">${warmupInfo.warmup_duration}s</span></div>` : ''}
                             ${warmupInfo.load_duration ? `<div>Load: <span class="font-mono">${warmupInfo.load_duration}s</span></div>` : ''}
+                            ${data.cost_formatted ? `<div>Cost: <span class="font-mono text-accent">${data.cost_formatted}</span></div>` : ''}
+                            ${modelName.startsWith('cloud:') ? `<div>Type: <span class="text-secondary">☁️ Cloud</span></div>` : `<div>Type: <span class="text-primary">🖥️ Local</span></div>`}
                         </div>
                     </div>
                 </div>

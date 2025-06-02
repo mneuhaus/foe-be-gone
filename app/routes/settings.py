@@ -30,7 +30,8 @@ DEFAULT_SETTINGS = {
     "snapshot_retention_days": {"value": "7", "label": "Snapshot Retention (days)", "type": "number", "min": 1, "max": 365, "description": "How long to keep detection snapshots"},
     "timezone": {"value": "UTC", "label": "Timezone", "type": "select", "options": ["UTC", "Europe/Berlin", "Europe/London", "Europe/Paris", "Europe/Rome", "Europe/Madrid", "Europe/Vienna", "Europe/Warsaw", "Europe/Amsterdam", "Europe/Brussels", "Europe/Zurich", "America/New_York", "America/Chicago", "America/Los_Angeles", "America/Toronto", "America/Mexico_City", "Asia/Tokyo", "Asia/Shanghai", "Asia/Hong_Kong", "Asia/Singapore", "Australia/Sydney", "Australia/Melbourne"], "description": "Timezone for displaying dates and times"},
     "yolo_enabled": {"value": "true", "label": "Enable YOLO Detection", "type": "checkbox", "description": "Use YOLO for fast local animal detection"},
-    "yolo_confidence_threshold": {"value": "0.25", "label": "YOLO Confidence Threshold", "type": "number", "min": 0.1, "max": 0.9, "step": 0.05, "description": "Minimum confidence for YOLO detections"}
+    "yolo_confidence_threshold": {"value": "0.25", "label": "YOLO Confidence Threshold", "type": "number", "min": 0.1, "max": 0.9, "step": 0.05, "description": "Minimum confidence for YOLO detections"},
+    "camera_tracking_enabled": {"value": "true", "label": "Enable Camera Tracking", "type": "checkbox", "description": "Enable or disable all camera monitoring and detection processing"}
 }
 
 

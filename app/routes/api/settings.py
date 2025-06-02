@@ -49,3 +49,21 @@ def get_deterrent_status(session: Session = Depends(get_session)):
     service = SettingsService(session)
     enabled = service.get_setting("deterrents_enabled", "true")
     return {"deterrents_enabled": enabled.lower() == "true"}
+
+
+@router.put("/api/settings/camera-tracking/toggle")
+def toggle_camera_tracking(session: Session = Depends(get_session)):
+    """Toggle camera tracking on/off."""
+    service = SettingsService(session)
+    current = service.get_setting("camera_tracking_enabled", "true")
+    new_value = "false" if current.lower() == "true" else "true"
+    service.set_setting("camera_tracking_enabled", new_value)
+    return {"camera_tracking_enabled": new_value == "true"}
+
+
+@router.get("/api/settings/camera-tracking/status")
+def get_camera_tracking_status(session: Session = Depends(get_session)):
+    """Get current camera tracking status."""
+    service = SettingsService(session)
+    enabled = service.get_setting("camera_tracking_enabled", "true")
+    return {"camera_tracking_enabled": enabled.lower() == "true"}

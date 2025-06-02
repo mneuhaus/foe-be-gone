@@ -20,6 +20,52 @@
 {% endblock %}
 
 {% block content %}
+<!-- System Status -->
+<div class="mb-6">
+    <h2 class="text-xl font-bold mb-4">{{ t('dashboard.system_status', request) }}</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="card bg-base-200 shadow-sm">
+            <div class="card-body p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-medium">{{ t('dashboard.camera_tracking', request) }}</h3>
+                        <p class="text-sm opacity-70">{{ t('dashboard.camera_tracking_desc', request) }}</p>
+                    </div>
+                    <div class="text-right">
+                        {% if stats.camera_tracking_enabled %}
+                        <span class="badge badge-success">{{ t('common.enabled', request) }}</span>
+                        <div class="text-xs opacity-60 mt-1">{{ t('dashboard.monitoring_active', request) }}</div>
+                        {% else %}
+                        <span class="badge badge-error">{{ t('common.disabled', request) }}</span>
+                        <div class="text-xs opacity-60 mt-1">{{ t('dashboard.monitoring_paused', request) }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card bg-base-200 shadow-sm">
+            <div class="card-body p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-medium">{{ t('dashboard.deterrents', request) }}</h3>
+                        <p class="text-sm opacity-70">{{ t('dashboard.deterrents_desc', request) }}</p>
+                    </div>
+                    <div class="text-right">
+                        {% if stats.deterrents_enabled %}
+                        <span class="badge badge-success">{{ t('common.enabled', request) }}</span>
+                        <div class="text-xs opacity-60 mt-1">{{ t('dashboard.sounds_active', request) }}</div>
+                        {% else %}
+                        <span class="badge badge-warning">{{ t('common.disabled', request) }}</span>
+                        <div class="text-xs opacity-60 mt-1">{{ t('dashboard.sounds_muted', request) }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Stats Overview -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
     <div class="stat-card" onclick="showDetailModal('detections')">
