@@ -192,19 +192,19 @@
     {% if detections %}
     <div id="detections-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {% for detection in detections %}
-        <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all duration-300 border border-base-300/50 hover:border-primary/20 overflow-hidden">
+        <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all duration-300 border border-base-300/50 hover:border-primary/20 overflow-hidden cursor-pointer"
+             onclick="showDetectionModal({{ detection.id }})">
             <!-- Detection Image/Video -->
             {% if detection.image_path %}
-            <figure class="aspect-[4/3] bg-base-200 relative group"
+            <figure class="bg-base-200 relative group"
                     onmouseenter="toggleMedia({{ detection.id }}, 'enter')"
-                    onmouseleave="toggleMedia({{ detection.id }}, 'leave')"
-                    onclick="showDetectionModal({{ detection.id }})">
+                    onmouseleave="toggleMedia({{ detection.id }}, 'leave')">
                 <!-- Static Image with Bounding Boxes -->
                 <img 
                     id="image-{{ detection.id }}"
                     src="{{ get_base_url(request) }}/detections/image-with-boxes/{{ detection.id }}" 
                     alt="Detection {{ detection.id }}"
-                    class="w-full h-full object-cover cursor-pointer transition-opacity duration-300"
+                    class="w-full h-auto object-contain transition-opacity duration-300"
                     onerror="this.onerror=null;this.src='{{ get_base_url(request) }}/{{ detection.image_path }}';"
                 />
                 
@@ -212,13 +212,20 @@
                 {% if detection.video_path %}
                 <video 
                     id="video-{{ detection.id }}"
-                    class="w-full h-full object-cover cursor-pointer absolute top-0 left-0 opacity-0 transition-opacity duration-300"
+                    class="w-full h-full object-contain absolute top-0 left-0 opacity-0 transition-opacity duration-300"
                     muted
                     loop
                     preload="metadata">
                     <source src="{{ get_base_url(request) }}/detections/video/{{ detection.id }}" type="video/mp4">
                 </video>
                 {% endif %}
+                
+                <!-- Timestamp overlay (top right) -->
+                <div class="absolute top-2 right-2 z-10">
+                    <span class="badge badge-neutral badge-sm bg-black/70 border-0 text-white">
+                        {{ format_datetime_tz(detection.timestamp, timezone) }}
+                    </span>
+                </div>
                 
                 <!-- Foe badges overlay -->
                 {% if detection.foes %}
@@ -256,25 +263,9 @@
             
             <div class="card-body p-4">
                 <!-- Camera Name -->
-                <h3 class="font-semibold text-base mb-2 truncate">
+                <h3 class="font-semibold text-base truncate">
                     {{ detection.device.name if detection.device else t('detections.unknown_camera', request) }}
                 </h3>
-                
-                <!-- Simple Timestamp -->
-                <div class="text-xs text-base-content/60 mb-3">
-                    {{ format_datetime_tz(detection.timestamp, timezone) }}
-                </div>
-                
-                <!-- View Details Button -->
-                <button 
-                    onclick="showDetectionModal({{ detection.id }})" 
-                    class="btn btn-sm btn-primary btn-outline w-full gap-2 group">
-                    <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    {{ t('detections.view_details', request) }}
-                </button>
             </div>
         </div>
         {% endfor %}
@@ -636,6 +627,18 @@ function formatDuration(ms) {
     return `${Math.round(ms)}ms`;
 }
 
+// Handle image load errors
+function handleImageError(img) {
+    img.onerror = null;
+    img.style.display = 'none';
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'flex items-center justify-center h-full text-base-content/50';
+    errorDiv.innerHTML = `<svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>`;
+    img.parentElement.appendChild(errorDiv);
+}
+
 function showDetectionModal(detectionId) {
     const detection = detectionData[detectionId];
     if (!detection) return;
@@ -652,102 +655,34 @@ function showDetectionModal(detectionId) {
     
     let content = `
         <div class="space-y-6">
-            <!-- Foes Detected (Primary Focus) -->
-            ${detection.foes && detection.foes.length > 0 ? `
-            <div>
-                <h4 class="text-lg font-bold mb-4">{{ t('common.detected_threats', request) }}</h4>
-                <div class="grid gap-3">
-                    ${detection.foes.map(foe => `
-                    <div class="flex items-center justify-between p-4 bg-gradient-to-r from-error/5 to-warning/5 rounded-lg border-l-4 ${getFoeBorderClass(foe.foe_type)}">
-                        <div class="flex items-center gap-4">
-                            <span class="text-3xl">${getFoeEmoji(foe.foe_type)}</span>
-                            <div>
-                                <div class="font-semibold text-lg capitalize">${foe.foe_type}</div>
-                                <div class="text-sm text-base-content/70">${(foe.confidence * 100).toFixed(0)}% confidence</div>
-                            </div>
-                        </div>
-                        <div class="badge ${getFoeBadgeClass(foe.foe_type)} badge-lg">${foe.foe_type}</div>
-                    </div>`).join('')}
-                </div>
-            </div>` : `
-            <div class="text-center py-12">
-                <div class="text-6xl mb-4">✅</div>
-                <h4 class="text-lg font-bold text-success mb-2">{{ t('common.all_clear', request) }}</h4>
-                <p class="text-base-content/70">{{ t('common.no_threats_detected', request) }}</p>
-            </div>`}
-            
-            <!-- Deterrent Action (If Any) -->
-            ${detection.effectiveness ? `
-            <div>
-                <h4 class="text-lg font-bold mb-4">{{ t('common.deterrent_action', request) }}</h4>
-                <div class="bg-gradient-to-r from-success/5 to-info/5 rounded-lg p-6 border border-success/20">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-primary">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.5c-.69 0-1.25-.56-1.25-1.25V9.5c0-.69.56-1.25 1.25-1.25H6.75Z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="font-semibold">${detection.effectiveness.sound_file.split('/').pop()}</div>
-                                <div class="text-sm text-base-content/70">Played via ${detection.effectiveness.playback_method}</div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <button 
-                                onclick="playSound('${detection.effectiveness.sound_file}')" 
-                                class="btn btn-circle btn-primary"
-                                title="Play sound">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
-                                </svg>
-                            </button>
-                            <div class="badge badge-lg ${getResultBadgeClass(detection.effectiveness.result)}">${detection.effectiveness.result}</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Before/After Results -->
-                    <div class="flex items-center justify-center gap-8 mt-6">
-                        <div class="text-center">
-                            <div class="text-3xl font-bold text-warning">${detection.effectiveness.foes_before}</div>
-                            <div class="text-sm text-base-content/70">Before</div>
-                        </div>
-                        <div class="text-2xl">→</div>
-                        <div class="text-center">
-                            <div class="text-3xl font-bold text-success">${detection.effectiveness.foes_after}</div>
-                            <div class="text-sm text-base-content/70">After ${detection.effectiveness.wait_duration}s</div>
-                        </div>
-                        <div class="text-center ml-4">
-                            <div class="text-3xl font-bold text-primary">${(detection.effectiveness.effectiveness_score * 100).toFixed(0)}%</div>
-                            <div class="text-sm text-base-content/70">Effective</div>
-                        </div>
-                    </div>
-                </div>
-            </div>` : ''}
-            
-            <!-- Species Identification Results (If Available) -->
-            ${detection.ai_response && detection.ai_response.species_results ? `
-            <div>
-                <h4 class="text-lg font-bold mb-4">🔬 {{ t('common.species_identification', request) }}</h4>
-                <div class="bg-gradient-to-r from-info/5 to-primary/5 rounded-lg border border-info/20">
-                    ${detection.ai_response.species_results.species_identifications && detection.ai_response.species_results.species_identifications.length > 0 ? 
-                        detection.ai_response.species_results.species_identifications.map((speciesData, index) => `
-                        <div class="p-4 ${index > 0 ? 'border-t border-info/10' : ''}">
-                            <!-- Cropped Image -->
-                            <div class="flex flex-col lg:flex-row gap-4 mb-4">
-                                <div class="lg:w-1/3">
-                                    <div class="bg-base-100 rounded-lg p-2 border">
-                                        <div class="text-xs text-base-content/60 mb-2">{{ t('common.cropped_analysis_region', request) }}:</div>
-                                        <div class="relative bg-base-200 rounded aspect-square overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+            <!-- Species Identification Results (Main Focus) -->
+            ${detection.ai_response && detection.ai_response.species_results && detection.ai_response.species_results.species_identifications && detection.ai_response.species_results.species_identifications.length > 0 ? 
+                `<div>
+                    <h4 class="text-lg font-bold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        {{ t('common.species_identification', request) }}
+                    </h4>
+                    <div class="space-y-4">
+                        ${detection.ai_response.species_results.species_identifications.map((speciesData, index) => {
+                            const hasIdentification = speciesData.species_result.identifications && speciesData.species_result.identifications.length > 0;
+                            const id = hasIdentification ? speciesData.species_result.identifications[0] : null;
+                            
+                            return `
+                            <div class="bg-base-200/50 rounded-lg p-4 border border-base-300">
+                                <div class="flex gap-4">
+                                    <!-- Cropped Image -->
+                                    <div class="flex-shrink-0 w-32 h-32">
+                                        <div class="relative bg-base-300 rounded-lg overflow-hidden h-full cursor-pointer hover:shadow-lg transition-shadow"
                                              onclick="openImageModal('${getBaseUrl()}/detections/cropped-image/${detection.id}/${index}')">
                                             <img 
                                                 src="${getBaseUrl()}/detections/cropped-image/${detection.id}/${index}" 
-                                                alt="Cropped analysis region ${index + 1}"
+                                                alt="Detection ${index + 1}"
                                                 class="w-full h-full object-cover"
                                                 loading="lazy"
-                                                onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\"text-center text-base-content/50 p-4\\"><svg class=\\"w-8 h-8 mx-auto mb-2\\" fill=\\"none\\" viewBox=\\"0 0 24 24\\" stroke=\\"currentColor\\"><path stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\" stroke-width=\\"2\\" d=\\"M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z\\" /></svg><div class=\\"text-xs\\">Error loading crop</div></div>';"
+                                                onerror="handleImageError(this)"
                                             />
-                                            <!-- Overlay with crop dimensions -->
                                             <div class="absolute bottom-1 right-1 bg-black/60 text-white text-xs px-1 py-0.5 rounded">
                                                 ${speciesData.bbox ? 
                                                     Math.round(speciesData.bbox[2] - speciesData.bbox[0]) + '×' + 
@@ -755,65 +690,117 @@ function showDetectionModal(detectionId) {
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                
-                                <!-- Species Information -->
-                                <div class="lg:w-2/3">
-                                    ${speciesData.species_result.identifications && speciesData.species_result.identifications.length > 0 ?
-                                        speciesData.species_result.identifications.map(id => `
-                                        <div class="space-y-3">
-                                            <div class="flex items-center justify-between">
-                                                <div>
-                                                    <div class="font-bold text-lg">${id.species}</div>
-                                                    <div class="text-base-content/70">${id.common_name}</div>
-                                                </div>
-                                                <div class="text-right">
-                                                    <div class="badge badge-primary badge-lg">${(id.confidence * 100).toFixed(0)}%</div>
-                                                    ${id.foe_type ? `<div class="badge ${getFoeBadgeClass(id.foe_type)} badge-sm mt-1">${id.foe_type}</div>` : ''}
-                                                </div>
+                                    
+                                    <!-- Species Information -->
+                                    <div class="flex-1">
+                                        ${id ? `
+                                        <div class="flex items-start justify-between mb-2">
+                                            <div>
+                                                <h5 class="font-bold text-lg">${id.species}</h5>
+                                                ${id.common_name ? `<p class="text-sm text-base-content/70">${id.common_name}</p>` : ''}
                                             </div>
-                                            
-                                            <div class="bg-base-100/50 rounded-lg p-3">
-                                                <div class="text-sm font-medium mb-1">{{ t('common.identifying_features', request) }}:</div>
-                                                <div class="text-sm text-base-content/80">${id.description}</div>
+                                            <div class="flex items-center gap-2">
+                                                <div class="badge badge-primary badge-lg">${(id.confidence * 100).toFixed(0)}%</div>
+                                                ${id.foe_type ? `<div class="badge ${getFoeBadgeClass(id.foe_type)} badge-lg">${id.foe_type}</div>` : ''}
                                             </div>
-                                            
-                                            <details class="collapse collapse-arrow bg-base-100/30">
-                                                <summary class="collapse-title text-sm font-medium py-2">{{ t('common.analysis_reasoning', request) }}</summary>
-                                                <div class="collapse-content text-sm text-base-content/80">
-                                                    ${id.reasoning}
-                                                </div>
-                                            </details>
                                         </div>
-                                        `).join('') : 
-                                        `<div class="text-center text-base-content/50 py-4">
-                                            ${speciesData.species_result.scene_description.includes('No API key') ? 
-                                                '<div class="alert alert-warning"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" /></svg><span>Species identification requires API key configuration</span></div>' : 
-                                                'No species identified'
-                                            }
-                                        </div>`
-                                    }
+                                        <p class="text-sm text-base-content/80 mb-2">${id.description}</p>
+                                        ${id.reasoning ? `
+                                        <details class="text-xs">
+                                            <summary class="cursor-pointer text-primary hover:underline">Show reasoning</summary>
+                                            <p class="mt-1 text-base-content/60">${id.reasoning}</p>
+                                        </details>` : ''}
+                                        ` : `
+                                        <p class="text-base-content/50">No species identified</p>
+                                        `}
+                                        
+                                        <!-- Metadata -->
+                                        <div class="flex flex-wrap gap-3 text-xs text-base-content/60 mt-3 pt-3 border-t border-base-300">
+                                            ${speciesData.species_result.scene_description ? `<span>Scene: ${speciesData.species_result.scene_description}</span>` : ''}
+                                            ${speciesData.detection_duration_ms ? `<span>Time: ${formatDuration(speciesData.detection_duration_ms)}</span>` : ''}
+                                            ${speciesData.species_result.cost ? `<span>Cost: $${speciesData.species_result.cost.toFixed(6)}</span>` : ''}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            
-                            <!-- Analysis Metadata -->
-                            <div class="flex flex-wrap gap-4 text-xs text-base-content/60 pt-2 border-t border-info/10">
-                                <span>Scene: ${speciesData.species_result.scene_description}</span>
-                                ${speciesData.species_result.cost ? `<span>Cost: $${speciesData.species_result.cost.toFixed(6)}</span>` : ''}
-                                <span>Model: ${detection.ai_response.performance_metrics?.species_identification_enabled ? 'Qwen2.5-VL-3B' : 'N/A'}</span>
-                                ${speciesData.detection_duration_ms ? `<span>Processing: ${formatDuration(speciesData.detection_duration_ms)}</span>` : ''}
+                            `;
+                        }).join('')}
+                    </div>
+                </div>` : 
+                detection.foes && detection.foes.length > 0 ? 
+                `<div>
+                    <h4 class="text-lg font-bold mb-4">Detected Foes</h4>
+                    <div class="space-y-2">
+                        ${detection.foes.map(foe => `
+                        <div class="flex items-center justify-between p-3 bg-base-200/50 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl">${getFoeEmoji(foe.foe_type)}</span>
+                                <span class="font-medium capitalize">${foe.foe_type}</span>
+                            </div>
+                            <div class="badge ${getFoeBadgeClass(foe.foe_type)} badge-lg">${(foe.confidence * 100).toFixed(0)}%</div>
+                        </div>`).join('')}
+                    </div>
+                </div>` : ''
+            }
+            
+            <!-- Deterrent Action (If Any) -->
+            ${detection.effectiveness ? `
+            <div>
+                <h4 class="text-lg font-bold mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.5c-.69 0-1.25-.56-1.25-1.25V9.5c0-.69.56-1.25 1.25-1.25H6.75Z" />
+                    </svg>
+                    {{ t('common.deterrent_action', request) }}
+                </h4>
+                <div class="bg-base-200/50 rounded-lg p-4 border border-base-300">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <button 
+                                onclick="playSound('${detection.effectiveness.sound_file}')" 
+                                class="btn btn-circle btn-sm btn-primary"
+                                title="Play sound">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+                                </svg>
+                            </button>
+                            <div>
+                                <div class="font-medium text-sm">${detection.effectiveness.sound_file.split('/').pop()}</div>
+                                <div class="text-xs text-base-content/60">via ${detection.effectiveness.playback_method}</div>
                             </div>
                         </div>
-                        `).join('') : 
-                        '<div class="p-4 text-center text-base-content/50">No species identifications available</div>'
-                    }
+                        <div class="badge badge-lg ${getResultBadgeClass(detection.effectiveness.result)}">${detection.effectiveness.result}</div>
+                    </div>
+                    
+                    <!-- Compact Before/After -->
+                    <div class="flex items-center justify-around text-center">
+                        <div>
+                            <div class="text-2xl font-bold text-warning">${detection.effectiveness.foes_before}</div>
+                            <div class="text-xs text-base-content/60">Before</div>
+                        </div>
+                        <svg class="w-8 h-8 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                        <div>
+                            <div class="text-2xl font-bold text-success">${detection.effectiveness.foes_after}</div>
+                            <div class="text-xs text-base-content/60">After ${detection.effectiveness.wait_duration}s</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-primary">${(detection.effectiveness.effectiveness_score * 100).toFixed(0)}%</div>
+                            <div class="text-xs text-base-content/60">Effective</div>
+                        </div>
+                    </div>
                 </div>
             </div>` : ''}
             
-            <!-- Technical Details (Collapsed by Default) -->
-            <details class="collapse collapse-arrow bg-base-200">
-                <summary class="collapse-title font-medium">{{ t('common.technical_details', request) }}</summary>
-                <div class="collapse-content space-y-4">
+            <!-- Technical Details -->
+            <div>
+                <h4 class="text-lg font-bold mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {{ t('common.technical_details', request) }}
+                </h4>
+                <div class="bg-base-200/50 rounded-lg p-4 border border-base-300">
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
                             <span class="font-medium">{{ t('common.camera', request) }}:</span>
@@ -867,7 +854,7 @@ function showDetectionModal(detectionId) {
                         </div>` : ''}` : ''}
                     </div>
                 </div>
-            </details>
+            </div>
         </div>
     `;
     
@@ -1138,33 +1125,48 @@ function updateDetectionCount() {
 function createDetectionCard(detection) {
     const foeTypes = detection.foes.map(foe => foe.foe_type);
     
+    // Format timestamp
+    const date = new Date(detection.timestamp);
+    const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const formattedTime = date.toLocaleTimeString('en-US', { hour12: false });
+    const timestamp = `${formattedDate}, ${formattedTime}`;
+    
     return `
-        <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all duration-300 border border-base-300/50 hover:border-primary/20 overflow-hidden">
+        <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all duration-300 border border-base-300/50 hover:border-primary/20 overflow-hidden cursor-pointer"
+             onclick="showDetectionModal(${detection.id})">
             ${detection.image_path ? `
-            <figure class="aspect-[4/3] bg-base-200 relative group"
+            <figure class="bg-base-200 relative group"
                     onmouseenter="toggleMedia(${detection.id}, 'enter')"
-                    onmouseleave="toggleMedia(${detection.id}, 'leave')"
-                    onclick="showDetectionModal(${detection.id})">
+                    onmouseleave="toggleMedia(${detection.id}, 'leave')">
                 <!-- Static Image -->
                 <img 
                     id="image-${detection.id}"
-                    src="${getBaseUrl()}/${detection.image_path}" 
+                    src="${getBaseUrl()}/detections/image-with-boxes/${detection.id}" 
                     alt="Detection ${detection.id}"
-                    class="w-full h-full object-cover cursor-pointer transition-opacity duration-300"
+                    class="w-full h-auto object-contain transition-opacity duration-300"
                     loading="lazy"
+                    onerror="this.onerror=null;this.src='${getBaseUrl()}/${detection.image_path}';"
                 />
                 
                 <!-- Video (hidden by default) -->
                 ${detection.video_path ? `
                 <video 
                     id="video-${detection.id}"
-                    class="w-full h-full object-cover cursor-pointer absolute top-0 left-0 opacity-0 transition-opacity duration-300"
+                    class="w-full h-full object-contain absolute top-0 left-0 opacity-0 transition-opacity duration-300"
                     muted
                     loop
                     preload="metadata">
                     <source src="${getBaseUrl()}/detections/video/${detection.id}" type="video/mp4">
                 </video>
                 ` : ''}
+                
+                <!-- Timestamp overlay (top right) -->
+                <div class="absolute top-2 right-2 z-10">
+                    <span class="badge badge-neutral badge-sm bg-black/70 border-0 text-white">
+                        ${timestamp}
+                    </span>
+                </div>
+                
                 <!-- Foe badges overlay -->
                 ${detection.foes.length > 0 ? `
                 <div class="absolute top-2 left-2 flex flex-wrap gap-1 z-10">
@@ -1183,84 +1185,19 @@ function createDetectionCard(detection) {
                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
-                        <span class="hidden group-hover:inline">{{ t('detections.hover_to_play', request) }}</span>
-                        <span class="group-hover:hidden">{{ t('detections.video', request) }}</span>
+                        <span class="hidden group-hover:inline">Hover to play</span>
+                        <span class="group-hover:hidden">Video</span>
                     </span>
                 </div>
                 ` : ''}
             </figure>
             ` : ''}
             
-            <div class="card-body p-5">
-                <!-- Camera Info with Icon -->
-                <div class="flex items-center gap-2 mb-2">
-                    <svg class="w-4 h-4 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    <h3 class="font-semibold text-base truncate">
-                        ${detection.device?.name || 'Unknown Camera'}
-                    </h3>
-                </div>
-                
-                <!-- Timestamp with Better Formatting -->
-                <div class="flex items-center gap-2 mb-4">
-                    <svg class="w-3 h-3 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div class="text-xs text-base-content/70">
-                        <div>${new Date(detection.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${new Date(detection.timestamp).toLocaleTimeString('en-US', { hour12: false })}</div>
-                    </div>
-                </div>
-                
-                ${detection.effectiveness ? `
-                <div class="bg-base-200 rounded-lg p-3 mb-3">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm font-medium">Deterrent Result:</span>
-                        <span class="badge ${detection.effectiveness.result === 'success' ? 'badge-success' : detection.effectiveness.result === 'partial' ? 'badge-warning' : 'badge-error'}">
-                            ${detection.effectiveness.result.charAt(0).toUpperCase() + detection.effectiveness.result.slice(1)}
-                        </span>
-                    </div>
-                    
-                    <div class="text-xs space-y-1">
-                        <div class="flex justify-between">
-                            <span class="text-base-content/70">Sound:</span>
-                            <span class="font-medium truncate max-w-[150px]" title="${detection.effectiveness.sound_file || ''}">
-                                ${detection.effectiveness.sound_file ? detection.effectiveness.sound_file.split('/').pop() : 'N/A'}
-                            </span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-base-content/70">Effectiveness:</span>
-                            <span class="font-medium">${detection.effectiveness.effectiveness_score ? Math.round(detection.effectiveness.effectiveness_score * 100) : 0}%</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-base-content/70">Before/After:</span>
-                            <span class="font-medium">${detection.effectiveness.foes_before || 0} → ${detection.effectiveness.foes_after || 0}</span>
-                        </div>
-                    </div>
-                </div>
-                ` : ''}
-                
-                <div class="flex items-center justify-between">
-                    <span class="badge badge-sm ${getStatusBadgeClass(detection.status)}">
-                        ${detection.status}
-                    </span>
-                    
-                    ${detection.ai_cost_usd ? `
-                    <span class="text-xs text-base-content/50">
-                        AI Cost: $${detection.ai_cost_usd.toFixed(4)}
-                    </span>
-                    ` : ''}
-                </div>
-                
-                <button 
-                    onclick="showDetectionModal(${detection.id})" 
-                    class="btn btn-sm btn-primary btn-outline w-full mt-4 gap-2 group">
-                    <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    {{ t('detections.view_details', request) }}
-                </button>
+            <div class="card-body p-4">
+                <!-- Camera Name -->
+                <h3 class="font-semibold text-base truncate">
+                    ${detection.device?.name || 'Unknown Camera'}
+                </h3>
             </div>
         </div>
     `;
