@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Test Image - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-4">
+            <a href="/settings/test-images" class="btn btn-ghost btn-sm">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                Back
+            </a>
+            <h1 class="text-2xl font-bold">{{ test_image.name }}</h1>
+        </div>
+        
+        <div class="flex gap-2">
+            <button onclick="saveAllChanges()" class="btn btn-primary">
+                <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Save Changes
+            </button>
+        </div>
+    </div>
+    
+    <!-- Editor Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Image Canvas Column -->
+        <div class="lg:col-span-2">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <h2 class="card-title">Image</h2>
+                        <div class="flex gap-2">
+                            <button onclick="startDrawing()" class="btn btn-sm btn-primary" id="draw-btn">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                Draw New Box
+                            </button>
+                            <button onclick="cancelDrawing()" class="btn btn-sm btn-error hidden" id="cancel-btn">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Canvas Container -->
+                    <div class="relative bg-base-200 rounded-lg overflow-hidden">
+                        <canvas id="image-canvas" class="cursor-crosshair w-full"></canvas>
+                        <div id="label-overlays" class="absolute inset-0 pointer-events-none"></div>
+                    </div>
+                    
+                    <!-- Drawing Instructions -->
+                    <div id="drawing-instructions" class="mt-2 alert alert-info hidden">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Click and drag to draw a bounding box around an animal</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Labels Column -->
+        <div>
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body p-4">
+                    <h2 class="card-title mb-4">Ground Truth Labels</h2>
+                    
+                    <!-- Labels List -->
+                    <div id="labels-list" class="space-y-2 max-h-96 overflow-y-auto">
+                        {% for label in test_image.ground_truth_labels %}
+                        <div class="label-item border rounded-lg p-3 hover:bg-base-200 cursor-pointer" 
+                             data-label-id="{{ label.id }}"
+                             data-bbox="{{ [label.bbox_x1, label.bbox_y1, label.bbox_x2, label.bbox_y2]|tojson }}"
+                             onclick="selectLabel({{ label.id }})">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium">{{ label.species }}</div>
+                                    {% if label.foe_type %}
+                                    <div class="badge badge-sm badge-warning">{{ label.foe_type }}</div>
+                                    {% endif %}
+                                </div>
+                                <button onclick="deleteLabel({{ label.id }}, event)" class="btn btn-ghost btn-xs text-error">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            {% if label.notes %}
+                            <div class="text-xs text-base-content/60 mt-1">{{ label.notes }}</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if not test_image.ground_truth_labels %}
+                    <div class="text-center py-8 text-base-content/60">
+                        <svg class="w-12 h-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        <p>No labels yet. Draw boxes to add labels.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Image Info -->
+            <div class="card bg-base-100 shadow-xl mt-4">
+                <div class="card-body p-4">
+                    <h3 class="font-bold mb-2">Image Information</h3>
+                    <div class="text-sm space-y-1">
+                        <div>Size: {{ test_image.image_width }}x{{ test_image.image_height }}</div>
+                        <div>Created: {{ test_image.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                        {% if test_image.description %}
+                        <div>Description: {{ test_image.description }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Label Modal -->
+<dialog id="new-label-modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Add Ground Truth Label</h3>
+        <form id="new-label-form" onsubmit="submitNewLabel(event)">
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">Species *</span>
+                </label>
+                <input type="text" id="label-species" class="input input-bordered w-full" 
+                       placeholder="e.g., Norway Rat, House Cat, European Magpie" required>
+            </div>
+            
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">Foe Type (if applicable)</span>
+                </label>
+                <select id="label-foe-type" class="select select-bordered w-full">
+                    <option value="">Not a foe / Unknown</option>
+                    {% for foe_type in foe_types %}
+                    <option value="{{ foe_type }}">{{ foe_type }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">Confidence</span>
+                </label>
+                <input type="range" id="label-confidence" min="0" max="1" step="0.1" value="1" 
+                       class="range range-primary">
+                <div class="w-full flex justify-between text-xs px-2">
+                    <span>0%</span>
+                    <span id="confidence-value">100%</span>
+                    <span>100%</span>
+                </div>
+            </div>
+            
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">Notes</span>
+                </label>
+                <textarea id="label-notes" class="textarea textarea-bordered w-full" 
+                          placeholder="Optional notes about this detection"></textarea>
+            </div>
+            
+            <div class="modal-action">
+                <button type="button" onclick="document.getElementById('new-label-modal').close()" 
+                        class="btn btn-ghost">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Label</button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<script>
+const testImageId = {{ test_image.id }};
+let canvas, ctx;
+let isDrawing = false;
+let startX, startY;
+let currentBox = null;
+let selectedLabelId = null;
+let labels = {{ test_image.ground_truth_labels | tojson }};
+let image = new Image();
+let scale = 1;
+
+// Initialize canvas
+document.addEventListener('DOMContentLoaded', function() {
+    canvas = document.getElementById('image-canvas');
+    ctx = canvas.getContext('2d');
+    
+    // Load and display image
+    image.onload = function() {
+        // Set canvas size to fit container while maintaining aspect ratio
+        const container = canvas.parentElement;
+        const maxWidth = container.clientWidth;
+        const maxHeight = window.innerHeight * 0.6;
+        
+        scale = Math.min(maxWidth / image.width, maxHeight / image.height, 1);
+        
+        canvas.width = image.width * scale;
+        canvas.height = image.height * scale;
+        
+        // Draw image
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        
+        // Draw existing labels
+        drawAllLabels();
+    };
+    
+    image.src = '/{{ test_image.image_path }}';
+    
+    // Canvas event listeners
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseup', handleMouseUp);
+    
+    // Confidence slider
+    const confidenceSlider = document.getElementById('label-confidence');
+    const confidenceValue = document.getElementById('confidence-value');
+    confidenceSlider.addEventListener('input', function() {
+        confidenceValue.textContent = Math.round(this.value * 100) + '%';
+    });
+});
+
+function startDrawing() {
+    isDrawing = true;
+    document.getElementById('draw-btn').classList.add('hidden');
+    document.getElementById('cancel-btn').classList.remove('hidden');
+    document.getElementById('drawing-instructions').classList.remove('hidden');
+    canvas.style.cursor = 'crosshair';
+}
+
+function cancelDrawing() {
+    isDrawing = false;
+    currentBox = null;
+    document.getElementById('draw-btn').classList.remove('hidden');
+    document.getElementById('cancel-btn').classList.add('hidden');
+    document.getElementById('drawing-instructions').classList.add('hidden');
+    canvas.style.cursor = 'default';
+    
+    // Redraw to clear temporary box
+    redrawCanvas();
+}
+
+function handleMouseDown(e) {
+    if (!isDrawing) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    startX = (e.clientX - rect.left) / scale;
+    startY = (e.clientY - rect.top) / scale;
+    currentBox = { x1: startX, y1: startY, x2: startX, y2: startY };
+}
+
+function handleMouseMove(e) {
+    if (!isDrawing || !currentBox) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const currentX = (e.clientX - rect.left) / scale;
+    const currentY = (e.clientY - rect.top) / scale;
+    
+    currentBox.x2 = currentX;
+    currentBox.y2 = currentY;
+    
+    // Redraw everything including temporary box
+    redrawCanvas();
+    drawBox(currentBox, 'rgba(59, 130, 246, 0.5)', 2);
+}
+
+function handleMouseUp(e) {
+    if (!isDrawing || !currentBox) return;
+    
+    // Normalize box coordinates
+    const box = {
+        x1: Math.min(currentBox.x1, currentBox.x2),
+        y1: Math.min(currentBox.y1, currentBox.y2),
+        x2: Math.max(currentBox.x1, currentBox.x2),
+        y2: Math.max(currentBox.y1, currentBox.y2)
+    };
+    
+    // Check if box is valid (minimum size)
+    if (box.x2 - box.x1 > 10 && box.y2 - box.y1 > 10) {
+        // Store box and show label dialog
+        currentBox = box;
+        document.getElementById('new-label-modal').showModal();
+    }
+    
+    cancelDrawing();
+}
+
+function redrawCanvas() {
+    // Clear and redraw image
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    
+    // Draw all labels
+    drawAllLabels();
+}
+
+function drawAllLabels() {
+    labels.forEach(label => {
+        const bbox = {
+            x1: label.bbox_x1,
+            y1: label.bbox_y1,
+            x2: label.bbox_x2,
+            y2: label.bbox_y2
+        };
+        
+        const color = label.id === selectedLabelId ? 'rgba(34, 197, 94, 0.8)' : 'rgba(59, 130, 246, 0.8)';
+        drawBox(bbox, color, 2);
+        
+        // Draw label text
+        ctx.save();
+        ctx.scale(scale, scale);
+        ctx.font = '14px sans-serif';
+        ctx.fillStyle = color;
+        ctx.fillText(label.species, bbox.x1 + 5, bbox.y1 - 5);
+        ctx.restore();
+    });
+}
+
+function drawBox(box, color, lineWidth) {
+    ctx.save();
+    ctx.scale(scale, scale);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.strokeRect(box.x1, box.y1, box.x2 - box.x1, box.y2 - box.y1);
+    ctx.restore();
+}
+
+function selectLabel(labelId) {
+    selectedLabelId = labelId;
+    redrawCanvas();
+    
+    // Highlight label item
+    document.querySelectorAll('.label-item').forEach(item => {
+        item.classList.remove('ring', 'ring-primary');
+    });
+    document.querySelector(`[data-label-id="${labelId}"]`).classList.add('ring', 'ring-primary');
+}
+
+async function submitNewLabel(event) {
+    event.preventDefault();
+    
+    if (!currentBox) return;
+    
+    const formData = new FormData();
+    formData.append('bbox_x1', Math.round(currentBox.x1));
+    formData.append('bbox_y1', Math.round(currentBox.y1));
+    formData.append('bbox_x2', Math.round(currentBox.x2));
+    formData.append('bbox_y2', Math.round(currentBox.y2));
+    formData.append('species', document.getElementById('label-species').value);
+    formData.append('foe_type', document.getElementById('label-foe-type').value);
+    formData.append('confidence', document.getElementById('label-confidence').value);
+    formData.append('notes', document.getElementById('label-notes').value);
+    
+    try {
+        const response = await fetch(`/api/test-images/${testImageId}/labels`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            const newLabel = await response.json();
+            
+            // Add to labels array
+            labels.push({
+                id: newLabel.id,
+                bbox_x1: currentBox.x1,
+                bbox_y1: currentBox.y1,
+                bbox_x2: currentBox.x2,
+                bbox_y2: currentBox.y2,
+                species: document.getElementById('label-species').value,
+                foe_type: document.getElementById('label-foe-type').value || null
+            });
+            
+            // Refresh page to update label list
+            location.reload();
+        } else {
+            alert('Failed to add label');
+        }
+    } catch (error) {
+        console.error('Error adding label:', error);
+        alert('Failed to add label');
+    }
+    
+    document.getElementById('new-label-modal').close();
+    document.getElementById('new-label-form').reset();
+}
+
+async function deleteLabel(labelId, event) {
+    event.stopPropagation();
+    
+    if (!confirm('Delete this label?')) return;
+    
+    try {
+        const response = await fetch(`/api/test-images/${testImageId}/labels/${labelId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            // Remove from labels array
+            labels = labels.filter(l => l.id !== labelId);
+            
+            // Remove from UI
+            document.querySelector(`[data-label-id="${labelId}"]`).remove();
+            
+            // Redraw
+            redrawCanvas();
+        } else {
+            alert('Failed to delete label');
+        }
+    } catch (error) {
+        console.error('Error deleting label:', error);
+        alert('Failed to delete label');
+    }
+}
+
+async function saveAllChanges() {
+    // Currently changes are saved immediately, but we could batch them here
+    alert('All changes have been saved!');
+}
+</script>
+{% endblock %}

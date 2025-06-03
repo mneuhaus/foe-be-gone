@@ -64,7 +64,12 @@
       "Bash(alembic heads:*)",
       "Bash(alembic merge:*)",
       "Bash(alembic stamp:*)",
-      "Bash(./venv/bin/python:*)"
+      "Bash(./venv/bin/python:*)",
+      "Bash(/Users/mneuhaus/Workspace/foe-be-gone/venv/bin/alembic revision --autogenerate -m \"Add test image and ground truth models\")",
+      "Bash(/Users/mneuhaus/Workspace/foe-be-gone/venv/bin/alembic upgrade head)",
+      "Bash(/Users/mneuhaus/Workspace/foe-be-gone/venv/bin/alembic revision --autogenerate -m \"Add test image models with ground truth\")",
+      "Bash(/Users/mneuhaus/Workspace/foe-be-gone/venv/bin/alembic heads)",
+      "Bash(/Users/mneuhaus/Workspace/foe-be-gone/venv/bin/alembic merge -m \"Merge test image migrations\" 81eb41d20d3a test_image_migration)"
     ],
     "deny": []
   },

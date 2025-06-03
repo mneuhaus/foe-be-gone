@@ -376,6 +376,15 @@
                 </div>
                 <div class="flex gap-2">
                     <button 
+                        id="modal-save-test-btn" 
+                        class="btn btn-outline btn-sm"
+                        onclick="saveAsTestImage()">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+                        </svg>
+                        Save as Test
+                    </button>
+                    <button 
                         id="modal-test-btn" 
                         class="btn btn-outline btn-sm"
                         onclick="openModelTest()">
@@ -1317,6 +1326,76 @@ function navigateDetection(direction) {
 function openModelTest() {
     if (currentDetectionId) {
         window.open(`/model-test/${currentDetectionId}`, '_blank');
+    }
+}
+
+async function saveAsTestImage() {
+    if (!currentDetectionId) return;
+    
+    const name = prompt('Enter a name for this test image:', `Detection ${currentDetectionId}`);
+    if (!name) return;
+    
+    const description = prompt('Enter a description (optional):');
+    
+    try {
+        const response = await fetch(`/api/test-images/from-detection/${currentDetectionId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: name,
+                description: description
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            
+            // Show success notification
+            const notification = document.createElement('div');
+            notification.className = 'toast toast-top toast-end';
+            notification.innerHTML = `
+                <div class="alert alert-success">
+                    <span>Test image saved successfully! ${result.ground_truth_count} labels auto-generated.</span>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            
+            // Remove notification after 3 seconds
+            setTimeout(() => notification.remove(), 3000);
+            
+            // Update button to show it's been saved
+            const saveBtn = document.getElementById('modal-save-test-btn');
+            if (saveBtn) {
+                saveBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    Saved!
+                `;
+                saveBtn.classList.add('btn-success');
+                saveBtn.classList.remove('btn-outline');
+                
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    saveBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+                        </svg>
+                        Save as Test
+                    `;
+                    saveBtn.classList.remove('btn-success');
+                    saveBtn.classList.add('btn-outline');
+                }, 2000);
+            }
+        } else {
+            const error = await response.json();
+            alert(`Failed to save test image: ${error.detail || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('Error saving test image:', error);
+        alert('Failed to save test image. Please try again.');
     }
 }
 

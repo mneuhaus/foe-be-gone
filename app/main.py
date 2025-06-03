@@ -21,11 +21,13 @@ from app.routes import settings, detections, statistics, logs
 from app.routes.api import integrations
 from app.routes.api import detections as api_detections
 from app.routes.api import settings as api_settings
+from app.routes.api import test_images as api_test_images
 from app.services.detection_worker import detection_worker
 from app.services.settings_service import SettingsService
 from app.models.setting import Setting
 from app.models.device import Device
 from app.models.integration_instance import IntegrationInstance
+from app.models.test_image import TestImage, GroundTruthLabel, TestResult, TestRun
 from app.core.templates import format_datetime_tz
 
 # Validate configuration before setting up logging
@@ -167,6 +169,7 @@ app.include_router(statistics.router)
 app.include_router(logs.router)
 app.include_router(api_detections.router)
 app.include_router(api_settings.router)
+app.include_router(api_test_images.router)
 
 # Import and include model test router
 from app.routes import model_test
@@ -175,6 +178,10 @@ app.include_router(model_test.router)
 # Import and include providers router
 from app.routes import providers
 app.include_router(providers.router)
+
+# Import and include test images router
+from app.routes import test_images
+app.include_router(test_images.router)
 
 # Add API documentation info
 @app.get("/api", tags=["documentation"], summary="API Documentation")
