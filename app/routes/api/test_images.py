@@ -25,8 +25,12 @@ async def create_test_image_from_detection(
     session: Session = Depends(get_session)
 ):
     """Create a test image from an existing detection."""
-    # Get the detection
-    detection = session.get(Detection, detection_id)
+    # Get the detection with device relationship
+    from sqlmodel import select
+    from sqlalchemy.orm import selectinload
+    
+    statement = select(Detection).where(Detection.id == detection_id).options(selectinload(Detection.device))
+    detection = session.exec(statement).first()
     if not detection:
         raise HTTPException(status_code=404, detail="Detection not found")
     
@@ -58,7 +62,8 @@ async def create_test_image_from_detection(
     
     # Use provided name or generate from detection info
     if not name:
-        name = f"{detection.device_name} - {detection.detected_at.strftime('%Y-%m-%d %H:%M')}"
+        device_name = detection.device.name if detection.device else "Unknown"
+        name = f"{device_name} - {detection.timestamp.strftime('%Y-%m-%d %H:%M')}"
     
     # Create test image record
     test_image = TestImage(
@@ -73,6 +78,7 @@ async def create_test_image_from_detection(
     )
     
     session.add(test_image)
+    session.flush()  # Flush to get the test_image.id
     
     # If detection has YOLO results, create initial ground truth labels
     if detection.ai_response and "yolo_results" in detection.ai_response:

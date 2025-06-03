@@ -49,7 +49,7 @@
                     
                     <!-- Canvas Container -->
                     <div class="relative bg-base-200 rounded-lg overflow-hidden">
-                        <canvas id="image-canvas" class="cursor-crosshair w-full"></canvas>
+                        <canvas id="image-canvas" class="cursor-crosshair"></canvas>
                         <div id="label-overlays" class="absolute inset-0 pointer-events-none"></div>
                     </div>
                     
@@ -183,6 +183,21 @@
     </form>
 </dialog>
 
+<!-- Confirmation Modal -->
+<dialog id="confirm-modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4" id="confirm-title">Confirm Action</h3>
+        <p id="confirm-message" class="py-4">Are you sure?</p>
+        <div class="modal-action">
+            <button onclick="document.getElementById('confirm-modal').close()" class="btn btn-ghost">Cancel</button>
+            <button id="confirm-yes-btn" class="btn btn-error">Confirm</button>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
 <script>
 const testImageId = {{ test_image.id }};
 let canvas, ctx;
@@ -190,7 +205,7 @@ let isDrawing = false;
 let startX, startY;
 let currentBox = null;
 let selectedLabelId = null;
-let labels = {{ test_image.ground_truth_labels | tojson }};
+let labels = {{ labels_json | tojson }};
 let image = new Image();
 let scale = 1;
 
@@ -211,6 +226,10 @@ document.addEventListener('DOMContentLoaded', function() {
         canvas.width = image.width * scale;
         canvas.height = image.height * scale;
         
+        // Set CSS size to match canvas size to prevent coordinate mismatch
+        canvas.style.width = canvas.width + 'px';
+        canvas.style.height = canvas.height + 'px';
+        
         // Draw image
         ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
         
@@ -230,6 +249,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const confidenceValue = document.getElementById('confidence-value');
     confidenceSlider.addEventListener('input', function() {
         confidenceValue.textContent = Math.round(this.value * 100) + '%';
+    });
+    
+    // Modal close handler
+    const modal = document.getElementById('new-label-modal');
+    modal.addEventListener('close', function() {
+        console.log('Modal closed, clearing currentBox');
+        currentBox = null;
+        redrawCanvas();
     });
 });
 
@@ -257,17 +284,53 @@ function handleMouseDown(e) {
     if (!isDrawing) return;
     
     const rect = canvas.getBoundingClientRect();
-    startX = (e.clientX - rect.left) / scale;
-    startY = (e.clientY - rect.top) / scale;
+    // Get canvas coordinates
+    const canvasX = e.clientX - rect.left;
+    const canvasY = e.clientY - rect.top;
+    
+    console.log('MouseDown Debug:', {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        rectLeft: rect.left,
+        rectTop: rect.top,
+        canvasX: canvasX,
+        canvasY: canvasY,
+        scale: scale,
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        canvasOffsetWidth: canvas.offsetWidth,
+        canvasOffsetHeight: canvas.offsetHeight,
+        canvasClientWidth: canvas.clientWidth,
+        canvasClientHeight: canvas.clientHeight,
+        imageWidth: image.width,
+        imageHeight: image.height,
+        canvasStyle: {
+            width: canvas.style.width,
+            height: canvas.style.height,
+            position: getComputedStyle(canvas).position,
+            transform: getComputedStyle(canvas).transform
+        }
+    });
+    
+    // Convert to image coordinates
+    startX = canvasX / scale;
+    startY = canvasY / scale;
     currentBox = { x1: startX, y1: startY, x2: startX, y2: startY };
+    
+    console.log('Converted coordinates:', { startX, startY, currentBox });
 }
 
 function handleMouseMove(e) {
     if (!isDrawing || !currentBox) return;
     
     const rect = canvas.getBoundingClientRect();
-    const currentX = (e.clientX - rect.left) / scale;
-    const currentY = (e.clientY - rect.top) / scale;
+    // Get canvas coordinates
+    const canvasX = e.clientX - rect.left;
+    const canvasY = e.clientY - rect.top;
+    
+    // Convert to image coordinates
+    const currentX = canvasX / scale;
+    const currentY = canvasY / scale;
     
     currentBox.x2 = currentX;
     currentBox.y2 = currentY;
@@ -288,14 +351,29 @@ function handleMouseUp(e) {
         y2: Math.max(currentBox.y1, currentBox.y2)
     };
     
+    console.log('Mouse up - box dimensions:', {
+        width: box.x2 - box.x1,
+        height: box.y2 - box.y1,
+        box: box
+    });
+    
     // Check if box is valid (minimum size)
     if (box.x2 - box.x1 > 10 && box.y2 - box.y1 > 10) {
         // Store box and show label dialog
         currentBox = box;
+        console.log('Valid box detected, opening modal');
         document.getElementById('new-label-modal').showModal();
+        
+        // Stop drawing mode but keep the current box
+        isDrawing = false;
+        document.getElementById('draw-btn').classList.remove('hidden');
+        document.getElementById('cancel-btn').classList.add('hidden');
+        document.getElementById('drawing-instructions').classList.add('hidden');
+        canvas.style.cursor = 'default';
+    } else {
+        console.log('Box too small, canceling');
+        cancelDrawing();
     }
-    
-    cancelDrawing();
 }
 
 function redrawCanvas() {
@@ -319,22 +397,33 @@ function drawAllLabels() {
         const color = label.id === selectedLabelId ? 'rgba(34, 197, 94, 0.8)' : 'rgba(59, 130, 246, 0.8)';
         drawBox(bbox, color, 2);
         
-        // Draw label text
+        // Draw label text (in canvas coordinates)
         ctx.save();
-        ctx.scale(scale, scale);
         ctx.font = '14px sans-serif';
         ctx.fillStyle = color;
-        ctx.fillText(label.species, bbox.x1 + 5, bbox.y1 - 5);
+        ctx.fillText(label.species, bbox.x1 * scale + 5, bbox.y1 * scale - 5);
         ctx.restore();
     });
 }
 
 function drawBox(box, color, lineWidth) {
     ctx.save();
-    ctx.scale(scale, scale);
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
-    ctx.strokeRect(box.x1, box.y1, box.x2 - box.x1, box.y2 - box.y1);
+    
+    // Convert image coordinates to canvas coordinates
+    const canvasX1 = box.x1 * scale;
+    const canvasY1 = box.y1 * scale;
+    const canvasWidth = (box.x2 - box.x1) * scale;
+    const canvasHeight = (box.y2 - box.y1) * scale;
+    
+    console.log('DrawBox Debug:', {
+        inputBox: box,
+        scale: scale,
+        canvasCoords: { canvasX1, canvasY1, canvasWidth, canvasHeight }
+    });
+    
+    ctx.strokeRect(canvasX1, canvasY1, canvasWidth, canvasHeight);
     ctx.restore();
 }
 
@@ -352,26 +441,47 @@ function selectLabel(labelId) {
 async function submitNewLabel(event) {
     event.preventDefault();
     
-    if (!currentBox) return;
+    console.log('submitNewLabel called');
+    console.log('currentBox:', currentBox);
     
+    if (!currentBox) {
+        console.error('No currentBox available');
+        showNotification('No bounding box drawn. Please draw a box first.', 'error');
+        return;
+    }
+    
+    const species = document.getElementById('label-species').value;
+    if (!species.trim()) {
+        showNotification('Please enter a species name', 'warning');
+        return;
+    }
+    
+    console.log('Creating form data...');
     const formData = new FormData();
     formData.append('bbox_x1', Math.round(currentBox.x1));
     formData.append('bbox_y1', Math.round(currentBox.y1));
     formData.append('bbox_x2', Math.round(currentBox.x2));
     formData.append('bbox_y2', Math.round(currentBox.y2));
-    formData.append('species', document.getElementById('label-species').value);
+    formData.append('species', species);
     formData.append('foe_type', document.getElementById('label-foe-type').value);
     formData.append('confidence', document.getElementById('label-confidence').value);
     formData.append('notes', document.getElementById('label-notes').value);
     
+    console.log('Form data:', Object.fromEntries(formData));
+    
     try {
+        console.log('Sending request to:', `/api/test-images/${testImageId}/labels`);
         const response = await fetch(`/api/test-images/${testImageId}/labels`, {
             method: 'POST',
             body: formData
         });
         
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+        
         if (response.ok) {
             const newLabel = await response.json();
+            console.log('New label created:', newLabel);
             
             // Add to labels array
             labels.push({
@@ -380,28 +490,36 @@ async function submitNewLabel(event) {
                 bbox_y1: currentBox.y1,
                 bbox_x2: currentBox.x2,
                 bbox_y2: currentBox.y2,
-                species: document.getElementById('label-species').value,
-                foe_type: document.getElementById('label-foe-type').value || null
+                species: species,
+                foe_type: document.getElementById('label-foe-type').value || null,
+                confidence: parseFloat(document.getElementById('label-confidence').value),
+                notes: document.getElementById('label-notes').value
             });
             
+            console.log('Reloading page...');
             // Refresh page to update label list
             location.reload();
         } else {
-            alert('Failed to add label');
+            const errorText = await response.text();
+            console.error('Server error:', errorText);
+            showNotification(`Failed to add label: ${response.status} ${response.statusText}`, 'error');
         }
     } catch (error) {
         console.error('Error adding label:', error);
-        alert('Failed to add label');
+        showNotification('Failed to add label: ' + error.message, 'error');
     }
     
     document.getElementById('new-label-modal').close();
     document.getElementById('new-label-form').reset();
+    currentBox = null; // Clear the box after successful submission
+    redrawCanvas(); // Redraw to remove the temporary box
 }
 
 async function deleteLabel(labelId, event) {
     event.stopPropagation();
     
-    if (!confirm('Delete this label?')) return;
+    const confirmed = await showConfirmation('Delete Label', 'Are you sure you want to delete this label? This action cannot be undone.');
+    if (!confirmed) return;
     
     try {
         const response = await fetch(`/api/test-images/${testImageId}/labels/${labelId}`, {
@@ -418,17 +536,67 @@ async function deleteLabel(labelId, event) {
             // Redraw
             redrawCanvas();
         } else {
-            alert('Failed to delete label');
+            showNotification('Failed to delete label', 'error');
         }
     } catch (error) {
         console.error('Error deleting label:', error);
-        alert('Failed to delete label');
+        showNotification('Failed to delete label', 'error');
     }
 }
 
 async function saveAllChanges() {
     // Currently changes are saved immediately, but we could batch them here
-    alert('All changes have been saved!');
+    showNotification('All changes have been saved!', 'success');
+}
+
+// Notification system - no more alerts!
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `toast toast-top toast-end z-50`;
+    notification.innerHTML = `
+        <div class="alert alert-${type}">
+            <span>${message}</span>
+            <button onclick="this.parentElement.parentElement.remove()" class="btn btn-sm btn-ghost">×</button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 4 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 4000);
+}
+
+// Confirmation system - no more confirm() dialogs!
+function showConfirmation(title, message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirm-modal');
+        const titleEl = document.getElementById('confirm-title');
+        const messageEl = document.getElementById('confirm-message');
+        const yesBtn = document.getElementById('confirm-yes-btn');
+        
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+        
+        // Remove any existing event listeners
+        const newYesBtn = yesBtn.cloneNode(true);
+        yesBtn.parentNode.replaceChild(newYesBtn, yesBtn);
+        
+        // Add new event listeners
+        newYesBtn.addEventListener('click', () => {
+            modal.close();
+            resolve(true);
+        });
+        
+        modal.addEventListener('close', () => {
+            resolve(false);
+        }, { once: true });
+        
+        modal.showModal();
+    });
 }
 </script>
 {% endblock %}

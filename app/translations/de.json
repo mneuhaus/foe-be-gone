@@ -188,6 +188,8 @@
     "clear_all_detections_text": "Dies wird alle {count} Erkennungsaufzeichnungen dauerhaft löschen. Diese Aktion kann nicht rückgängig gemacht werden.",
     "yes_clear_all": "Ja, alle löschen",
     "cancel": "Abbrechen",
+    "all_cameras": "Alle Kameras",
+    "page_info": "Seite {current} von {total} (Gesamt: {count} Erkennungen)",
     "title_suffix": "Foe Be Gone",
     "no_sounds_uploaded": "Noch keine Töne hochgeladen",
     "failed_to_load_statistics": "Statistiken konnten nicht geladen werden",

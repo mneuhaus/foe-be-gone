@@ -270,7 +270,11 @@ When adding new integrations:
 
 ### Development Memories
 
-- never use alerts, use notifications
+- **NEVER use JavaScript `alert()`, `prompt()`, or `confirm()`** - These create blocking dialogs that interrupt user experience
+  - ❌ `alert("Message")` → ✅ Use toast notifications or inline messages
+  - ❌ `prompt("Enter value")` → ✅ Use modal dialogs with forms
+  - ❌ `confirm("Are you sure?")` → ✅ Use confirmation modals
+- Always use proper UI components: notifications, modals, and non-blocking feedback
 
 ### Release Process - IMPORTANT!
 

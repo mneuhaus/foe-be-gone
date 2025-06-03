@@ -26,6 +26,7 @@ from app.services.camera_diagnostics import camera_diagnostics
 from app.models.setting import Setting
 from app.models.sound_effectiveness import SoundEffectiveness
 from app.services.settings_service import SettingsService
+from app.services.qwen_species_detector import QwenSpeciesDetector
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/detections", tags=["detections"])
@@ -56,22 +57,45 @@ async def diagnostics_page(request: Request):
 async def detections_page(
     request: Request,
     session: Session = Depends(get_session),
-    hours: Optional[int] = 24,  # Show last 24 hours by default
-    foe_type: Optional[str] = None
+    page: int = 1,
+    per_page: int = 30,
+    hours: Optional[int] = None,  # Filter by hours if provided
+    foe_type: Optional[str] = None,
+    device_id: Optional[str] = None
 ):
-    """Detections page showing recent detection events."""
-    # Calculate time filter
-    since = datetime.utcnow() - timedelta(hours=hours)
+    """Detections page showing detection events with pagination."""
+    # Build base query
+    query = select(Detection)
+    count_query = select(Detection)
     
-    # Build query
-    query = select(Detection).where(Detection.timestamp >= since)
+    # Apply time filter if specified
+    if hours:
+        since = datetime.utcnow() - timedelta(hours=hours)
+        query = query.where(Detection.timestamp >= since)
+        count_query = count_query.where(Detection.timestamp >= since)
     
     # Apply foe type filter if specified
     if foe_type:
         query = query.join(Foe).where(Foe.foe_type == foe_type)
+        count_query = count_query.join(Foe).where(Foe.foe_type == foe_type)
     
-    # Order by most recent first and limit to 30
-    query = query.order_by(Detection.timestamp.desc()).limit(30)
+    # Apply device filter if specified
+    if device_id:
+        query = query.where(Detection.device_id == device_id)
+        count_query = count_query.where(Detection.device_id == device_id)
+    
+    # Get total count for pagination
+    total_count = len(session.exec(count_query).all())
+    total_pages = (total_count + per_page - 1) // per_page
+    
+    # Ensure page is within bounds
+    page = max(1, min(page, total_pages)) if total_pages > 0 else 1
+    
+    # Calculate offset
+    offset = (page - 1) * per_page
+    
+    # Order by most recent first and apply pagination
+    query = query.order_by(Detection.timestamp.desc()).offset(offset).limit(per_page)
     
     # Execute query with eager loading of relationships
     query = query.options(
@@ -83,6 +107,11 @@ async def detections_page(
     # Get unique foe types for filter dropdown
     foe_types_result = session.exec(
         select(Foe.foe_type).distinct()
+    ).all()
+    
+    # Get available devices for filter dropdown
+    available_devices = session.exec(
+        select(Device).where(Device.device_type == "camera")
     ).all()
     
     # Get effectiveness data for each detection and convert to dict for template
@@ -145,11 +174,23 @@ async def detections_page(
         "detections": detections_with_effectiveness,
         "hours": hours,
         "foe_type": foe_type,
+        "device_id": device_id,
         "available_foe_types": foe_types_result,
+        "available_devices": available_devices,
         "current_interval": detection_worker.check_interval,
         "snapshot_capture_level": snapshot_capture_level,
         "capture_level_label": capture_level_labels.get(snapshot_capture_level, "Unknown"),
-        "timezone": timezone
+        "timezone": timezone,
+        # Pagination data
+        "current_page": page,
+        "total_pages": total_pages,
+        "total_count": total_count,
+        "per_page": per_page,
+        "has_prev": page > 1,
+        "has_next": page < total_pages,
+        "prev_page": page - 1 if page > 1 else 1,
+        "next_page": page + 1 if page < total_pages else total_pages,
+        "page_range": list(range(max(1, page - 2), min(total_pages + 1, page + 3)))
     }
     
     return templates.TemplateResponse(request, "detections.html", context)

@@ -41,6 +41,13 @@
                             <option value="168" {% if hours == 168 %}selected{% endif %}>{{ t('detections.filter_time.168h', request) }}</option>
                         </select>
                         
+                        <select name="device_id" class="select select-bordered select-sm join-item min-w-32">
+                            <option value="">{{ t('detections.all_cameras', request) }}</option>
+                            {% for device in available_devices %}
+                            <option value="{{ device.id }}" {% if device_id == device.id %}selected{% endif %}>📷 {{ device.name }}</option>
+                            {% endfor %}
+                        </select>
+                        
                         <select name="foe_type" class="select select-bordered select-sm join-item min-w-28">
                             <option value="">{{ t('foes.all', request) }}</option>
                             <option value="rats" {% if foe_type == "rats" %}selected{% endif %}>🐀 {{ t('foes.rats', request) }}</option>
@@ -320,6 +327,66 @@
                 </button>
             </div>
         </div>
+    </div>
+    {% endif %}
+    
+    <!-- Pagination Controls -->
+    {% if total_pages > 1 %}
+    <div class="flex justify-center mt-8">
+        <div class="join">
+            <!-- Previous Button -->
+            {% if has_prev %}
+            <a href="?page={{ prev_page }}{% if hours %}&hours={{ hours }}{% endif %}{% if device_id %}&device_id={{ device_id }}{% endif %}{% if foe_type %}&foe_type={{ foe_type }}{% endif %}" 
+               class="join-item btn btn-sm">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                {{ t('common.previous', request) }}
+            </a>
+            {% else %}
+            <button class="join-item btn btn-sm btn-disabled" disabled>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                {{ t('common.previous', request) }}
+            </button>
+            {% endif %}
+            
+            <!-- Page Numbers -->
+            {% for page_num in page_range %}
+                {% if page_num == current_page %}
+                <button class="join-item btn btn-sm btn-active">{{ page_num }}</button>
+                {% else %}
+                <a href="?page={{ page_num }}{% if hours %}&hours={{ hours }}{% endif %}{% if device_id %}&device_id={{ device_id }}{% endif %}{% if foe_type %}&foe_type={{ foe_type }}{% endif %}" 
+                   class="join-item btn btn-sm">
+                    {{ page_num }}
+                </a>
+                {% endif %}
+            {% endfor %}
+            
+            <!-- Next Button -->
+            {% if has_next %}
+            <a href="?page={{ next_page }}{% if hours %}&hours={{ hours }}{% endif %}{% if device_id %}&device_id={{ device_id }}{% endif %}{% if foe_type %}&foe_type={{ foe_type }}{% endif %}" 
+               class="join-item btn btn-sm">
+                {{ t('common.next', request) }}
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </a>
+            {% else %}
+            <button class="join-item btn btn-sm btn-disabled" disabled>
+                {{ t('common.next', request) }}
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Page Info -->
+    <div class="text-center mt-4 text-sm text-base-content/60">
+        {{ t('detections.page_info', request, current=current_page, total=total_pages, count=total_count) }}
     </div>
     {% endif %}
     
@@ -1332,21 +1399,13 @@ function openModelTest() {
 async function saveAsTestImage() {
     if (!currentDetectionId) return;
     
-    const name = prompt('Enter a name for this test image:', `Detection ${currentDetectionId}`);
-    if (!name) return;
-    
-    const description = prompt('Enter a description (optional):');
-    
     try {
         const response = await fetch(`/api/test-images/from-detection/${currentDetectionId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                name: name,
-                description: description
-            })
+            body: JSON.stringify({})
         });
         
         if (response.ok) {

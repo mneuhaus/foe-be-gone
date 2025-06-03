@@ -28,7 +28,7 @@
             </div>
             <div class="stat">
                 <div class="stat-title">Total Labels</div>
-                <div class="stat-value">{{ test_images|sum(attribute='ground_truth_labels')|length }}</div>
+                <div class="stat-value">{{ test_images|map(attribute='ground_truth_labels')|map('length')|sum }}</div>
             </div>
         </div>
     </div>

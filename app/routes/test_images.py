@@ -47,11 +47,28 @@ async def edit_test_image_page(
     if not test_image:
         raise HTTPException(status_code=404, detail="Test image not found")
     
+    # Convert ground truth labels to JSON-serializable format
+    labels_json = [
+        {
+            "id": label.id,
+            "bbox_x1": label.bbox_x1,
+            "bbox_y1": label.bbox_y1,
+            "bbox_x2": label.bbox_x2,
+            "bbox_y2": label.bbox_y2,
+            "species": label.species,
+            "foe_type": label.foe_type,
+            "confidence": label.confidence,
+            "notes": label.notes
+        }
+        for label in test_image.ground_truth_labels
+    ]
+    
     return templates.TemplateResponse(
         request,
         "settings/test_image_editor.html",
         {
             "test_image": test_image,
+            "labels_json": labels_json,
             "foe_types": ["RATS", "CROWS", "CATS", "HERONS", "PIGEONS"]
         }
     )

@@ -188,6 +188,8 @@
     "clear_all_detections_text": "This will permanently delete all {count} detection records. This action cannot be undone.",
     "yes_clear_all": "Yes, Clear All",
     "cancel": "Cancel",
+    "all_cameras": "All Cameras",
+    "page_info": "Page {current} of {total} (Total: {count} detections)",
     "title_suffix": "Foe Be Gone",
     "no_sounds_uploaded": "No sounds uploaded yet",
     "failed_to_load_statistics": "Failed to load statistics",
