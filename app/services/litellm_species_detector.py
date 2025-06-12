@@ -55,33 +55,10 @@ class LiteLLMSpeciesDetector:
         logger.info(f"LiteLLM species detector initialized with {self.provider_name}/{self.model_id}")
     
     def _setup_litellm(self):
-        """Configure LiteLLM with provider credentials."""
-        import os
-        provider_name = self.provider_config.get("name", "")
-        api_key = self.provider_config.get("api_key")
-        
-        # Set API key based on provider using environment variables
-        if provider_name == "openai":
-            if api_key:
-                os.environ["OPENAI_API_KEY"] = api_key
-            if self.provider_config.get("api_base"):
-                os.environ["OPENAI_BASE_URL"] = self.provider_config.get("api_base")
-                
-        elif provider_name == "anthropic":
-            if api_key:
-                os.environ["ANTHROPIC_API_KEY"] = api_key
-            # Note: Anthropic doesn't support custom base URL through environment variables
-                
-        elif provider_name == "google":
-            if api_key:
-                os.environ["GEMINI_API_KEY"] = api_key
-            # Note: Gemini doesn't support custom base URL through environment variables
-                
-        elif provider_name == "openrouter":
-            if api_key:
-                os.environ["OPENROUTER_API_KEY"] = api_key
-            # OpenRouter uses a specific base URL format for LiteLLM
-            os.environ["OPENROUTER_BASE_URL"] = "https://openrouter.ai/api/v1"
+        """Configure LiteLLM - let it handle provider routing."""
+        # No need for manual environment variable setup
+        # LiteLLM will handle this when we pass api_key and api_base directly
+        pass
     
     def crop_image_with_padding(self, image: Image.Image, bbox: Tuple[int, int, int, int], 
                                padding_percent: float = 0.5, min_size: int = None) -> Image.Image:
@@ -238,64 +215,28 @@ Respond ONLY with valid JSON."""
                 }
             ]
             
-            # Configure model parameters
-            # For LiteLLM, model names should be in format: provider/model
-            # e.g., "openai/gpt-4o", "anthropic/claude-3-5-sonnet", etc.
-            model_name = self.model_id
-            
-            # Special handling for OpenRouter - need to prefix with "openrouter/"
-            if self.provider_name == "openrouter":
-                # OpenRouter models need "openrouter/" prefix for LiteLLM
-                # e.g., "openai/gpt-4o" becomes "openrouter/openai/gpt-4o"
-                model_name = f"openrouter/{self.model_id}"
-            elif "/" not in model_name and self.provider_name:
-                # Add provider prefix if not already present
-                provider_prefix = self.provider_name.lower()
-                if provider_prefix == "google":
-                    provider_prefix = "gemini"  # Google uses "gemini" prefix in LiteLLM
-                model_name = f"{provider_prefix}/{model_name}"
-            
-            logger.debug(f"Using model name for LiteLLM: {model_name}")
-            
-            model_config = {
-                "model": model_name,
-                "messages": messages,
-                "temperature": 0.1,  # Low temperature for consistent results
-                "max_tokens": 1000
-            }
-            
-            # Add provider-specific config
-            provider_config = self.provider_config.get("config", {})
-            model_specific_config = self.model_config.get("config", {})
-            model_config.update(provider_config)
-            model_config.update(model_specific_config)
-            
-            # Verify API key is set
-            env_var_map = {
-                "openai": "OPENAI_API_KEY",
-                "anthropic": "ANTHROPIC_API_KEY", 
-                "google": "GEMINI_API_KEY",
-                "openrouter": "OPENROUTER_API_KEY"
-            }
-            
-            expected_env_var = env_var_map.get(self.provider_name)
-            if expected_env_var and not os.environ.get(expected_env_var):
-                logger.error(f"API key not found in environment: {expected_env_var}")
-                raise Exception(f"API key not configured for {self.provider_name}")
-            
-            logger.info(f"Calling LiteLLM with model: {model_config['model']}, provider: {self.provider_name}")
-            logger.debug(f"Full model config: {model_config}")
-            logger.debug(f"API key set: {expected_env_var}={'***' if os.environ.get(expected_env_var) else 'NOT SET'}")
+            # Let LiteLLM handle everything! Just pass the model name and credentials
+            logger.debug(f"Calling LiteLLM with model: {self.model_id}, provider: {self.provider_name}")
             
             try:
-                response = await litellm.acompletion(**model_config)
+                response = await litellm.acompletion(
+                    model=self.model_id,  # Just the model name - let LiteLLM route it
+                    messages=messages,
+                    api_key=self.provider_config.get("api_key"),  # Let LiteLLM handle auth
+                    api_base=self.provider_config.get("api_base"),  # For custom endpoints
+                    max_tokens=1000,
+                    temperature=0.1  # LiteLLM should handle compatibility automatically
+                )
             except Exception as api_error:
                 logger.error(f"LiteLLM API call failed: {api_error}")
                 # Re-raise with more context
-                raise Exception(f"LiteLLM API error for {self.provider_name}/{model_config['model']}: {str(api_error)}")
+                raise Exception(f"LiteLLM API error for {self.provider_name}/{self.model_id}: {str(api_error)}")
             
             # Extract response content
-            raw_response = response.choices[0].message.content
+            raw_response = response.choices[0].message.content or ""
+            
+            # Log the raw response for debugging
+            logger.debug(f"Raw response from {self.provider_name}: {raw_response}")
             
             # Calculate cost if usage info is available
             cost = 0.0
@@ -304,6 +245,18 @@ Respond ONLY with valid JSON."""
                 cost_per_1k = self.model_config.get("cost_per_1k_tokens", 0.0)
                 if cost_per_1k and total_tokens:
                     cost = (total_tokens / 1000) * cost_per_1k
+            
+            # Check if we have a response to parse
+            if not raw_response or raw_response.strip() == "":
+                logger.error(f"Empty response from {self.provider_name}")
+                return SpeciesDetectionResult(
+                    identifications=[],
+                    raw_response=raw_response,
+                    error="Empty response from model",
+                    cost=cost,
+                    provider=self.provider_name,
+                    model=self.model_id
+                )
             
             # Parse JSON response
             try:

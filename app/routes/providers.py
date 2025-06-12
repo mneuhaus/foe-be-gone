@@ -232,6 +232,15 @@ def get_default_provider_configs() -> Dict[str, Dict[str, Any]]:
                 "max_tokens": 4096,
                 "temperature": 0.1
             }
+        },
+        "deepseek": {
+            "display_name": "DeepSeek (Ultra-Cheap Chinese AI)",
+            "provider_type": "deepseek",
+            "api_base": "https://api.deepseek.com/v1",
+            "config": {
+                "max_tokens": 4096,
+                "temperature": 0.1
+            }
         }
     }
 
@@ -244,34 +253,58 @@ async def _add_default_models(provider: Provider, db: Session):
                 "model_id": "gpt-4o",
                 "display_name": "GPT-4o (Vision)",
                 "supports_vision": True,
-                "cost_per_1k_tokens": 0.005
+                "cost_per_1k_tokens": 0.0025  # $2.50 per 1M input tokens
             },
             {
                 "model_id": "gpt-4o-mini",
                 "display_name": "GPT-4o Mini (Vision)",
                 "supports_vision": True,
-                "cost_per_1k_tokens": 0.00015
+                "cost_per_1k_tokens": 0.0004  # $0.40 per 1M input tokens
             },
             {
-                "model_id": "gpt-4.1",
-                "display_name": "GPT-4.1 (Vision)",
+                "model_id": "gpt-4-vision-preview",
+                "display_name": "GPT-4 Vision (Preview)",
                 "supports_vision": True,
-                "cost_per_1k_tokens": 0.01  # Estimated
+                "cost_per_1k_tokens": 0.001  # Estimated
             },
             {
-                "model_id": "gpt-4.1-mini",
-                "display_name": "GPT-4.1 Mini (Vision)",
+                "model_id": "o1-preview",
+                "display_name": "o1 Preview (Reasoning)",
                 "supports_vision": True,
-                "cost_per_1k_tokens": 0.0003  # Estimated
+                "cost_per_1k_tokens": 0.015  # $15 per 1M input tokens
             },
             {
-                "model_id": "gpt-4.1-nano",
-                "display_name": "GPT-4.1 Nano (Vision)",
+                "model_id": "o1-mini",
+                "display_name": "o1 Mini (Efficient Reasoning)",
                 "supports_vision": True,
-                "cost_per_1k_tokens": 0.00015  # Estimated
+                "cost_per_1k_tokens": 0.003  # $3 per 1M input tokens
             }
         ],
         "openrouter": [
+            {
+                "model_id": "anthropic/claude-4-sonnet",
+                "display_name": "Claude 4 Sonnet via OpenRouter - NEW!",
+                "supports_vision": True,
+                "cost_per_1k_tokens": 0.0035  # OpenRouter markup on $3
+            },
+            {
+                "model_id": "google/gemini-2.5-pro",
+                "display_name": "Gemini 2.5 Pro via OpenRouter - NEW!",
+                "supports_vision": True,
+                "cost_per_1k_tokens": 0.0015  # OpenRouter markup on $1.25
+            },
+            {
+                "model_id": "openai/gpt-4.1",
+                "display_name": "GPT-4.1 via OpenRouter - NEW!",
+                "supports_vision": True,
+                "cost_per_1k_tokens": 0.0025  # OpenRouter markup on $2
+            },
+            {
+                "model_id": "openai/o3",
+                "display_name": "o3 (80% Price Cut!) via OpenRouter",
+                "supports_vision": True,
+                "cost_per_1k_tokens": 0.0025  # OpenRouter markup on $2
+            },
             {
                 "model_id": "anthropic/claude-3.5-sonnet",
                 "display_name": "Claude 3.5 Sonnet via OpenRouter",
@@ -279,22 +312,52 @@ async def _add_default_models(provider: Provider, db: Session):
                 "cost_per_1k_tokens": 0.003
             },
             {
-                "model_id": "google/gemini-pro-vision",
-                "display_name": "Gemini Pro Vision via OpenRouter",
+                "model_id": "google/gemini-2.0-flash-exp",
+                "display_name": "Gemini 2.0 Flash (Experimental) via OpenRouter",
                 "supports_vision": True,
-                "cost_per_1k_tokens": 0.00025
+                "cost_per_1k_tokens": 0.00012  # OpenRouter markup
             },
             {
-                "model_id": "mistralai/mistral-medium-3",
-                "display_name": "Mistral Medium 3 via OpenRouter",
+                "model_id": "qwen/qwen-2.5-vision-72b-instruct",
+                "display_name": "Qwen 2.5 Vision 72B Instruct - UPDATED!",
                 "supports_vision": True,
-                "cost_per_1k_tokens": 0.001  # Estimated
+                "cost_per_1k_tokens": 0.0004
             },
             {
-                "model_id": "arcee-ai/spotlight",
-                "display_name": "Arcee Spotlight via OpenRouter",
+                "model_id": "qwen/qwen-2.5-vision-7b-instruct",
+                "display_name": "Qwen 2.5 Vision 7B Instruct - UPDATED!",
                 "supports_vision": True,
-                "cost_per_1k_tokens": 0.0005  # Estimated
+                "cost_per_1k_tokens": 0.0001
+            },
+            {
+                "model_id": "meta-llama/llama-3.3-70b-vision-instruct",
+                "display_name": "Llama 3.3 70B Vision Instruct - NEW!",
+                "supports_vision": True,
+                "cost_per_1k_tokens": 0.0005
+            },
+            {
+                "model_id": "meta-llama/llama-3.2-90b-vision-instruct",
+                "display_name": "Llama 3.2 90B Vision Instruct",
+                "supports_vision": True,
+                "cost_per_1k_tokens": 0.0009
+            },
+            {
+                "model_id": "deepseek/deepseek-v3",
+                "display_name": "DeepSeek V3 - Dec 2024 (Ultra Cheap!)",
+                "supports_vision": True,
+                "cost_per_1k_tokens": 0.00028  # $0.28 per 1M tokens (100x cheaper!)
+            },
+            {
+                "model_id": "deepseek/deepseek-r1",
+                "display_name": "DeepSeek R1 - Jan 2025 (Reasoning Master!)",
+                "supports_vision": True,
+                "cost_per_1k_tokens": 0.00028  # $0.28 per 1M tokens (OpenSource!)
+            },
+            {
+                "model_id": "deepseek/deepseek-v3-vision",
+                "display_name": "DeepSeek V3 Vision - Ultra Cheap!",
+                "supports_vision": True,
+                "cost_per_1k_tokens": 0.000027  # $0.027 per 1M tokens - incredibly cheap!
             },
             {
                 "model_id": "opengvlab/internvl3-14b:free",
@@ -311,54 +374,56 @@ async def _add_default_models(provider: Provider, db: Session):
         ],
         "anthropic": [
             {
-                "model_id": "claude-3-opus-20240229",
-                "display_name": "Claude 3 Opus",
-                "supports_vision": True,
-                "cost_per_1k_tokens": 0.015
-            },
-            {
                 "model_id": "claude-3-5-sonnet-20241022",
-                "display_name": "Claude 3.5 Sonnet",
+                "display_name": "Claude 3.5 Sonnet (Latest)",
                 "supports_vision": True,
                 "cost_per_1k_tokens": 0.003
             },
             {
-                "model_id": "claude-3-haiku-20240307",
-                "display_name": "Claude 3 Haiku",
+                "model_id": "claude-3-5-haiku-20241022",
+                "display_name": "Claude 3.5 Haiku (Fast)",
                 "supports_vision": True,
-                "cost_per_1k_tokens": 0.00025
+                "cost_per_1k_tokens": 0.0008  # $0.8 per 1M input tokens
+            },
+            {
+                "model_id": "claude-3-opus-20240229",
+                "display_name": "Claude 3 Opus (Most Capable)",
+                "supports_vision": True,
+                "cost_per_1k_tokens": 0.015
             }
         ],
         "google": [
             {
-                "model_id": "gemini-2.5-pro-preview-05-06",
-                "display_name": "Gemini 2.5 Pro Preview",
+                "model_id": "gemini-1.5-pro-latest",
+                "display_name": "Gemini 1.5 Pro (Latest)",
                 "supports_vision": True,
-                "cost_per_1k_tokens": 0.00125  # Estimated similar to 1.5 Pro
-            },
-            {
-                "model_id": "gemini-2.5-flash-preview-05-20",
-                "display_name": "Gemini 2.5 Flash Preview",
-                "supports_vision": True,
-                "cost_per_1k_tokens": 0.000075  # Estimated similar to 1.5 Flash
-            },
-            {
-                "model_id": "gemini-2.0-flash",
-                "display_name": "Gemini 2.0 Flash",
-                "supports_vision": True,
-                "cost_per_1k_tokens": 0.000075
-            },
-            {
-                "model_id": "gemini-1.5-pro",
-                "display_name": "Gemini 1.5 Pro",
-                "supports_vision": True,
-                "cost_per_1k_tokens": 0.00125
+                "cost_per_1k_tokens": 0.00125  # $1.25 per 1M input tokens
             },
             {
                 "model_id": "gemini-1.5-flash",
                 "display_name": "Gemini 1.5 Flash",
                 "supports_vision": True,
-                "cost_per_1k_tokens": 0.000075
+                "cost_per_1k_tokens": 0.000075  # $0.075 per 1M input tokens
+            },
+            {
+                "model_id": "gemini-1.5-flash-8b",
+                "display_name": "Gemini 1.5 Flash 8B (Ultra-Cheap)",
+                "supports_vision": True,
+                "cost_per_1k_tokens": 0.0000375  # $0.0375 per 1M input tokens
+            },
+            {
+                "model_id": "gemini-pro-vision",
+                "display_name": "Gemini Pro Vision",
+                "supports_vision": True,
+                "cost_per_1k_tokens": 0.00025  # Estimated
+            }
+        ],
+        "deepseek": [
+            {
+                "model_id": "deepseek/deepseek-chat",
+                "display_name": "DeepSeek Chat (Vision)",
+                "supports_vision": True,
+                "cost_per_1k_tokens": 0.00028  # $0.28 per 1M tokens
             }
         ]
     }
