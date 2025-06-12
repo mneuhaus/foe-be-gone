@@ -13,11 +13,11 @@ console.log("JavaScript cache buster:", cacheBuster);
     <!-- Header -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-4">
-            <a href="/settings/test-images" class="btn btn-ghost btn-sm hover:btn-primary transition-colors">
+            <a href="/settings/tests" class="btn btn-ghost btn-sm hover:btn-primary transition-colors">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
-                Back to Test Images
+                Back to Tests
             </a>
             <div>
                 <h1 class="text-3xl font-bold flex items-center gap-3">
@@ -127,12 +127,13 @@ console.log("JavaScript cache buster:", cacheBuster);
                                     <th>Model</th>
                                     <th>Status</th>
                                     <th>AI Response</th>
-                    <th>Raw Response</th>
+                                    <th>Raw Response</th>
                                     <th>Detected Species</th>
                                     <th>Match</th>
                                     <th>Time</th>
                                     <th>F1</th>
                                     <th class="cost-column">Cost</th>
+                                    <th class="w-20">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="results-tbody">
@@ -140,10 +141,12 @@ console.log("JavaScript cache buster:", cacheBuster);
                                 <tr data-image-id="{{ image_id }}" data-model-name="{{ model_name }}">
                                     <td>
                                         {% if model_name.startswith('cloud:') %}
-                                            <span class="badge badge-secondary badge-xs">Cloud</span>
-                                            <div class="text-xs font-medium">{{ model_name.split(':')[2] }}</div>
+                                            {% set provider_name = model_name.split(':')[1] %}
+                                            {% set model_id = model_name.split(':')[2] %}
+                                            <span class="badge badge-secondary badge-xs">{{ provider_name.title() }}</span>
+                                            <div class="text-xs font-medium">{{ model_id }}</div>
                                         {% else %}
-                                            <span class="badge badge-success badge-xs">Local</span>
+                                            <span class="badge badge-success badge-xs">Ollama</span>
                                             <div class="text-xs font-medium">{{ model_name }}</div>
                                         {% endif %}
                                     </td>
@@ -157,6 +160,15 @@ console.log("JavaScript cache buster:", cacheBuster);
                                     <td class="inference-time">-</td>
                                     <td class="f1-score">-</td>
                                     <td class="cost-cell">-</td>
+                                    <td class="actions-cell">
+                                        <button class="btn btn-ghost btn-xs rerun-single-btn" 
+                                                onclick="rerunSingleModel({{ image_id }}, '{{ model_name }}')" 
+                                                title="Rerun this model on this image">
+                                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
+                                        </button>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -262,10 +274,12 @@ console.log("JavaScript cache buster:", cacheBuster);
                         {% for model_name in test_run.model_names %}
                         <div class="text-sm flex items-center gap-2">
                             {% if model_name.startswith('cloud:') %}
-                                <span class="badge badge-secondary badge-xs">Cloud</span>
-                                {{ model_name.split(':')[2] }}
+                                {% set provider_name = model_name.split(':')[1] %}
+                                {% set model_id = model_name.split(':')[2] %}
+                                <span class="badge badge-secondary badge-xs">{{ provider_name.title() }}</span>
+                                {{ model_id }}
                             {% else %}
-                                <span class="badge badge-success badge-xs">Local</span>
+                                <span class="badge badge-success badge-xs">Ollama</span>
                                 {{ model_name }}
                             {% endif %}
                         </div>
@@ -1024,7 +1038,7 @@ function updateTestResultsTables(resultsByImage) {
 let groundTruthSpecies = {};
 
 // Store available models for edit modal
-let editAvailableModels = { ollama: [], cloud: [] };
+let editAvailableModels = { ollama: { models: [] }, providers: {} };
 
 // Current test run configuration
 const currentTestConfig = {
@@ -1040,7 +1054,7 @@ async function fetchGroundTruthData() {
     
     for (const imageId of imageIds) {
         try {
-            const response = await fetch(`/api/test-images/${imageId}`);
+            const response = await fetch(`/api/tests/${imageId}`);
             if (response.ok) {
                 const data = await response.json();
                 groundTruthSpecies[imageId] = data.ground_truth_labels.map(label => label.species || label.foe_type).filter(Boolean);
@@ -1055,7 +1069,7 @@ async function fetchGroundTruthData() {
 // Fetch test run progress
 async function fetchTestRunProgress() {
     try {
-        const response = await fetch(`/api/test-images/test-runs/${testRunId}`);
+        const response = await fetch(`/api/tests/test-runs/${testRunId}`);
         if (response.ok) {
             const data = await response.json();
             updateTestRunUI(data);
@@ -1113,7 +1127,7 @@ async function rerunTest() {
     console.log('Rerun payload:', payload);
     
     try {
-        const response = await fetch('/api/test-images/test-run', {
+        const response = await fetch('/api/tests/test-run', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1142,7 +1156,8 @@ async function rerunTest() {
 // Open edit and rerun modal
 async function editAndRerun() {
     // Load available models if not already loaded
-    if (editAvailableModels.ollama.length === 0 && editAvailableModels.cloud.length === 0) {
+    if ((!editAvailableModels.ollama.models || editAvailableModels.ollama.models.length === 0) && 
+        (!editAvailableModels.providers || Object.keys(editAvailableModels.providers).length === 0)) {
         await loadEditAvailableModels();
     }
     
@@ -1155,7 +1170,7 @@ async function editAndRerun() {
 // Load available models for edit modal
 async function loadEditAvailableModels() {
     try {
-        const response = await fetch('/api/test-images/available-models');
+        const response = await fetch('/api/tests/available-models');
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -1165,37 +1180,131 @@ async function loadEditAvailableModels() {
         
         // Populate Ollama models
         const ollamaDiv = document.getElementById('edit-ollama-models');
-        if (!editAvailableModels.ollama || editAvailableModels.ollama.length === 0) {
+        if (!editAvailableModels.ollama || !editAvailableModels.ollama.models || editAvailableModels.ollama.models.length === 0) {
             ollamaDiv.innerHTML = '<div class="alert alert-warning"><svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg><div><h4 class="font-semibold">No Ollama Models Found</h4><p class="text-sm">Install vision models with: <code class="bg-warning/20 px-1 rounded">ollama pull llava-phi3:3.8b-mini-q4_0</code></p></div></div>';
         } else {
-            ollamaDiv.innerHTML = editAvailableModels.ollama.map(model => `
-                <label class="cursor-pointer label justify-start gap-3 hover:bg-base-200/50 transition-colors rounded-lg p-3 border border-transparent hover:border-primary/20">
-                    <input type="checkbox" class="checkbox checkbox-primary edit-model-checkbox" value="${model.name}" onchange="updateEditStartButton()">
-                    <div class="flex-1">
-                        <div class="font-medium text-base-content">${model.display_name || model.name}</div>
-                        <div class="text-sm text-base-content/70">${model.description}</div>
-                    </div>
-                    <div class="badge badge-success badge-sm">Local</div>
-                </label>
-            `).join('');
+            ollamaDiv.innerHTML = `
+                <div class="overflow-x-auto">
+                    <table class="table table-sm table-zebra">
+                        <thead>
+                            <tr>
+                                <th class="w-8"></th>
+                                <th>Model</th>
+                                <th>Size</th>
+                                <th class="w-16">Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${editAvailableModels.ollama.models.map(model => {
+                                // Extract size from description
+                                const sizeMatch = model.description.match(/([0-9.]+)GB/);
+                                const size = sizeMatch ? `${sizeMatch[1]}GB` : '-';
+                                
+                                return `
+                                    <tr class="hover:bg-base-200/50 cursor-pointer" onclick="this.querySelector('input').click()">
+                                        <td>
+                                            <input type="checkbox" class="checkbox checkbox-primary checkbox-sm edit-model-checkbox" 
+                                                   value="${model.name}" onchange="updateEditStartButton(); event.stopPropagation();">
+                                        </td>
+                                        <td>
+                                            <div class="font-medium text-sm">${model.display_name || model.name}</div>
+                                        </td>
+                                        <td class="text-xs">
+                                            ${size}
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-success badge-xs">Local</span>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
         }
         
-        // Populate Cloud models
+        // Populate Cloud models grouped by provider
         const cloudDiv = document.getElementById('edit-cloud-models');
-        if (!editAvailableModels.cloud || editAvailableModels.cloud.length === 0) {
+        if (!editAvailableModels.providers || Object.keys(editAvailableModels.providers).length === 0) {
             cloudDiv.innerHTML = '<div class="alert alert-info"><svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><div><h4 class="font-semibold">No Cloud Providers</h4><p class="text-sm">Configure cloud AI providers in <a href="/settings/providers" class="link">Settings > Providers</a></p></div></div>';
         } else {
-            cloudDiv.innerHTML = editAvailableModels.cloud.map(model => `
-                <label class="cursor-pointer label justify-start gap-3 hover:bg-base-200/50 transition-colors rounded-lg p-3 border border-transparent hover:border-secondary/20">
-                    <input type="checkbox" class="checkbox checkbox-secondary edit-model-checkbox" value="${model.name}" onchange="updateEditStartButton()">
-                    <div class="flex-1">
-                        <div class="font-medium text-base-content">${model.display_name || model.name}</div>
-                        <div class="text-sm text-base-content/70">${model.description}</div>
-                        <div class="text-xs text-secondary font-medium">${model.provider || 'Cloud'}</div>
+            let providerHtml = '';
+            
+            // Provider icons mapping
+            const providerIcons = {
+                'openai': '🤖',
+                'anthropic': '🏛️', 
+                'google': '🔍',
+                'openrouter': '🔄',
+                'deepseek': '🇨🇳'
+            };
+            
+            // Sort providers: DeepSeek first (cheapest), then alphabetically
+            const sortedProviders = Object.entries(editAvailableModels.providers).sort(([aKey, aValue], [bKey, bValue]) => {
+                if (aKey === 'deepseek') return -1;
+                if (bKey === 'deepseek') return 1;
+                return aValue.display_name.localeCompare(bValue.display_name);
+            });
+            
+            for (const [providerKey, provider] of sortedProviders) {
+                const icon = providerIcons[providerKey] || '☁️';
+                const isDeepSeek = providerKey === 'deepseek';
+                const specialBadge = isDeepSeek ? '<span class="badge badge-accent badge-xs ml-1">Ultra-Cheap!</span>' : '';
+                
+                providerHtml += `
+                    <div class="mb-3 border border-base-200 rounded-lg overflow-hidden">
+                        <div class="bg-base-100 px-3 py-2 border-b border-base-200">
+                            <h6 class="font-medium text-sm flex items-center gap-2">
+                                <span>${icon}</span>
+                                ${provider.display_name}
+                                <span class="badge badge-secondary badge-xs">API</span>
+                                ${specialBadge}
+                            </h6>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="table table-sm table-zebra">
+                                <thead>
+                                    <tr>
+                                        <th class="w-8"></th>
+                                        <th>Model</th>
+                                        <th>Cost</th>
+                                        <th class="w-16">Type</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${provider.models.map(model => {
+                                        // Extract cost from description
+                                        const costMatch = model.description.match(/\$([0-9.]+)/);
+                                        const cost = costMatch ? costMatch[1] : '-';
+                                        const costUnit = model.description.includes('1M') ? '/1M' : model.description.includes('1K') ? '/1K' : '';
+                                        
+                                        return `
+                                            <tr class="hover:bg-base-200/50 cursor-pointer" onclick="this.querySelector('input').click()">
+                                                <td>
+                                                    <input type="checkbox" class="checkbox checkbox-secondary checkbox-sm edit-model-checkbox" 
+                                                           value="${model.name}" onchange="updateEditStartButton(); event.stopPropagation();">
+                                                </td>
+                                                <td>
+                                                    <div class="font-medium text-sm">${model.display_name}</div>
+                                                </td>
+                                                <td class="text-xs">
+                                                    ${cost !== '-' ? `$${cost}${costUnit}` : 'Free'}
+                                                </td>
+                                                <td>
+                                                    ${isDeepSeek ? '<span class="badge badge-accent badge-xs">💰</span>' : '<span class="badge badge-outline badge-xs">API</span>'}
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                    <div class="badge badge-secondary badge-sm">API</div>
-                </label>
-            `).join('');
+                `;
+            }
+            
+            cloudDiv.innerHTML = providerHtml;
         }
         
         document.getElementById('edit-model-loading').classList.add('hidden');
@@ -1298,7 +1407,7 @@ async function startEditedTestRun() {
     document.getElementById('start-edit-test-btn').disabled = true;
     
     try {
-        const response = await fetch('/api/test-images/test-run', {
+        const response = await fetch('/api/tests/test-run', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1345,7 +1454,7 @@ async function openTestImageModal(imageId) {
     // Fetch the test image data if not already loaded
     if (!testImageData[imageId]) {
         try {
-            const response = await fetch(`/api/test-images/${imageId}`);
+            const response = await fetch(`/api/tests/${imageId}`);
             if (response.ok) {
                 testImageData[imageId] = await response.json();
             } else {
@@ -1394,7 +1503,7 @@ async function openTestImageModal(imageId) {
     updateTestImageLabelsInfo(imageData);
     
     // Update edit button link
-    document.getElementById('test-image-modal-edit-btn').href = `/settings/test-images/${imageId}/edit`;
+    document.getElementById('test-image-modal-edit-btn').href = `/settings/tests/${imageId}/edit`;
     
     // Show modal
     document.getElementById('test-image-view-modal').showModal();
@@ -1649,5 +1758,227 @@ window.addEventListener('resize', function() {
         }
     }
 });
+
+// Rerun a single model on a single image
+async function rerunSingleModel(imageId, modelName) {
+    // Show confirmation
+    const confirmed = await showConfirmationModal(
+        'Rerun Single Model',
+        `Rerun ${modelName} on this image?`,
+        'Rerun',
+        'Cancel'
+    );
+    
+    if (!confirmed) return;
+    
+    // Find the button and show loading state
+    const button = document.querySelector(`tr[data-image-id="${imageId}"][data-model-name="${modelName}"] .rerun-single-btn`);
+    const row = document.querySelector(`tr[data-image-id="${imageId}"][data-model-name="${modelName}"]`);
+    
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
+    }
+    
+    // Reset the row to loading state
+    if (row) {
+        const statusCell = row.querySelector('td:nth-child(2)');
+        const responseCell = row.querySelector('.ai-response');
+        const rawResponseCell = row.querySelector('.raw-response');
+        const speciesCell = row.querySelector('.detected-species');
+        const matchCell = row.querySelector('.match-status');
+        const timeCell = row.querySelector('.inference-time');
+        const f1Cell = row.querySelector('.f1-score');
+        const costCell = row.querySelector('.cost-cell');
+        
+        if (statusCell) statusCell.innerHTML = '<div class="loading loading-spinner loading-xs"></div>';
+        if (responseCell) responseCell.textContent = 'Running...';
+        if (rawResponseCell) rawResponseCell.textContent = 'Running...';
+        if (speciesCell) speciesCell.textContent = 'Running...';
+        if (matchCell) matchCell.textContent = 'Running...';
+        if (timeCell) timeCell.textContent = 'Running...';
+        if (f1Cell) f1Cell.textContent = 'Running...';
+        if (costCell) costCell.textContent = 'Running...';
+    }
+    
+    try {
+        // Create a single-image, single-model test run
+        const response = await fetch('/api/tests/test-run', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: `Rerun ${modelName} - ${new Date().toLocaleString()}`,
+                description: `Single model rerun from test run ${testRunId}`,
+                test_image_ids: [imageId],
+                model_names: [modelName]
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showSuccessToast(`Rerun started! Monitoring progress...`);
+            
+            // Start polling for this specific result
+            pollSingleModelResult(result.test_run_id, imageId, modelName, button, row);
+        } else {
+            const error = await response.json();
+            showErrorToast(`Failed to start rerun: ${error.detail || 'Unknown error'}`);
+            resetButtonState(button);
+        }
+    } catch (error) {
+        console.error('Error starting single model rerun:', error);
+        showErrorToast('Failed to start rerun');
+        resetButtonState(button);
+    }
+}
+
+// Poll for single model result and update the row
+async function pollSingleModelResult(newTestRunId, imageId, modelName, button, row) {
+    const maxAttempts = 60; // 2 minutes max
+    let attempts = 0;
+    
+    const pollInterval = setInterval(async () => {
+        attempts++;
+        
+        try {
+            const response = await fetch(`/api/tests/test-runs/${newTestRunId}`);
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Check if the test is complete
+                if (data.status === 'completed' || data.status === 'failed') {
+                    clearInterval(pollInterval);
+                    
+                    // Find the result for our specific image and model
+                    const imageResults = data.results_by_image[imageId];
+                    if (imageResults && imageResults.results.length > 0) {
+                        const result = imageResults.results[0]; // Should be only one result
+                        
+                        // Update the original test run row with new results
+                        updateSingleRowResult(row, result, imageId);
+                        showSuccessToast('Rerun completed!');
+                    }
+                    
+                    resetButtonState(button);
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(pollInterval);
+                    showErrorToast('Rerun timed out');
+                    resetButtonState(button);
+                }
+            } else {
+                clearInterval(pollInterval);
+                showErrorToast('Failed to get rerun status');
+                resetButtonState(button);
+            }
+        } catch (error) {
+            console.error('Error polling single model result:', error);
+            clearInterval(pollInterval);
+            showErrorToast('Error monitoring rerun');
+            resetButtonState(button);
+        }
+    }, 2000); // Poll every 2 seconds
+}
+
+// Update a single row with new result data
+function updateSingleRowResult(row, result, imageId) {
+    const statusCell = row.querySelector('td:nth-child(2)');
+    const responseCell = row.querySelector('.ai-response');
+    const rawResponseCell = row.querySelector('.raw-response');
+    const speciesCell = row.querySelector('.detected-species');
+    const matchCell = row.querySelector('.match-status');
+    const timeCell = row.querySelector('.inference-time');
+    const f1Cell = row.querySelector('.f1-score');
+    const costCell = row.querySelector('.cost-cell');
+    
+    if (result.error) {
+        // Show error
+        if (statusCell) statusCell.innerHTML = '<svg class="w-4 h-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+        if (responseCell) responseCell.innerHTML = `<span class="text-error text-xs">${result.error}</span>`;
+        if (rawResponseCell) rawResponseCell.textContent = '-';
+        if (speciesCell) speciesCell.textContent = '-';
+        if (matchCell) matchCell.textContent = '-';
+        if (timeCell) timeCell.textContent = '-';
+        if (f1Cell) f1Cell.textContent = '-';
+        if (costCell) costCell.textContent = '-';
+    } else {
+        // Show success
+        if (statusCell) statusCell.innerHTML = '<svg class="w-4 h-4 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+        
+        // Format AI response
+        if (responseCell) responseCell.innerHTML = formatAIResponse(result.detections);
+        
+        // Add raw response with modal trigger
+        if (rawResponseCell) {
+            const modalId = `debug-modal-${imageId}-${result.model_name.replace(/[^a-zA-Z0-9]/g, '-')}`;
+            rawResponseCell.innerHTML = `
+                <button class="btn btn-ghost btn-xs" onclick="showDebugModal('${modalId}')">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Debug
+                </button>
+            `;
+            
+            // Store the data for the modal
+            window.debugData = window.debugData || {};
+            window.debugData[modalId] = {
+                modelName: result.model_name,
+                rawData: JSON.stringify(result.detections, null, 2)
+            };
+        }
+        
+        // Extract and show detected species
+        const detectedSpecies = extractDetectedSpecies(result.detections);
+        if (speciesCell) {
+            if (detectedSpecies.length > 0) {
+                speciesCell.innerHTML = detectedSpecies.map(s => 
+                    `<span class="badge badge-primary badge-xs mr-1">${s}</span>`
+                ).join('');
+            } else {
+                speciesCell.innerHTML = '<span class="text-base-content/50">None</span>';
+            }
+        }
+        
+        // Compare with ground truth
+        if (matchCell && groundTruthSpecies[imageId]) {
+            const comparison = compareWithGroundTruth(detectedSpecies, groundTruthSpecies[imageId]);
+            let matchHtml = '';
+            
+            if (comparison.matches.length > 0) {
+                matchHtml += `<div class="text-success text-xs">✓ ${comparison.matches.length} match${comparison.matches.length > 1 ? 'es' : ''}</div>`;
+            }
+            if (comparison.missed.length > 0) {
+                matchHtml += `<div class="text-warning text-xs">⚠ ${comparison.missed.length} missed</div>`;
+            }
+            if (comparison.falsePositives.length > 0) {
+                matchHtml += `<div class="text-error text-xs">✗ ${comparison.falsePositives.length} false</div>`;
+            }
+            if (matchHtml === '') {
+                matchHtml = '<span class="text-base-content/50">-</span>';
+            }
+            
+            matchCell.innerHTML = matchHtml;
+        }
+        
+        // Other metrics  
+        if (timeCell) timeCell.textContent = `${Math.round(result.inference_time_ms)}ms`;
+        if (f1Cell) f1Cell.textContent = `${(result.f1_score * 100).toFixed(1)}%`;
+        if (costCell) costCell.textContent = result.cost > 0 ? `$${result.cost.toFixed(4)}` : '-';
+    }
+}
+
+// Reset button to normal state
+function resetButtonState(button) {
+    if (button) {
+        button.disabled = false;
+        button.innerHTML = `
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+        `;
+    }
+}
 </script>
 {% endblock %}

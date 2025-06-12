@@ -2,6 +2,8 @@
 
 import os
 import shutil
+import time
+import asyncio
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Dict, Any
@@ -17,7 +19,7 @@ from app.services.ollama_species_detector import OllamaSpeciesDetector
 from app.services.litellm_species_detector import LiteLLMSpeciesDetector
 from app.models.provider import Provider, ProviderModel
 
-router = APIRouter(prefix="/api/test-images", tags=["test-images"])
+router = APIRouter(prefix="/api/tests", tags=["tests"])
 
 
 @router.post("/from-detection/{detection_id}")
@@ -153,39 +155,108 @@ async def list_test_images(
 @router.get("/available-models", summary="Get available models for testing")
 async def get_available_models(session: Session = Depends(get_session)):
     """Get list of available models for testing (both Ollama and cloud)."""
-    # Import the functions from model_test route
-    from app.routes.model_test import get_installed_vision_models, get_cloud_vision_models
+    import httpx
     
     # Get Ollama models
-    ollama_models = await get_installed_vision_models()
+    ollama_models = []
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get("http://localhost:11434/api/tags")
+            if response.status_code == 200:
+                models = response.json().get('models', [])
+                
+                # Filter for vision-capable models
+                for model in models:
+                    name = model['name']
+                    size_gb = model.get('size', 0) / (1024**3)
+                    
+                    # Check if it's a known vision model
+                    if any(vision_prefix in name.lower() for vision_prefix in [
+                        'llava', 'bakllava', 'moondream', 'minicpm-v', 'cogvlm', 'qwen-vl', 
+                        'gemma', 'llava-gemma', 'internvl', 'phi-3-vision', 'pixtral',
+                        'molmo', 'aria', 'prismatic'
+                    ]):
+                        description = f"Vision Model ({size_gb:.1f}GB)"
+                        ollama_models.append({
+                            "name": name,
+                            "description": description,
+                            "size_gb": round(size_gb, 1)
+                        })
+                
+                # Sort by size (smaller models first)
+                ollama_models.sort(key=lambda x: x['size_gb'])
+    except Exception as e:
+        print(f"Error fetching Ollama models: {e}")
     
-    # Get cloud models
-    cloud_models = await get_cloud_vision_models(session)
+    # Get cloud models from configured providers
+    cloud_models_by_provider = {}
+    try:
+        providers = session.exec(
+            select(Provider).where(Provider.enabled == True)
+        ).all()
+        
+        for provider in providers:
+            models = session.exec(
+                select(ProviderModel)
+                .where(ProviderModel.provider_id == provider.id)
+                .where(ProviderModel.supports_vision == True)
+                .where(ProviderModel.enabled == True)
+            ).all()
+            
+            if models:
+                provider_models = []
+                for model in models:
+                    cost_desc = "Free" if model.cost_per_1k_tokens == 0 else f"${model.cost_per_1k_tokens}/1K tokens"
+                    provider_models.append({
+                        "name": f"cloud:{provider.name}:{model.model_id}",
+                        "display_name": model.display_name,
+                        "description": cost_desc,
+                        "provider": provider.name,
+                        "model_id": model.model_id,
+                        "cost_per_1k_tokens": model.cost_per_1k_tokens,
+                        "type": "cloud"
+                    })
+                
+                provider_models.sort(key=lambda x: x.get('cost_per_1k_tokens', 0))
+                cloud_models_by_provider[provider.name] = {
+                    "display_name": provider.display_name,
+                    "models": provider_models
+                }
+    except Exception as e:
+        print(f"Error fetching cloud models: {e}")
     
-    # Format for consistent response
+    # Format response with provider grouping
     available_models = {
-        "ollama": [
-            {
-                "name": model["name"],
-                "display_name": model["name"],
-                "description": model["description"],
-                "type": "ollama"
-            }
-            for model in ollama_models
-        ],
-        "cloud": []
+        "ollama": {
+            "display_name": "Local Models (Ollama)",
+            "models": [
+                {
+                    "name": model["name"],
+                    "display_name": model["name"],
+                    "description": model["description"],
+                    "type": "ollama"
+                }
+                for model in ollama_models
+            ]
+        },
+        "providers": {}
     }
     
-    # Flatten cloud models by provider
-    for provider_name, provider_data in cloud_models.items():
-        for model in provider_data["models"]:
-            available_models["cloud"].append({
-                "name": model["name"],
-                "display_name": f"{provider_data['display_name']} {model['display_name']}",
-                "description": model["description"],
-                "provider": model["provider"],
-                "type": "cloud"
-            })
+    # Group cloud models by provider
+    for provider_name, provider_data in cloud_models_by_provider.items():
+        available_models["providers"][provider_name] = {
+            "display_name": provider_data["display_name"],
+            "models": [
+                {
+                    "name": model["name"],
+                    "display_name": model["display_name"],
+                    "description": model["description"],
+                    "provider": model["provider"],
+                    "type": "cloud"
+                }
+                for model in provider_data["models"]
+            ]
+        }
     
     return available_models
 
@@ -701,3 +772,29 @@ async def get_test_run(
         "completed_at": test_run.completed_at,
         "results_by_image": results_by_image
     }
+
+
+@router.delete("/test-runs/{test_run_id}", summary="Delete a test run")
+async def delete_test_run(
+    test_run_id: int,
+    session: Session = Depends(get_session)
+):
+    """Delete a test run and all its results."""
+    # Get test run
+    test_run = session.get(TestRun, test_run_id)
+    if not test_run:
+        raise HTTPException(status_code=404, detail="Test run not found")
+    
+    # Delete all associated test results first
+    results = session.exec(
+        select(TestResult).where(TestResult.test_run_id == test_run_id)
+    ).all()
+    
+    for result in results:
+        session.delete(result)
+    
+    # Delete the test run
+    session.delete(test_run)
+    session.commit()
+    
+    return {"message": f"Test run '{test_run.name}' deleted successfully"}

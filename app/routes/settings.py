@@ -241,59 +241,6 @@ async def set_language(
     return success_response(f"Language set to {language}")
 
 
-@router.get("/test-images", response_class=HTMLResponse, name="settings_test_images")
-async def test_images_page(
-    request: Request,
-    session: Session = Depends(get_session)
-):
-    """Display test images management page."""
-    from sqlmodel import select
-    from app.models.test_image import TestImage
-    from sqlalchemy.orm import selectinload
-    
-    # Get all test images with their ground truth labels
-    query = select(TestImage).options(selectinload(TestImage.ground_truth_labels))
-    test_images = session.exec(query).all()
-    
-    return templates.TemplateResponse(
-        request,
-        "settings/test_images.html",
-        {
-            "page": "settings",
-            "test_images": test_images
-        }
-    )
-
-
-@router.get("/test-images/{test_image_id}/edit", response_class=HTMLResponse, name="edit_test_image")
-async def edit_test_image_page(
-    test_image_id: int,
-    request: Request,
-    session: Session = Depends(get_session)
-):
-    """Display test image editor page."""
-    from app.models.test_image import TestImage
-    from sqlalchemy.orm import selectinload
-    
-    # Get test image with ground truth labels
-    query = select(TestImage).where(TestImage.id == test_image_id).options(
-        selectinload(TestImage.ground_truth_labels)
-    )
-    test_image = session.exec(query).first()
-    
-    if not test_image:
-        raise HTTPException(status_code=404, detail="Test image not found")
-    
-    return templates.TemplateResponse(
-        request,
-        "settings/test_image_editor.html",
-        {
-            "page": "settings",
-            "test_image": test_image
-        }
-    )
-
-
 @router.get("/test-runs/{test_run_id}", response_class=HTMLResponse, name="test_run_results")
 async def test_run_results_page(
     test_run_id: int,

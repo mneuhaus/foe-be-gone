@@ -83,7 +83,9 @@
       "mcp__playwright__browser_press_key",
       "Bash(cat:*)",
       "mcp__playwright__browser_wait_for",
-      "mcp__playwright__browser_select_option"
+      "mcp__playwright__browser_select_option",
+      "Bash(make:*)",
+      "WebFetch(domain:openai.com)"
     ],
     "deny": []
   },

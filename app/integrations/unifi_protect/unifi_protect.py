@@ -1,4 +1,3 @@
-import ssl
 import httpx
 from typing import List, Dict, Any, Optional
 import logging
@@ -11,7 +10,6 @@ import warnings
 from app.integrations.base import IntegrationBase, DeviceInterface
 from app.models.device import Device
 from app.models.integration_instance import IntegrationInstance
-import base64
 
 # Suppress SSL warnings for self-signed certificates
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
@@ -271,7 +269,6 @@ class UniFiProtectIntegration(IntegrationBase):
         self.host = None
         self.api_key = None
         self._client = None
-        self._ssl_context = None
         
     def _init_client(self):
         """Initialize HTTP client with proper SSL handling."""
@@ -284,7 +281,7 @@ class UniFiProtectIntegration(IntegrationBase):
         # This is necessary for self-signed certificates
         self._client = httpx.AsyncClient(
             verify=False,  # Disable SSL verification completely
-            timeout=httpx.Timeout(30.0, connect=10.0),
+            timeout=httpx.Timeout(30.0, connect=15.0),  # Increased connect timeout
             headers={
                 "X-API-KEY": self.api_key,
                 "Accept": "application/json",

@@ -171,10 +171,6 @@ app.include_router(api_detections.router)
 app.include_router(api_settings.router)
 app.include_router(api_test_images.router)
 
-# Import and include model test router
-from app.routes import model_test
-app.include_router(model_test.router)
-
 # Import and include providers router
 from app.routes import providers
 app.include_router(providers.router)

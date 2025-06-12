@@ -1,1 +1,29 @@
-time for some code maintenance take a look around and keep your eyes open for inconsistencies, "placeholder code", bugs, bad-code-smell, etc.
+Review the codebase for quality issues and maintenance needs. Specifically check for:
+
+Code Quality Issues:
+- Inconsistencies in naming conventions, formatting, or coding patterns
+- Placeholder code, TODOs, FIXMEs, or temporary implementations
+- Obvious bugs or logic errors
+- Code smells like duplicate code, overly complex functions, or dead code
+- Unused imports, variables, or functions
+- Hard-coded values that should be configurable
+- Missing or inadequate error handling
+
+Documentation & Standards:
+- Violations of guidelines specified in claude.md
+- Missing or outdated documentation
+- Unclear variable/function names that need clarification
+- Missing type annotations where applicable
+
+Performance & Security:
+- Potential performance bottlenecks
+- Security vulnerabilities or unsafe practices
+- Resource leaks or inefficient algorithms
+
+For each issue found, provide:
+1. File path and line number
+2. Description of the issue
+3. Suggested fix or improvement
+4. Priority level (high/medium/low)
+
+Start with the most critical issues first.

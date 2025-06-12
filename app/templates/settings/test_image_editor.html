@@ -7,11 +7,11 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-4">
-            <a href="/settings/test-images" class="btn btn-ghost btn-sm">
+            <a href="/settings/tests/images" class="btn btn-ghost btn-sm">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
-                Back
+                Back to Images
             </a>
             <h1 class="text-2xl font-bold">{{ test_image.name }}</h1>
         </div>
@@ -470,8 +470,8 @@ async function submitNewLabel(event) {
     console.log('Form data:', Object.fromEntries(formData));
     
     try {
-        console.log('Sending request to:', `/api/test-images/${testImageId}/labels`);
-        const response = await fetch(`/api/test-images/${testImageId}/labels`, {
+        console.log('Sending request to:', `/api/tests/${testImageId}/labels`);
+        const response = await fetch(`/api/tests/${testImageId}/labels`, {
             method: 'POST',
             body: formData
         });
@@ -522,7 +522,7 @@ async function deleteLabel(labelId, event) {
     if (!confirmed) return;
     
     try {
-        const response = await fetch(`/api/test-images/${testImageId}/labels/${labelId}`, {
+        const response = await fetch(`/api/tests/${testImageId}/labels/${labelId}`, {
             method: 'DELETE'
         });
         
