@@ -225,7 +225,6 @@
                     alt="Detection {{ detection.id }}"
                     class="w-full h-auto object-contain transition-opacity duration-300"
                     loading="lazy"
-                    onclick="openImageModal('{{ get_base_url(request) }}/detections/image-with-boxes/{{ detection.id }}')"
                     onerror="handleImageError(this, '{{ get_base_url(request) }}/detections/image-with-boxes/{{ detection.id }}', '{{ get_base_url(request) }}/{{ detection.image_path }}')"
                 />
                 
@@ -1302,7 +1301,6 @@ function createDetectionCard(detection) {
                     alt="Detection ${detection.id}"
                     class="w-full h-auto object-contain transition-opacity duration-300"
                     loading="lazy"
-                    onclick="openImageModal('${getBaseUrl()}/detections/image-with-boxes/${detection.id}')"
                     onerror="handleImageError(this, '${getBaseUrl()}/detections/image-with-boxes/${detection.id}', '${getBaseUrl()}/${detection.image_path}')"
                 />
                 
