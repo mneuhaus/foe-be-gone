@@ -46,10 +46,10 @@ clean-venv: ## Remove virtual environment
 
 start: ## Start the development server with hot reload
 	@echo "🌟 Starting Foe Be Gone development server..."
-	@echo "🔗 Server will be available at: http://localhost:8000"
+	@echo "🔗 Server will be available at: http://localhost:80"
 	@echo "📁 Templates and static files will auto-reload"
 	@echo "⏹️  Press Ctrl+C to stop"
-	./venv/bin/uvicorn app.main:app --reload --reload-include='*.html' --reload-include='*.jinja' --host 0.0.0.0 --port 8000
+	./venv/bin/uvicorn app.main:app --reload --reload-include='*.html' --reload-include='*.jinja' --host 0.0.0.0 --port 80
 
 dev: start ## Alias for start command
 
@@ -101,7 +101,7 @@ build: ## Build the application for production
 
 health: ## Check if the development server is running
 	@echo "🏥 Checking server health..."
-	@curl -f http://localhost:8000/health || echo "❌ Server is not running. Run 'make start' first."
+	@curl -f http://localhost:80/health || echo "❌ Server is not running. Run 'make start' first."
 
 # YOLOv11 specific commands
 yolo-test: ## Test YOLOv11 detection on sample images
@@ -135,7 +135,7 @@ service-install: ## Install macOS LaunchAgent service for development server
 	@echo '        <string>--host</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
 	@echo '        <string>0.0.0.0</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
 	@echo '        <string>--port</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
-	@echo '        <string>8000</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
+	@echo '        <string>80</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
 	@echo '    </array>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
 	@echo '    <key>WorkingDirectory</key>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
 	@echo '    <string>$(shell pwd)</string>' >> ~/Library/LaunchAgents/com.foebegone.dev.plist
@@ -160,7 +160,7 @@ service-install: ## Install macOS LaunchAgent service for development server
 	@launchctl load ~/Library/LaunchAgents/com.foebegone.dev.plist
 	@echo "✅ Service installed and started!"
 	@echo "📝 Logs available at: $(shell pwd)/logs/"
-	@echo "🔗 Server running at: http://localhost:8000"
+	@echo "🔗 Server running at: http://localhost:80"
 
 service-uninstall: ## Uninstall macOS LaunchAgent service
 	@echo "🛑 Uninstalling Foe Be Gone development service..."
