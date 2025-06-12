@@ -81,6 +81,12 @@
                                     </svg>
                                 </div>
                                 <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded z-[1] w-48 p-2 shadow">
+                                    <li><a onclick="editIntegration('{{ integration.id }}', '{{ integration.integration_type }}')">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                                        </svg>
+                                        {{ t('settings.integrations.edit', request) }}
+                                    </a></li>
                                     <li><a onclick="testIntegration('{{ integration.id }}')">{{ t('settings.integrations.test_connection', request) }}</a></li>
                                     {% if integration.integration_type == "unifi_protect" and integration.status == "connected" %}
                                     <li><a onclick="showCameraSelectionModal('{{ integration.id }}')">{{ t('settings.integrations.select_cameras', request) }}</a></li>
@@ -250,6 +256,46 @@
     </form>
 </dialog>
 
+<!-- Edit Integration Modal -->
+<dialog id="edit-integration-modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">{{ t('settings.integrations.edit_integration', request) }}</h3>
+        <form id="edit-integration-form">
+            <input type="hidden" id="edit-integration-id">
+            <input type="hidden" id="edit-integration-type">
+            
+            <!-- Name -->
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">{{ t('settings.integrations.name', request) }}</span>
+                </label>
+                <input type="text" id="edit-name" class="input input-bordered" required>
+            </div>
+            
+            <!-- Configuration fields (dynamic based on integration type) -->
+            <div id="edit-config-fields">
+                <!-- Will be populated dynamically -->
+            </div>
+            
+            <!-- Enabled toggle -->
+            <div class="form-control mb-4">
+                <label class="label cursor-pointer justify-start gap-4">
+                    <input type="checkbox" id="edit-enabled" class="toggle toggle-primary">
+                    <span class="label-text">{{ t('settings.integrations.enabled', request) }}</span>
+                </label>
+            </div>
+            
+            <div class="modal-action">
+                <button type="button" class="btn" onclick="document.getElementById('edit-integration-modal').close()">{{ t('settings.integrations.cancel', request) }}</button>
+                <button type="submit" class="btn btn-primary">{{ t('settings.integrations.save_changes', request) }}</button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
 <script>
 // Simple notification system
 function showNotification(message, type = 'info') {
@@ -337,6 +383,164 @@ async function deleteIntegration(integrationId) {
         showNotification('Error deleting integration', 'error');
     }
 }
+
+// Edit integration functions
+async function editIntegration(integrationId, integrationType) {
+    try {
+        // Fetch current integration data
+        const response = await apiFetch(`/api/integrations/${integrationId}`);
+        if (!response.ok) {
+            showNotification('Failed to load integration data', 'error');
+            return;
+        }
+        
+        const integration = await response.json();
+        
+        // Populate the form
+        document.getElementById('edit-integration-id').value = integrationId;
+        document.getElementById('edit-integration-type').value = integrationType;
+        document.getElementById('edit-name').value = integration.name;
+        document.getElementById('edit-enabled').checked = integration.enabled;
+        
+        // Populate configuration fields based on integration type
+        populateEditConfigFields(integrationType, integration.config || {});
+        
+        // Show the modal
+        document.getElementById('edit-integration-modal').showModal();
+        
+    } catch (error) {
+        console.error('Error loading integration for edit:', error);
+        showNotification('Error loading integration data', 'error');
+    }
+}
+
+function populateEditConfigFields(integrationType, config) {
+    const container = document.getElementById('edit-config-fields');
+    
+    if (integrationType === 'unifi_protect') {
+        container.innerHTML = `
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">{{ t('settings.integrations.host', request) }}</span>
+                </label>
+                <input type="url" id="edit-host" class="input input-bordered" 
+                       placeholder="https://your-unifi-controller.local" 
+                       value="${config.host || ''}" required>
+                <div class="label">
+                    <span class="label-text-alt">{{ t('settings.integrations.host_help', request) }}</span>
+                </div>
+            </div>
+            
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">{{ t('settings.integrations.api_key', request) }}</span>
+                </label>
+                <div class="join">
+                    <input type="password" id="edit-api-key" class="input input-bordered join-item flex-1" 
+                           placeholder="Your UniFi Protect API key" 
+                           value="${config.api_key || ''}" required>
+                    <button type="button" class="btn btn-outline join-item" id="toggle-api-key-btn" 
+                            onclick="toggleApiKeyVisibility()">
+                        <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                        </svg>
+                        <svg id="eye-slash-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 hidden">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 1-4.243-4.243m4.242 4.242L9.88 9.88" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="label">
+                    <span class="label-text-alt">{{ t('settings.integrations.api_key_help', request) }}</span>
+                </div>
+            </div>
+        `;
+    } else if (integrationType === 'dummy_surveillance') {
+        container.innerHTML = `
+            <div class="alert alert-info">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                </svg>
+                <span>{{ t('settings.integrations.dummy_no_config', request) }}</span>
+            </div>
+        `;
+    } else {
+        container.innerHTML = `
+            <div class="alert alert-warning">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+                <span>No configuration options available for this integration type.</span>
+            </div>
+        `;
+    }
+}
+
+// Toggle API key visibility
+function toggleApiKeyVisibility() {
+    const apiKeyInput = document.getElementById('edit-api-key');
+    const eyeIcon = document.getElementById('eye-icon');
+    const eyeSlashIcon = document.getElementById('eye-slash-icon');
+    
+    if (apiKeyInput.type === 'password') {
+        apiKeyInput.type = 'text';
+        eyeIcon.classList.add('hidden');
+        eyeSlashIcon.classList.remove('hidden');
+    } else {
+        apiKeyInput.type = 'password';
+        eyeIcon.classList.remove('hidden');
+        eyeSlashIcon.classList.add('hidden');
+    }
+}
+
+// Handle edit form submission
+document.getElementById('edit-integration-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const integrationId = document.getElementById('edit-integration-id').value;
+    const integrationType = document.getElementById('edit-integration-type').value;
+    const name = document.getElementById('edit-name').value;
+    const enabled = document.getElementById('edit-enabled').checked;
+    
+    // Build config object based on integration type
+    let config = {};
+    if (integrationType === 'unifi_protect') {
+        const host = document.getElementById('edit-host')?.value;
+        const apiKey = document.getElementById('edit-api-key')?.value;
+        
+        if (host) config.host = host;
+        if (apiKey) config.api_key = apiKey;
+    }
+    
+    try {
+        const response = await apiFetch(`/api/integrations/${integrationId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: name,
+                enabled: enabled,
+                config: Object.keys(config).length > 0 ? config : undefined
+            })
+        });
+        
+        if (response.ok) {
+            document.getElementById('edit-integration-modal').close();
+            showNotification('Integration updated successfully', 'success');
+            // Wait a moment for the modal to close, then reload
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        } else {
+            const error = await response.json();
+            showNotification(error.detail || 'Failed to update integration', 'error');
+        }
+    } catch (error) {
+        console.error('Error updating integration:', error);
+        showNotification('Error updating integration', 'error');
+    }
+});
 
 async function setTestScenario(integrationId, scenario) {
     try {

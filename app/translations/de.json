@@ -190,6 +190,7 @@
     "cancel": "Abbrechen",
     "all_cameras": "Alle Kameras",
     "page_info": "Seite {current} von {total} (Gesamt: {count} Erkennungen)",
+    "items_per_page": "Einträge pro Seite",
     "title_suffix": "Foe Be Gone",
     "no_sounds_uploaded": "Noch keine Töne hochgeladen",
     "failed_to_load_statistics": "Statistiken konnten nicht geladen werden",
@@ -383,7 +384,16 @@
       "connect": "Verbinden",
       "no_cameras_found": "Keine Kameras gefunden",
       "make_sure_cameras_configured": "Stellen Sie sicher, dass Ihr UniFi Protect System Kameras konfiguriert hat",
-      "delete_integration_confirm": "Sind Sie sicher, dass Sie diese Integration löschen möchten?"
+      "delete_integration_confirm": "Sind Sie sicher, dass Sie diese Integration löschen möchten?",
+      "edit": "Bearbeiten",
+      "edit_integration": "Integration bearbeiten",
+      "name": "Name",
+      "host": "Host",
+      "host_help": "Einschließlich https:// und Ihre UniFi Controller IP/Hostname",
+      "api_key_help": "Generieren Sie es von UniFi Protect Einstellungen → Integrationen",
+      "enabled": "Aktiviert",
+      "save_changes": "Änderungen speichern",
+      "dummy_no_config": "Dies ist eine Test-Integration ohne Konfigurationsoptionen."
     }
   },
   "messages": {

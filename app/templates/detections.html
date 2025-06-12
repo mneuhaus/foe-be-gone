@@ -66,6 +66,18 @@
                     </div>
                 </form>
                 
+                <!-- Grouping Toggle -->
+                <div class="flex items-center gap-2">
+                    <div class="tooltip tooltip-bottom" data-tip="Group similar images together to reduce clutter">
+                        <button onclick="toggleGrouping()" class="btn btn-sm {{ 'btn-primary' if group_similar else 'btn-outline' }}">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14-7l2 2-2 2m2-2H9m10 7l2 2-2 2m2-2H9m-4-8h.01M5 16h.01" />
+                            </svg>
+                            <span class="hidden sm:inline">Group Similar</span>
+                        </button>
+                    </div>
+                </div>
+                
                 <!-- Action Buttons -->
                 <div class="flex items-center gap-2">
                     <!-- More Actions Dropdown -->
@@ -206,13 +218,15 @@
             <figure class="bg-base-200 relative group"
                     onmouseenter="toggleMedia({{ detection.id }}, 'enter')"
                     onmouseleave="toggleMedia({{ detection.id }}, 'leave')">
-                <!-- Static Image with Bounding Boxes -->
+                <!-- Static Image with Bounding Boxes (Resized for Performance) -->
                 <img 
                     id="image-{{ detection.id }}"
-                    src="{{ get_base_url(request) }}/detections/image-with-boxes/{{ detection.id }}" 
+                    src="{{ get_base_url(request) }}/detections/image-resized/{{ detection.id }}?width=400&height=300&quality=85" 
                     alt="Detection {{ detection.id }}"
                     class="w-full h-auto object-contain transition-opacity duration-300"
-                    onerror="this.onerror=null;this.src='{{ get_base_url(request) }}/{{ detection.image_path }}';"
+                    loading="lazy"
+                    onclick="openImageModal('{{ get_base_url(request) }}/detections/image-with-boxes/{{ detection.id }}')"
+                    onerror="handleImageError(this, '{{ get_base_url(request) }}/detections/image-with-boxes/{{ detection.id }}', '{{ get_base_url(request) }}/{{ detection.image_path }}')"
                 />
                 
                 <!-- Video (hidden by default) -->
@@ -263,6 +277,20 @@
                         <span class="hidden group-hover:inline">{{ t('detections.hover_to_play', request) }}</span>
                         <span class="group-hover:hidden">{{ t('detections.video', request) }}</span>
                     </span>
+                </div>
+                {% endif %}
+                
+                <!-- Group indicator for similar images -->
+                {% if group_similar and detection.id in group_info and group_info[detection.id].group_size > 1 %}
+                <div class="absolute bottom-2 left-2 z-10">
+                    <div class="tooltip tooltip-top" data-tip="Group of {{ group_info[detection.id].group_size }} similar images">
+                        <span class="badge badge-primary badge-sm gap-1">
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14-7l2 2-2 2m2-2H9m10 7l2 2-2 2m2-2H9m-4-8h.01M5 16h.01" />
+                            </svg>
+                            {{ group_info[detection.id].group_size }}
+                        </span>
+                    </div>
                 </div>
                 {% endif %}
             </figure>
@@ -331,12 +359,25 @@
     {% endif %}
     
     <!-- Pagination Controls -->
-    {% if total_pages > 1 %}
-    <div class="flex justify-center mt-8">
+    {% if total_pages > 1 or total_count > per_page %}
+    <div class="flex flex-col sm:flex-row justify-between items-center mt-8 gap-4">
+        <!-- Page Size Selector -->
+        <div class="flex items-center gap-2">
+            <span class="text-sm text-base-content/70">{{ t('detections.items_per_page', request) }}:</span>
+            <select onchange="changePageSize(this.value)" class="select select-bordered select-sm">
+                <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                <option value="200" {% if per_page == 200 %}selected{% endif %}>200</option>
+            </select>
+        </div>
+        
+        {% if total_pages > 1 %}
+        <!-- Page Navigation -->
         <div class="join">
             <!-- Previous Button -->
             {% if has_prev %}
-            <a href="?page={{ prev_page }}{% if hours %}&hours={{ hours }}{% endif %}{% if device_id %}&device_id={{ device_id }}{% endif %}{% if foe_type %}&foe_type={{ foe_type }}{% endif %}" 
+            <a href="?page={{ prev_page }}{% if hours %}&hours={{ hours }}{% endif %}{% if device_id %}&device_id={{ device_id }}{% endif %}{% if foe_type %}&foe_type={{ foe_type }}{% endif %}{% if per_page != 30 %}&per_page={{ per_page }}{% endif %}{% if not group_similar %}&group_similar=false{% endif %}" 
                class="join-item btn btn-sm">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -357,7 +398,7 @@
                 {% if page_num == current_page %}
                 <button class="join-item btn btn-sm btn-active">{{ page_num }}</button>
                 {% else %}
-                <a href="?page={{ page_num }}{% if hours %}&hours={{ hours }}{% endif %}{% if device_id %}&device_id={{ device_id }}{% endif %}{% if foe_type %}&foe_type={{ foe_type }}{% endif %}" 
+                <a href="?page={{ page_num }}{% if hours %}&hours={{ hours }}{% endif %}{% if device_id %}&device_id={{ device_id }}{% endif %}{% if foe_type %}&foe_type={{ foe_type }}{% endif %}{% if per_page != 30 %}&per_page={{ per_page }}{% endif %}{% if not group_similar %}&group_similar=false{% endif %}" 
                    class="join-item btn btn-sm">
                     {{ page_num }}
                 </a>
@@ -366,7 +407,7 @@
             
             <!-- Next Button -->
             {% if has_next %}
-            <a href="?page={{ next_page }}{% if hours %}&hours={{ hours }}{% endif %}{% if device_id %}&device_id={{ device_id }}{% endif %}{% if foe_type %}&foe_type={{ foe_type }}{% endif %}" 
+            <a href="?page={{ next_page }}{% if hours %}&hours={{ hours }}{% endif %}{% if device_id %}&device_id={{ device_id }}{% endif %}{% if foe_type %}&foe_type={{ foe_type }}{% endif %}{% if per_page != 30 %}&per_page={{ per_page }}{% endif %}{% if not group_similar %}&group_similar=false{% endif %}" 
                class="join-item btn btn-sm">
                 {{ t('common.next', request) }}
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -382,11 +423,20 @@
             </button>
             {% endif %}
         </div>
+        {% endif %}
     </div>
     
     <!-- Page Info -->
     <div class="text-center mt-4 text-sm text-base-content/60">
         {{ t('detections.page_info', request, current=current_page, total=total_pages, count=total_count) }}
+        {% if group_similar %}
+        <div class="mt-1 text-xs text-primary">
+            <svg class="w-3 h-3 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14-7l2 2-2 2m2-2H9m10 7l2 2-2 2m2-2H9m-4-8h.01M5 16h.01" />
+            </svg>
+            Similar images are grouped together
+        </div>
+        {% endif %}
     </div>
     {% endif %}
     
@@ -714,16 +764,36 @@ function formatDuration(ms) {
     return `${Math.round(ms)}ms`;
 }
 
-// Handle image load errors
-function handleImageError(img) {
+// Handle image load errors with intelligent fallbacks
+function handleImageError(img, fallback1, fallback2) {
+    // Enhanced error handling with multiple fallbacks
+    if (!img.dataset.fallbackAttempt) {
+        // First fallback: try the full-size image with boxes (if provided)
+        if (fallback1) {
+            img.dataset.fallbackAttempt = '1';
+            img.src = fallback1;
+            return;
+        }
+    } else if (img.dataset.fallbackAttempt === '1' && fallback2) {
+        // Second fallback: try the original image path
+        img.dataset.fallbackAttempt = '2';
+        img.src = fallback2;
+        return;
+    }
+    
+    // Final fallback: show error placeholder
     img.onerror = null;
     img.style.display = 'none';
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'flex items-center justify-center h-full text-base-content/50';
-    errorDiv.innerHTML = `<svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    </svg>`;
-    img.parentElement.appendChild(errorDiv);
+    
+    // Only add error div if one doesn't exist
+    if (!img.parentElement.querySelector('.image-error-placeholder')) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'image-error-placeholder flex items-center justify-center h-full text-base-content/50 bg-base-200 rounded';
+        errorDiv.innerHTML = `<svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>`;
+        img.parentElement.appendChild(errorDiv);
+    }
 }
 
 function showDetectionModal(detectionId) {
@@ -768,7 +838,7 @@ function showDetectionModal(detectionId) {
                                                 alt="Detection ${index + 1}"
                                                 class="w-full h-full object-cover"
                                                 loading="lazy"
-                                                onerror="handleImageError(this)"
+                                                onerror="handleImageError(this, null, null)"
                                             />
                                             <div class="absolute bottom-1 right-1 bg-black/60 text-white text-xs px-1 py-0.5 rounded">
                                                 ${speciesData.bbox ? 
@@ -1225,14 +1295,15 @@ function createDetectionCard(detection) {
             <figure class="bg-base-200 relative group"
                     onmouseenter="toggleMedia(${detection.id}, 'enter')"
                     onmouseleave="toggleMedia(${detection.id}, 'leave')">
-                <!-- Static Image -->
+                <!-- Static Image (Resized for Performance) -->
                 <img 
                     id="image-${detection.id}"
-                    src="${getBaseUrl()}/detections/image-with-boxes/${detection.id}" 
+                    src="${getBaseUrl()}/detections/image-resized/${detection.id}?width=400&height=300&quality=85" 
                     alt="Detection ${detection.id}"
                     class="w-full h-auto object-contain transition-opacity duration-300"
                     loading="lazy"
-                    onerror="this.onerror=null;this.src='${getBaseUrl()}/${detection.image_path}';"
+                    onclick="openImageModal('${getBaseUrl()}/detections/image-with-boxes/${detection.id}')"
+                    onerror="handleImageError(this, '${getBaseUrl()}/detections/image-with-boxes/${detection.id}', '${getBaseUrl()}/${detection.image_path}')"
                 />
                 
                 <!-- Video (hidden by default) -->
@@ -1616,6 +1687,31 @@ function playSound(soundFile) {
         console.error('Error creating audio element:', error);
         showNotification('Browser does not support audio playback', 'error');
     }
+}
+
+// Toggle grouping function
+function toggleGrouping() {
+    const currentUrl = new URL(window.location);
+    const isCurrentlyGrouped = currentUrl.searchParams.get('group_similar') !== 'false';
+    
+    if (isCurrentlyGrouped) {
+        currentUrl.searchParams.set('group_similar', 'false');
+    } else {
+        currentUrl.searchParams.delete('group_similar'); // Default is true
+    }
+    
+    // Reset to page 1 when toggling grouping
+    currentUrl.searchParams.set('page', '1');
+    
+    window.location.href = currentUrl.toString();
+}
+
+// Function to handle page size changes
+function changePageSize(newPageSize) {
+    const currentUrl = new URL(window.location);
+    currentUrl.searchParams.set('per_page', newPageSize);
+    currentUrl.searchParams.set('page', '1'); // Reset to page 1 when changing page size
+    window.location.href = currentUrl.toString();
 }
 
 // Utility function to show notifications (if not already defined)

@@ -27,6 +27,8 @@ from app.models.setting import Setting
 from app.models.sound_effectiveness import SoundEffectiveness
 from app.services.settings_service import SettingsService
 from app.services.qwen_species_detector import QwenSpeciesDetector
+from app.services.detection_grouping_service import DetectionGroupingService
+from app.utils.image_utils import crop_image_with_padding, get_cached_resized_image, create_cached_resized_image
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/detections", tags=["detections"])
@@ -61,7 +63,8 @@ async def detections_page(
     per_page: int = 30,
     hours: Optional[int] = None,  # Filter by hours if provided
     foe_type: Optional[str] = None,
-    device_id: Optional[str] = None
+    device_id: Optional[str] = None,
+    group_similar: bool = True  # Enable visual similarity grouping by default
 ):
     """Detections page showing detection events with pagination."""
     # Build base query
@@ -84,25 +87,57 @@ async def detections_page(
         query = query.where(Detection.device_id == device_id)
         count_query = count_query.where(Detection.device_id == device_id)
     
-    # Get total count for pagination
-    total_count = len(session.exec(count_query).all())
-    total_pages = (total_count + per_page - 1) // per_page
-    
-    # Ensure page is within bounds
-    page = max(1, min(page, total_pages)) if total_pages > 0 else 1
-    
-    # Calculate offset
-    offset = (page - 1) * per_page
-    
-    # Order by most recent first and apply pagination
-    query = query.order_by(Detection.timestamp.desc()).offset(offset).limit(per_page)
-    
     # Execute query with eager loading of relationships
     query = query.options(
         selectinload(Detection.foes),
         selectinload(Detection.device)
     )
-    detections = session.exec(query).all()
+    
+    if group_similar:
+        # For grouping, we need to fetch more detections to properly group them
+        # Get up to 200 recent detections for grouping (adjust based on needs)
+        all_detections = session.exec(
+            query.order_by(Detection.timestamp.desc()).limit(200)
+        ).all()
+        
+        # Group detections by visual similarity  
+        detection_groups = DetectionGroupingService.group_detections(all_detections)
+        
+        # Apply pagination to groups
+        total_groups = len(detection_groups)
+        total_pages = (total_groups + per_page - 1) // per_page
+        
+        # Ensure page is within bounds
+        page = max(1, min(page, total_pages)) if total_pages > 0 else 1
+        
+        # Calculate group pagination
+        group_offset = (page - 1) * per_page
+        paginated_groups = detection_groups[group_offset:group_offset + per_page]
+        
+        # Extract detections from groups for template compatibility
+        detections = [group.primary_detection for group in paginated_groups]
+        group_info = {group.primary_detection.id: group for group in paginated_groups}
+        
+        # Use group count as total count
+        total_count = total_groups
+        
+    else:
+        # Original pagination logic for non-grouped view
+        total_count = len(session.exec(count_query).all())
+        total_pages = (total_count + per_page - 1) // per_page
+        
+        # Ensure page is within bounds
+        page = max(1, min(page, total_pages)) if total_pages > 0 else 1
+        
+        # Calculate offset
+        offset = (page - 1) * per_page
+        
+        # Order by most recent first and apply pagination
+        detections = session.exec(
+            query.order_by(Detection.timestamp.desc()).offset(offset).limit(per_page)
+        ).all()
+        
+        group_info = {}  # No grouping
     
     # Get unique foe types for filter dropdown
     foe_types_result = session.exec(
@@ -175,6 +210,7 @@ async def detections_page(
         "hours": hours,
         "foe_type": foe_type,
         "device_id": device_id,
+        "group_similar": group_similar,
         "available_foe_types": foe_types_result,
         "available_devices": available_devices,
         "current_interval": detection_worker.check_interval,
@@ -190,7 +226,9 @@ async def detections_page(
         "has_next": page < total_pages,
         "prev_page": page - 1 if page > 1 else 1,
         "next_page": page + 1 if page < total_pages else total_pages,
-        "page_range": list(range(max(1, page - 2), min(total_pages + 1, page + 3)))
+        "page_range": list(range(max(1, page - 2), min(total_pages + 1, page + 3))),
+        # Grouping data
+        "group_info": group_info if group_similar else {}
     }
     
     return templates.TemplateResponse(request, "detections.html", context)
@@ -561,7 +599,6 @@ async def serve_cropped_species_image(
             raise HTTPException(status_code=400, detail="Invalid bounding box data")
         
         # Import the cropping functionality
-        from app.utils.image_utils import crop_image_with_padding
         from app.core.config import config
         
         # Crop the image with the same padding used during analysis
@@ -606,6 +643,72 @@ async def serve_detection_video(detection_id: int, session: Session = Depends(ge
         media_type="video/mp4",
         filename=video_path.name
     )
+
+
+@router.get("/image-resized/{detection_id}", include_in_schema=False)
+async def serve_resized_detection_image(
+    detection_id: int,
+    width: int = 300,
+    height: int = 200,
+    quality: int = 85,
+    session: Session = Depends(get_session)
+):
+    """Serve a resized and cached detection image for thumbnails."""
+    detection = session.get(Detection, detection_id)
+    if not detection:
+        raise HTTPException(status_code=404, detail="Detection not found")
+    
+    if not detection.image_path or not Path(detection.image_path).exists():
+        raise HTTPException(status_code=404, detail="No image available for this detection")
+    
+    # Validate parameters
+    width = max(50, min(width, 2000))  # Limit width between 50-2000px
+    height = max(50, min(height, 2000))  # Limit height between 50-2000px
+    quality = max(10, min(quality, 100))  # Limit quality between 10-100
+    
+    try:
+        # Check for cached version first
+        cached_path = get_cached_resized_image(
+            detection.image_path, width, height, quality
+        )
+        
+        if cached_path:
+            return FileResponse(
+                path=cached_path,
+                media_type="image/jpeg",
+                headers={
+                    "Cache-Control": "public, max-age=86400",  # Cache for 1 day
+                    "Content-Disposition": f"inline; filename=detection_{detection_id}_{width}x{height}.jpg"
+                }
+            )
+        
+        # Create and cache resized image
+        cached_path = create_cached_resized_image(
+            detection.image_path, width, height, quality
+        )
+        
+        if cached_path:
+            return FileResponse(
+                path=cached_path,
+                media_type="image/jpeg",
+                headers={
+                    "Cache-Control": "public, max-age=86400",  # Cache for 1 day
+                    "Content-Disposition": f"inline; filename=detection_{detection_id}_{width}x{height}.jpg"
+                }
+            )
+        else:
+            # Fall back to original image if resizing fails
+            return FileResponse(
+                path=detection.image_path,
+                headers={
+                    "Cache-Control": "public, max-age=3600"  # Shorter cache for fallback
+                }
+            )
+            
+    except Exception as e:
+        logger.error(f"Error serving resized image: {e}")
+        # Fall back to original image
+        return FileResponse(detection.image_path)
 
 
 @router.get("/api/effectiveness/summary", summary="Get effectiveness summary")

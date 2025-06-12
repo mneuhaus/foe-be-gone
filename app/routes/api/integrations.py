@@ -27,6 +27,13 @@ class IntegrationCreate(BaseModel):
     config: Dict[str, Any] = Field(default={}, description="Integration-specific configuration")
 
 
+class IntegrationUpdate(BaseModel):
+    """Schema for updating existing integration."""
+    name: str | None = Field(default=None, description="Display name for this integration instance")
+    config: Dict[str, Any] | None = Field(default=None, description="Integration-specific configuration")
+    enabled: bool | None = Field(default=None, description="Whether integration is enabled")
+
+
 class IntegrationResponse(BaseModel):
     """Response schema for integration."""
     id: str = Field(description="Unique identifier")
@@ -35,6 +42,7 @@ class IntegrationResponse(BaseModel):
     enabled: bool = Field(description="Whether integration is enabled")
     status: str = Field(description="Connection status")
     status_message: str | None = Field(description="Status details or error message")
+    config: Dict[str, Any] = Field(default={}, description="Integration configuration")
     
 
 @router.get("", response_model=list[IntegrationResponse], summary="List all integrations")
@@ -45,6 +53,27 @@ async def list_integrations(session: Session = Depends(get_session)):
     """
     integrations = session.exec(select(IntegrationInstance)).all()
     return integrations
+
+
+@router.get("/{integration_id}", response_model=IntegrationResponse, summary="Get integration by ID")
+async def get_integration(
+    integration_id: str,
+    session: Session = Depends(get_session)
+):
+    """Get a specific integration by its ID."""
+    integration = session.get(IntegrationInstance, integration_id)
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    
+    return IntegrationResponse(
+        id=integration.id,
+        integration_type=integration.integration_type,
+        name=integration.name,
+        enabled=integration.enabled,
+        status=integration.status,
+        status_message=integration.status_message,
+        config=integration.config
+    )
 
 
 @router.post("", response_model=IntegrationResponse, summary="Create new integration")
@@ -111,6 +140,80 @@ async def create_integration(
         session.refresh(db_integration)
     
     return db_integration
+
+
+@router.put("/{integration_id}", response_model=IntegrationResponse, summary="Update integration")
+async def update_integration(
+    integration_id: str,
+    integration_update: IntegrationUpdate,
+    session: Session = Depends(get_session)
+):
+    """Update an existing integration instance.
+    
+    Allows updating the integration name, configuration (host, API key, etc.), 
+    and enabled status. When configuration is updated, the integration will 
+    automatically reconnect with the new settings.
+    """
+    # Get existing integration
+    integration = session.get(IntegrationInstance, integration_id)
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    
+    logger.info(f"Updating integration {integration.name} ({integration_id})")
+    
+    # Store old config for comparison
+    old_config = integration.config_dict
+    config_changed = False
+    
+    # Update fields if provided
+    if integration_update.name is not None:
+        integration.name = integration_update.name
+        logger.info(f"Updated integration name to: {integration_update.name}")
+    
+    if integration_update.enabled is not None:
+        integration.enabled = integration_update.enabled
+        logger.info(f"Updated integration enabled status to: {integration_update.enabled}")
+    
+    if integration_update.config is not None:
+        # Merge with existing config to preserve other settings
+        new_config = old_config.copy()
+        new_config.update(integration_update.config)
+        integration.config_json = json.dumps(new_config)
+        config_changed = True
+        logger.info(f"Updated integration config: {list(integration_update.config.keys())}")
+    
+    integration.updated_at = datetime.utcnow()
+    
+    # If config changed, test the new connection
+    if config_changed and integration.enabled:
+        try:
+            integration_class = get_integration_class(integration.integration_type)
+            if integration_class:
+                logger.info(f"Testing connection with new configuration...")
+                integration_instance = integration_class(integration)
+                
+                # Test connection
+                success = await integration_instance.test_connection()
+                if success:
+                    integration.update_status("connected", "Successfully connected with new configuration")
+                    logger.info(f"Successfully connected integration {integration.name} with new config")
+                else:
+                    integration.update_status("error", "Failed to connect with new configuration")
+                    logger.error(f"Failed to connect integration {integration.name} with new config")
+            else:
+                integration.update_status("error", f"Unknown integration type: {integration.integration_type}")
+                
+        except Exception as e:
+            error_msg = f"Configuration update failed: {str(e)}"
+            integration.update_status("error", error_msg)
+            logger.error(f"Error testing new config for {integration.name}: {str(e)}")
+            # Don't raise exception - save the config but mark as error
+    
+    session.add(integration)
+    session.commit()
+    session.refresh(integration)
+    
+    return integration
 
 
 @router.delete("/{integration_id}")
@@ -329,30 +432,110 @@ async def update_camera_selection(
     
     # Update configuration with selected cameras
     config = integration.config_dict
-    config["enabled_cameras"] = camera_selection.get("enabled_cameras", [])
+    enabled_cameras = camera_selection.get("enabled_cameras", [])
+    config["enabled_cameras"] = enabled_cameras
     integration.config_json = json.dumps(config)
     
-    # Remove existing devices
+    # Get existing devices
     existing_devices = session.exec(
         select(Device).where(Device.integration_id == integration_id)
     ).all()
-    for device in existing_devices:
-        session.delete(device)
+    existing_device_ids = {device.id for device in existing_devices}
     
-    # Recreate devices based on new selection
+    # AUTO-CLEANUP: Detect and remove duplicate devices before processing
+    # Group existing devices by name to find duplicates
+    devices_by_name = {}
+    duplicates_to_remove = []
+    
+    for device in existing_devices:
+        if device.name in devices_by_name:
+            # Found a duplicate! Keep the newer one (or one with more recent activity)
+            existing_device = devices_by_name[device.name]
+            if device.updated_at > existing_device.updated_at:
+                # Current device is newer, mark the old one for removal
+                duplicates_to_remove.append(existing_device)
+                devices_by_name[device.name] = device
+            else:
+                # Existing device is newer, mark current one for removal
+                duplicates_to_remove.append(device)
+        else:
+            devices_by_name[device.name] = device
+    
+    # Remove duplicates
+    if duplicates_to_remove:
+        logger.info(f"Auto-cleanup: Removing {len(duplicates_to_remove)} duplicate cameras")
+        for duplicate in duplicates_to_remove:
+            # Check if duplicate has detections
+            from app.models.detection import Detection
+            detection_count = session.exec(
+                select(Detection).where(Detection.device_id == duplicate.id).limit(1)
+            ).first()
+            
+            if detection_count:
+                # If device has detections, disable it instead of deleting
+                duplicate.status = "disabled"
+                duplicate.update_status("disabled - duplicate removed")
+                logger.info(f"Disabled duplicate camera with detections: {duplicate.name}")
+            else:
+                # Safe to delete if no detections reference it
+                session.delete(duplicate)
+                logger.info(f"Deleted duplicate camera: {duplicate.name}")
+        
+        # Update our tracking lists after cleanup
+        existing_devices = [d for d in existing_devices if d not in duplicates_to_remove]
+        existing_device_ids = {device.id for device in existing_devices}
+    
+    # Get devices that would be created for the new selection
     integration_class = get_integration_class(integration.integration_type)
     integration_instance = integration_class(integration)
     
     try:
-        devices = await integration_instance.get_devices()
-        for device in devices:
-            session.add(device)
+        new_devices = await integration_instance.get_devices()
+        new_device_ids = {device.id for device in new_devices}
+        
+        # Only delete devices that are no longer in the selection
+        devices_to_delete = existing_device_ids - new_device_ids
+        for device in existing_devices:
+            if device.id in devices_to_delete:
+                # Check if this device has any detections
+                from app.models.detection import Detection
+                detection_count = session.exec(
+                    select(Detection).where(Detection.device_id == device.id).limit(1)
+                ).first()
+                
+                if detection_count:
+                    # If device has detections, disable it instead of deleting
+                    device.status = "disabled"
+                    device.update_status("disabled")
+                else:
+                    # Safe to delete if no detections reference it
+                    session.delete(device)
+        
+        # Add new devices that don't exist yet
+        for new_device in new_devices:
+            if new_device.id not in existing_device_ids:
+                session.add(new_device)
+                
+        # Update existing devices that are still enabled
+        for existing_device in existing_devices:
+            if existing_device.id in new_device_ids:
+                # Find corresponding new device to get updated properties
+                for new_device in new_devices:
+                    if new_device.id == existing_device.id:
+                        existing_device.status = "online"
+                        existing_device.name = new_device.name
+                        existing_device.device_metadata = new_device.device_metadata
+                        break
+        
+        devices = new_devices
+        
     except Exception as e:
         integration.update_status("error", f"Failed to update devices: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update camera selection: {str(e)}")
     
     session.commit()
     
-    return success_response(f"Updated camera selection. {len(devices)} camera(s) enabled.", {"device_count": len(devices)})
+    return success_response(f"Updated camera selection. {len(enabled_cameras)} camera(s) enabled.", {"device_count": len(enabled_cameras)})
 
 
 @router.post("/{integration_id}/devices/{device_id}/talkback")

@@ -408,6 +408,7 @@ class UniFiProtectIntegration(IntegrationBase):
                     continue
                     
                 device = Device(
+                    id=camera["id"],  # Use the UniFi camera ID as the device ID
                     integration_id=self.instance.id,
                     device_type="camera",
                     name=camera["name"],

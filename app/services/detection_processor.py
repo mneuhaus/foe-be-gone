@@ -16,6 +16,7 @@ from app.models.device import Device
 from app.models.detection import Detection, Foe, DetectionStatus, DeterrentAction, FoeType
 from app.models.setting import Setting
 from app.services.yolo_detector import YOLOv11DetectionService, YOLODetection
+from app.services.visual_hash_service import calculate_detection_hash
 from app.core.session import get_db_session, safe_commit
 from app.core.config import config
 
@@ -324,12 +325,20 @@ class DetectionProcessor:
             # Calculate total processing time
             total_processing_ms = round((time.time() - processing_start_time) * 1000)
             
+            # Calculate visual hash for similarity grouping
+            visual_hash = calculate_detection_hash(str(image_path))
+            if visual_hash:
+                logger.debug(f"Calculated visual hash for detection: {visual_hash}")
+            else:
+                logger.warning(f"Failed to calculate visual hash for image: {image_path}")
+            
             with get_db_session() as session:
                 detection = Detection(
                     device_id=camera.id,
                     image_path=str(image_path),
                     timestamp=datetime.utcnow(),
                     status=DetectionStatus.PROCESSED,
+                    visual_hash=visual_hash,
                     ai_response={
                         "scene_description": scene_description,
                         "yolo_results": yolo_results,

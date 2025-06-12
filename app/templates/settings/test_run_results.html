@@ -1,0 +1,1653 @@
+{% extends "base.html" %}
+
+{% block title %}Test Run Results - {{ super() }}{% endblock %}
+
+{% block content %}
+<!-- Force cache refresh with timestamp -->
+<script>
+// Cache buster for forcing refresh
+const cacheBuster = "1749682629";
+console.log("JavaScript cache buster:", cacheBuster);
+</script>
+<div class="container mx-auto px-4">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div class="flex items-center gap-4">
+            <a href="/settings/test-images" class="btn btn-ghost btn-sm hover:btn-primary transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to Test Images
+            </a>
+            <div>
+                <h1 class="text-3xl font-bold flex items-center gap-3">
+                    <div class="p-2 bg-primary/10 rounded-lg">
+                        <svg class="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    {{ test_run.name }}
+                </h1>
+                <p class="text-base-content/70 mt-1">
+                    {% if test_run.description %}{{ test_run.description }}{% else %}Model performance comparison{% endif %}
+                </p>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-2">
+            <button onclick="rerunTest()" class="btn btn-primary" {% if test_run.status == 'running' %}disabled{% endif %}>
+                <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Rerun Test
+            </button>
+            <button onclick="editAndRerun()" class="btn btn-outline">
+                <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit & Rerun
+            </button>
+        </div>
+    </div>
+    
+    <!-- Overall Progress Bar (only show when running) -->
+    {% if test_run.status == 'running' %}
+    <div class="mb-8" id="progress-section">
+        <div class="flex justify-between items-center mb-2">
+            <h3 class="font-semibold text-lg">Overall Progress</h3>
+            <span id="progress-percentage" class="text-sm text-base-content/70">
+                {{ ((test_run.completed_tests or 0) / test_run.total_tests * 100) | round(1) }}%
+            </span>
+        </div>
+        <div class="progress w-full bg-base-200">
+            <div id="progress-bar" class="progress-bar bg-primary transition-all duration-500" 
+                 style="width: {{ ((test_run.completed_tests or 0) / test_run.total_tests * 100) }}%"></div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Test Results Table -->
+    <div id="test-results" class="space-y-6 mb-8">
+        <h2 class="text-xl font-bold flex items-center gap-2">
+            <svg class="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Test Results & Analysis
+        </h2>
+        
+        <div id="results-container">
+            <!-- Initial placeholders for test images -->
+            {% for image_id in test_run.test_image_ids %}
+            <div class="card bg-base-100 shadow-lg border border-base-200" data-result-image-id="{{ image_id }}">
+                <div class="card-body">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold flex items-center gap-2">
+                            <div class="w-16 h-16 bg-base-200 rounded-lg flex items-center justify-center cursor-pointer hover:shadow-lg transition-shadow relative overflow-hidden"
+                                 onclick="openTestImageModal({{ image_id }})"
+                                 title="Click to view test image with ground truth labels">
+                                <img id="thumbnail-{{ image_id }}" 
+                                     src="" 
+                                     alt="Test Image {{ image_id }}" 
+                                     class="w-full h-full object-cover rounded-lg"
+                                     style="display: none;"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="flex items-center justify-center w-full h-full">
+                                    <svg class="w-8 h-8 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <span class="image-name">Test Image {{ image_id }}</span>
+                        </h3>
+                        <div class="flex items-center gap-2">
+                            <div class="badge badge-outline">
+                                <span class="completed-count">0</span> / {{ test_run.model_names | length }} models
+                            </div>
+                            <div class="loading loading-spinner loading-sm"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Ground Truth Labels Section -->
+                    <div class="mb-4 p-3 bg-base-200/30 rounded-lg">
+                        <h4 class="font-semibold text-sm mb-2 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                            </svg>
+                            Ground Truth Labels
+                        </h4>
+                        <div class="ground-truth-labels text-sm text-base-content/70">Loading...</div>
+                    </div>
+                    
+                    <!-- Test Results Table -->
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Model</th>
+                                    <th>Status</th>
+                                    <th>AI Response</th>
+                    <th>Raw Response</th>
+                                    <th>Detected Species</th>
+                                    <th>Match</th>
+                                    <th>Time</th>
+                                    <th>F1</th>
+                                    <th class="cost-column">Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody class="results-tbody">
+                                {% for model_name in test_run.model_names %}
+                                <tr data-image-id="{{ image_id }}" data-model-name="{{ model_name }}">
+                                    <td>
+                                        {% if model_name.startswith('cloud:') %}
+                                            <span class="badge badge-secondary badge-xs">Cloud</span>
+                                            <div class="text-xs font-medium">{{ model_name.split(':')[2] }}</div>
+                                        {% else %}
+                                            <span class="badge badge-success badge-xs">Local</span>
+                                            <div class="text-xs font-medium">{{ model_name }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="loading loading-spinner loading-xs"></div>
+                                    </td>
+                                    <td class="ai-response">-</td>
+                                    <td class="raw-response">-</td>
+                                    <td class="detected-species">-</td>
+                                    <td class="match-status">-</td>
+                                    <td class="inference-time">-</td>
+                                    <td class="f1-score">-</td>
+                                    <td class="cost-cell">-</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Summary Stats -->
+    <div class="stats stats-vertical lg:stats-horizontal shadow w-full mb-8">
+        <div class="stat">
+            <div class="stat-figure text-primary">
+                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div class="stat-title">Completed Tests</div>
+            <div id="completed-stat" class="stat-value text-primary">{{ test_run.completed_tests or 0 }}</div>
+            <div class="stat-desc">{{ test_run.total_tests }} total</div>
+        </div>
+        
+        <div class="stat">
+            <div class="stat-figure text-error">
+                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </div>
+            <div class="stat-title">Failed Tests</div>
+            <div id="failed-stat" class="stat-value text-error">{{ test_run.failed_tests or 0 }}</div>
+            <div class="stat-desc">Errors occurred</div>
+        </div>
+        
+        <div class="stat">
+            <div class="stat-figure text-info">
+                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div class="stat-title">Duration</div>
+            <div id="duration-stat" class="stat-value text-info text-lg">
+                {% if test_run.total_time_seconds %}
+                    {{ "%.1f"|format(test_run.total_time_seconds) }}s
+                {% else %}
+                    --
+                {% endif %}
+            </div>
+            <div class="stat-desc">
+                {% if test_run.started_at %}
+                    Started {{ test_run.started_at.strftime('%H:%M:%S') }}
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="stat">
+            <div class="stat-figure text-warning">
+                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                </svg>
+            </div>
+            <div class="stat-title">Total Cost</div>
+            <div id="cost-stat" class="stat-value text-warning text-lg">
+                {% if test_run.total_cost and test_run.total_cost > 0 %}
+                    ${{ "%.4f"|format(test_run.total_cost) }}
+                {% else %}
+                    $0.00
+                {% endif %}
+            </div>
+            <div class="stat-desc">API usage</div>
+        </div>
+    </div>
+    
+</div>
+
+<!-- Edit & Rerun Modal -->
+<dialog id="edit-rerun-modal" class="modal">
+    <div class="modal-box w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-base-100 pb-4 border-b border-base-200 mb-6">
+            <h3 class="font-bold text-2xl flex items-center gap-3">
+                <div class="p-2 bg-primary/10 rounded-lg">
+                    <svg class="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                </div>
+                Edit & Rerun Test
+            </h3>
+            <p class="text-base-content/70 mt-1">Modify the test configuration and run again</p>
+        </div>
+        
+        <!-- Current Configuration -->
+        <div class="mb-6">
+            <h4 class="font-semibold text-lg mb-3">Current Configuration</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="p-4 bg-base-200/30 rounded-lg">
+                    <h5 class="font-medium mb-2">Test Images ({{ test_run.test_image_ids | length }})</h5>
+                    <div class="text-sm text-base-content/70">Same images will be used</div>
+                </div>
+                <div class="p-4 bg-base-200/30 rounded-lg">
+                    <h5 class="font-medium mb-2">Current Models ({{ test_run.model_names | length }})</h5>
+                    <div class="space-y-1">
+                        {% for model_name in test_run.model_names %}
+                        <div class="text-sm flex items-center gap-2">
+                            {% if model_name.startswith('cloud:') %}
+                                <span class="badge badge-secondary badge-xs">Cloud</span>
+                                {{ model_name.split(':')[2] }}
+                            {% else %}
+                                <span class="badge badge-success badge-xs">Local</span>
+                                {{ model_name }}
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Model Selection -->
+        <div class="mb-6">
+            <div class="flex items-center justify-between mb-3">
+                <h4 class="font-semibold text-lg">Select Models to Test</h4>
+                <div class="text-sm text-base-content/60">
+                    <span id="edit-selected-models-count">0</span> selected
+                </div>
+            </div>
+            
+            <div id="edit-model-loading" class="flex items-center justify-center py-8">
+                <div class="loading loading-spinner loading-md text-primary"></div>
+                <span class="ml-3 text-base-content/70">Loading available models...</span>
+            </div>
+            
+            <div id="edit-model-selection" class="hidden space-y-4">
+                <!-- Ollama Models -->
+                <div class="card bg-base-100 border border-base-200">
+                    <div class="card-body p-4">
+                        <h5 class="font-medium text-base flex items-center gap-2 mb-3">
+                            <span class="text-lg">🤖</span>
+                            Local Models (Ollama)
+                            <div class="badge badge-outline badge-sm">Free</div>
+                        </h5>
+                        <div id="edit-ollama-models" class="space-y-2"></div>
+                    </div>
+                </div>
+                
+                <!-- Cloud Models -->
+                <div class="card bg-base-100 border border-base-200">
+                    <div class="card-body p-4">
+                        <h5 class="font-medium text-base flex items-center gap-2 mb-3">
+                            <span class="text-lg">☁️</span>
+                            Cloud Models
+                            <div class="badge badge-secondary badge-sm">API</div>
+                        </h5>
+                        <div id="edit-cloud-models" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Configuration -->
+        <div class="mb-6">
+            <h4 class="font-semibold text-lg mb-3">Test Configuration</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Test Run Name</span>
+                        <span class="label-text-alt text-error">*</span>
+                    </label>
+                    <input type="text" id="edit-test-name" class="input input-bordered focus:input-primary" 
+                           value="{{ test_run.name }} (Rerun)">
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Description</span>
+                        <span class="label-text-alt">Optional</span>
+                    </label>
+                    <textarea id="edit-test-description" class="textarea textarea-bordered focus:textarea-primary h-20" 
+                              placeholder="Notes about this test run...">{{ test_run.description or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-action border-t border-base-200 pt-4">
+            <form method="dialog">
+                <button class="btn btn-ghost">
+                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Cancel
+                </button>
+            </form>
+            <button id="start-edit-test-btn" class="btn btn-primary btn-lg shadow-lg hover:shadow-xl transition-all duration-200" onclick="startEditedTestRun()" disabled>
+                <span id="start-edit-test-text" class="flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.5a2.5 2.5 0 011.414.586l.775.776a2.5 2.5 0 001.414.586H15M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Start Test Run
+                </span>
+                <span id="start-edit-test-loading" class="loading loading-spinner loading-sm hidden"></span>
+            </button>
+        </div>
+    </div>
+</dialog>
+
+<!-- Debug Modal -->
+<dialog id="debug-modal" class="modal">
+    <div class="modal-box w-11/12 max-w-4xl max-h-[90vh]">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-lg flex items-center gap-2">
+                <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+                <span id="debug-modal-title">Raw Model Response</span>
+            </h3>
+            <div class="flex gap-2">
+                <button id="copy-debug-btn" class="btn btn-outline btn-sm">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy JSON
+                </button>
+                <form method="dialog">
+                    <button class="btn btn-ghost btn-sm">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Close
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="bg-base-200 rounded-lg p-4 h-96 overflow-auto">
+            <pre id="debug-modal-content" class="text-sm text-base-content whitespace-pre-wrap break-words"></pre>
+        </div>
+        
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn btn-primary">Close</button>
+            </form>
+        </div>
+    </div>
+</dialog>
+
+<!-- Test Image View Modal -->
+<dialog id="test-image-view-modal" class="modal">
+    <div class="modal-box w-11/12 max-w-5xl max-h-[90vh] p-0 overflow-hidden">
+        <!-- Modal Header -->
+        <div class="sticky top-0 z-10 bg-base-100 border-b border-base-300 px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <h3 id="test-image-modal-title" class="font-bold text-xl">Test Image</h3>
+                    <div id="test-image-modal-badges" class="flex gap-2">
+                        <!-- Dynamic badges will be inserted here -->
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div id="test-image-modal-metadata" class="text-sm text-base-content/70"></div>
+                    <form method="dialog">
+                        <button class="btn btn-ghost btn-circle btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal Content -->
+        <div class="overflow-y-auto h-full pb-20">
+            <div class="p-6">
+                <!-- Image Container with Labels Overlay -->
+                <div class="relative bg-base-200 rounded-lg overflow-hidden mb-6">
+                    <img id="test-image-modal-img" src="" alt="" class="w-full h-auto max-h-[60vh] object-contain mx-auto block">
+                    
+                    <!-- Labels Overlay Container -->
+                    <div id="test-image-modal-labels-overlay" class="absolute inset-0 pointer-events-none">
+                        <!-- Dynamic bounding boxes and labels will be inserted here -->
+                    </div>
+                </div>
+                
+                <!-- Ground Truth Labels Info -->
+                <div id="test-image-modal-labels-info" class="space-y-4">
+                    <!-- Labels information will be populated here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal Footer -->
+        <div class="absolute bottom-0 left-0 right-0 bg-base-100 border-t border-base-300 p-4">
+            <div class="flex justify-between items-center">
+                <div class="flex gap-2">
+                    <button id="test-image-modal-prev-btn" class="btn btn-outline btn-sm" onclick="navigateTestImageModal('prev')">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                        </svg>
+                        Previous
+                    </button>
+                    <button id="test-image-modal-next-btn" class="btn btn-outline btn-sm" onclick="navigateTestImageModal('next')">
+                        Next
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex gap-2">
+                    <a id="test-image-modal-edit-btn" href="#" class="btn btn-primary btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                        </svg>
+                        Edit Labels
+                    </a>
+                    <form method="dialog">
+                        <button class="btn btn-outline">Close</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<script>
+const testRunId = {{ test_run.id }};
+let pollingInterval;
+let isCompleted = {{ 'true' if test_run.status == 'completed' else 'false' }};
+
+// Utility functions for non-blocking UI feedback
+function showErrorToast(message) {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-top toast-end z-50';
+    toast.innerHTML = `
+        <div class="alert alert-error shadow-lg">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5000);
+}
+
+function showSuccessToast(message) {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-top toast-end z-50';
+    toast.innerHTML = `
+        <div class="alert alert-success shadow-lg">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 3000);
+}
+
+function showConfirmationModal(title, message, confirmText = 'Confirm', cancelText = 'Cancel') {
+    return new Promise((resolve) => {
+        // Create modal element
+        const modal = document.createElement('dialog');
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-box">
+                <h3 class="font-bold text-lg">${title}</h3>
+                <p class="py-4">${message}</p>
+                <div class="modal-action">
+                    <button class="btn btn-ghost" onclick="this.closest('dialog').close(); this.closest('dialog').resolve(false);">${cancelText}</button>
+                    <button class="btn btn-primary" onclick="this.closest('dialog').close(); this.closest('dialog').resolve(true);">${confirmText}</button>
+                </div>
+            </div>
+        `;
+        
+        // Add resolve function to modal element
+        modal.resolve = resolve;
+        
+        // Add to DOM and show
+        document.body.appendChild(modal);
+        modal.showModal();
+        
+        // Clean up when closed
+        modal.addEventListener('close', () => {
+            document.body.removeChild(modal);
+        });
+    });
+}
+
+// Show debug modal with raw response data
+function showDebugModal(modalId) {
+    const debugData = window.debugData[modalId];
+    if (!debugData) return;
+    
+    // Update modal content
+    document.getElementById('debug-modal-title').textContent = `Raw Model Response - ${debugData.modelName}`;
+    document.getElementById('debug-modal-content').textContent = debugData.rawData;
+    
+    // Update copy button
+    const copyBtn = document.getElementById('copy-debug-btn');
+    copyBtn.onclick = () => {
+        navigator.clipboard.writeText(debugData.rawData).then(() => {
+            // Show temporary success feedback
+            const originalText = copyBtn.innerHTML;
+            copyBtn.innerHTML = `
+                <svg class="w-4 h-4 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Copied!
+            `;
+            setTimeout(() => {
+                copyBtn.innerHTML = originalText;
+            }, 2000);
+        }).catch(() => {
+            showErrorToast('Failed to copy to clipboard');
+        });
+    };
+    
+    // Show modal
+    document.getElementById('debug-modal').showModal();
+}
+
+// Update the UI with test run data
+function updateTestRunUI(testRunData) {
+    // Update status
+    const statusText = document.getElementById('status-text');
+    const statusIndicator = document.getElementById('status-indicator');
+    const progressText = document.getElementById('progress-text');
+    
+    if (statusText) statusText.textContent = testRunData.status.charAt(0).toUpperCase() + testRunData.status.slice(1);
+    if (progressText) {
+        document.getElementById('completed-count').textContent = testRunData.completed_tests || 0;
+        document.getElementById('total-count').textContent = testRunData.total_tests;
+    }
+    
+    // Update status indicator
+    if (statusIndicator) {
+        statusIndicator.className = '';
+        if (testRunData.status === 'running') {
+            statusIndicator.className = 'loading loading-spinner loading-md text-primary';
+        } else if (testRunData.status === 'completed') {
+            statusIndicator.innerHTML = '<svg class="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+        } else if (testRunData.status === 'failed') {
+            statusIndicator.innerHTML = '<svg class="w-6 h-6 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+        }
+    }
+    
+    // Update progress bar
+    const progressBar = document.getElementById('progress-bar');
+    const progressPercentage = document.getElementById('progress-percentage');
+    if (progressBar && testRunData.total_tests > 0) {
+        const percentage = ((testRunData.completed_tests || 0) / testRunData.total_tests) * 100;
+        progressBar.style.width = percentage + '%';
+        if (progressPercentage) progressPercentage.textContent = percentage.toFixed(1) + '%';
+    }
+    
+    // Update stats
+    const completedStat = document.getElementById('completed-stat');
+    const failedStat = document.getElementById('failed-stat');
+    const durationStat = document.getElementById('duration-stat');
+    const costStat = document.getElementById('cost-stat');
+    
+    if (completedStat) completedStat.textContent = testRunData.completed_tests || 0;
+    if (failedStat) failedStat.textContent = testRunData.failed_tests || 0;
+    if (durationStat && testRunData.total_time_seconds) {
+        durationStat.textContent = testRunData.total_time_seconds.toFixed(1) + 's';
+    }
+    if (costStat && testRunData.total_cost > 0) {
+        costStat.textContent = '$' + testRunData.total_cost.toFixed(4);
+    }
+    
+    // Update test results tables
+    if (testRunData.results_by_image) {
+        updateTestResultsTables(testRunData.results_by_image);
+    }
+    
+    // Mark as completed if done
+    if (testRunData.status === 'completed' && !isCompleted) {
+        isCompleted = true;
+        
+        // Hide progress section when completed
+        const progressSection = document.getElementById('progress-section');
+        if (progressSection) {
+            progressSection.style.display = 'none';
+        }
+        
+        // Stop polling
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+        }
+    }
+}
+
+// Extract detected species from AI response
+function extractDetectedSpecies(detections) {
+    if (!detections || typeof detections !== 'object') return [];
+    
+    const species = new Set();
+    
+    // Method 1: Check test result format (detections.detections array with identifications)
+    if (detections.detections && Array.isArray(detections.detections)) {
+        for (const detection of detections.detections) {
+            // Check if this detection has identifications (test format)
+            if (detection.identifications && Array.isArray(detection.identifications)) {
+                for (const identification of detection.identifications) {
+                    if (identification.species) {
+                        species.add(identification.species.toLowerCase());
+                    }
+                    if (identification.foe_type) {
+                        species.add(identification.foe_type.toLowerCase());
+                    }
+                }
+            } else {
+                // Check if this is a direct detection format
+                if (detection.species) {
+                    species.add(detection.species.toLowerCase());
+                }
+                if (detection.foe_type) {
+                    species.add(detection.foe_type.toLowerCase());
+                }
+            }
+        }
+    }
+    
+    // Method 2: Check raw AI response format for YOLO results
+    if (species.size === 0 && detections.yolo_results && detections.yolo_results.detections) {
+        for (const yoloDetection of detections.yolo_results.detections) {
+            if (yoloDetection.class_name && yoloDetection.class_name !== 'Unknown') {
+                species.add(yoloDetection.class_name.toLowerCase());
+            }
+        }
+    }
+    
+    // Method 3: Check for species identification results
+    if (detections.species_results && detections.species_results.species_identifications) {
+        for (const speciesId of detections.species_results.species_identifications) {
+            if (speciesId.species_result && speciesId.species_result.identifications) {
+                for (const identification of speciesId.species_result.identifications) {
+                    if (identification.species) {
+                        species.add(identification.species.toLowerCase());
+                    }
+                    if (identification.foe_type) {
+                        species.add(identification.foe_type.toLowerCase());
+                    }
+                }
+            }
+        }
+    }
+    
+    return Array.from(species);
+}
+
+// Compare detected species with ground truth
+function compareWithGroundTruth(detectedSpecies, groundTruthSpecies) {
+    const detected = detectedSpecies.map(s => s.toLowerCase());
+    const groundTruth = groundTruthSpecies.map(s => s.toLowerCase());
+    
+    const matches = [];
+    const missed = [];
+    const falsePositives = [];
+    const matchedDetected = new Set();
+    const matchedGroundTruth = new Set();
+    
+    // Helper function to check if two species match
+    // This handles cases like "grey heron" matching "heron"
+    function speciesMatch(species1, species2) {
+        // Exact match
+        if (species1 === species2) return true;
+        
+        // Check if one contains the other (e.g., "grey heron" contains "heron")
+        if (species1.includes(species2) || species2.includes(species1)) return true;
+        
+        // Remove common modifiers and check again
+        const modifiers = ['grey', 'gray', 'common', 'european', 'american', 'great', 'little', 'black', 'white'];
+        const clean1 = species1.split(' ').filter(word => !modifiers.includes(word)).join(' ');
+        const clean2 = species2.split(' ').filter(word => !modifiers.includes(word)).join(' ');
+        
+        // Check cleaned versions
+        if (clean1 && clean2 && (clean1 === clean2 || clean1.includes(clean2) || clean2.includes(clean1))) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    // Find matches - check each ground truth against all detected
+    for (let i = 0; i < groundTruth.length; i++) {
+        const gtSpecies = groundTruth[i];
+        let found = false;
+        
+        for (let j = 0; j < detected.length; j++) {
+            const detSpecies = detected[j];
+            if (!matchedDetected.has(j) && speciesMatch(gtSpecies, detSpecies)) {
+                matches.push(gtSpecies);
+                matchedGroundTruth.add(i);
+                matchedDetected.add(j);
+                found = true;
+                break;
+            }
+        }
+        
+        if (!found) {
+            missed.push(gtSpecies);
+        }
+    }
+    
+    // Find false positives - detected species that didn't match any ground truth
+    for (let j = 0; j < detected.length; j++) {
+        if (!matchedDetected.has(j)) {
+            falsePositives.push(detected[j]);
+        }
+    }
+    
+    return { matches, missed, falsePositives };
+}
+
+// Format AI response for display
+function formatAIResponse(detections) {
+    if (!detections || typeof detections !== 'object') {
+        return '<span class="text-base-content/50">No detections</span>';
+    }
+    
+    let foundSpecies = [];
+    
+    // Method 1: Check test result format (detections.detections array with identifications)
+    if (detections.detections && Array.isArray(detections.detections)) {
+        for (const detection of detections.detections) {
+            // Check if this detection has identifications (test format)
+            if (detection.identifications && Array.isArray(detection.identifications)) {
+                for (const identification of detection.identifications) {
+                    const species = identification.species || identification.foe_type;
+                    if (species && species !== 'Unknown') {
+                        const confidence = identification.confidence ? ` (${(identification.confidence * 100).toFixed(0)}%)` : '';
+                        foundSpecies.push({ species, confidence, source: 'AI' });
+                    }
+                }
+            } else {
+                // Check if this is a direct detection format
+                const species = detection.species || detection.foe_type;
+                if (species && species !== 'Unknown') {
+                    const confidence = detection.confidence ? ` (${(detection.confidence * 100).toFixed(0)}%)` : '';
+                    foundSpecies.push({ species, confidence });
+                }
+            }
+        }
+    }
+    
+    // Method 2: Check if this is the raw AI response format (like from detections table)
+    if (foundSpecies.length === 0) {
+        // Check for YOLO results
+        if (detections.yolo_results && detections.yolo_results.detections) {
+            for (const yoloDetection of detections.yolo_results.detections) {
+                if (yoloDetection.class_name && yoloDetection.class_name !== 'Unknown') {
+                    const confidence = yoloDetection.confidence ? ` (${(yoloDetection.confidence * 100).toFixed(0)}%)` : '';
+                    foundSpecies.push({ species: yoloDetection.class_name, confidence, source: 'YOLO' });
+                }
+            }
+        }
+        
+        // Check for species identification results  
+        if (detections.species_results && detections.species_results.species_identifications) {
+            for (const speciesId of detections.species_results.species_identifications) {
+                if (speciesId.species_result && speciesId.species_result.identifications) {
+                    for (const identification of speciesId.species_result.identifications) {
+                        const species = identification.species || identification.foe_type;
+                        if (species && species !== 'Unknown') {
+                            const confidence = identification.confidence ? ` (${(identification.confidence * 100).toFixed(0)}%)` : '';
+                            foundSpecies.push({ species, confidence, source: 'AI' });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // If no species found, check if there's an error to display
+    if (foundSpecies.length === 0) {
+        // Check for species identification errors
+        if (detections.species_results && detections.species_results.species_identifications) {
+            for (const speciesId of detections.species_results.species_identifications) {
+                if (speciesId.species_result && speciesId.species_result.error) {
+                    return `<span class="text-warning text-xs">Species ID failed: ${speciesId.species_result.error}</span>`;
+                }
+            }
+        }
+        return '<span class="text-base-content/50">No species detected</span>';
+    }
+    
+    // Build HTML for found species
+    let html = '<div class="text-xs space-y-1">';
+    for (const detection of foundSpecies.slice(0, 3)) { // Show first 3
+        const sourceTag = detection.source ? ` <span class="text-xs opacity-50">[${detection.source}]</span>` : '';
+        html += `<div class="badge badge-outline badge-xs">${detection.species}${detection.confidence}${sourceTag}</div>`;
+    }
+    if (foundSpecies.length > 3) {
+        html += `<div class="text-xs text-base-content/50">+${foundSpecies.length - 3} more</div>`;
+    }
+    html += '</div>';
+    
+    return html;
+}
+
+// Update test results tables with live data
+function updateTestResultsTables(resultsByImage) {
+    for (const [imageId, imageData] of Object.entries(resultsByImage)) {
+        const imageCard = document.querySelector(`[data-result-image-id="${imageId}"]`);
+        if (!imageCard) continue;
+        
+        // Update image header
+        const imageName = imageCard.querySelector('.image-name');
+        const completedCount = imageCard.querySelector('.completed-count');
+        const spinner = imageCard.querySelector('.loading');
+        
+        if (imageName) imageName.textContent = imageData.test_image.name;
+        if (completedCount) completedCount.textContent = imageData.results.filter(r => r.error !== undefined).length;
+        
+        // Update thumbnail if available
+        const thumbnail = imageCard.querySelector(`#thumbnail-${imageId}`);
+        if (thumbnail && imageData.test_image.thumbnail_path) {
+            thumbnail.src = `/${imageData.test_image.thumbnail_path}`;
+            thumbnail.style.display = 'block';
+            thumbnail.nextElementSibling.style.display = 'none';
+        }
+        
+        // Show ground truth labels
+        const groundTruthDiv = imageCard.querySelector('.ground-truth-labels');
+        if (groundTruthDiv && groundTruthSpecies[imageId]) {
+            const species = groundTruthSpecies[imageId];
+            if (species.length > 0) {
+                groundTruthDiv.innerHTML = species.map(s => 
+                    `<span class="badge badge-accent badge-sm mr-1">${s}</span>`
+                ).join('');
+            } else {
+                groundTruthDiv.innerHTML = '<span class="text-base-content/50">No ground truth labels</span>';
+            }
+        }
+        
+        // Update table rows
+        for (const result of imageData.results) {
+            const row = imageCard.querySelector(`tr[data-image-id="${imageId}"][data-model-name="${result.model_name}"]`);
+            if (!row) continue;
+            
+            const statusCell = row.querySelector('td:nth-child(2)');
+            const responseCell = row.querySelector('.ai-response');
+            const rawResponseCell = row.querySelector('.raw-response');
+            const speciesCell = row.querySelector('.detected-species');
+            const matchCell = row.querySelector('.match-status');
+            const timeCell = row.querySelector('.inference-time');
+            const f1Cell = row.querySelector('.f1-score');
+            const costCell = row.querySelector('.cost-cell');
+            
+            if (result.error) {
+                // Show error
+                if (statusCell) statusCell.innerHTML = '<svg class="w-4 h-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                if (responseCell) responseCell.innerHTML = `<span class="text-error text-xs">${result.error}</span>`;
+                if (rawResponseCell) rawResponseCell.textContent = '-';
+                if (speciesCell) speciesCell.textContent = '-';
+                if (matchCell) matchCell.textContent = '-';
+                if (timeCell) timeCell.textContent = '-';
+                if (f1Cell) f1Cell.textContent = '-';
+                if (costCell) costCell.textContent = '-';
+            } else {
+                // Show success
+                if (statusCell) statusCell.innerHTML = '<svg class="w-4 h-4 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                
+                // Format AI response
+                if (responseCell) responseCell.innerHTML = formatAIResponse(result.detections);
+                
+                // Add raw response with modal trigger
+                if (rawResponseCell) {
+                    const modalId = `debug-modal-${imageId}-${result.model_name.replace(/[^a-zA-Z0-9]/g, '-')}`;
+                    rawResponseCell.innerHTML = `
+                        <button class="btn btn-ghost btn-xs" onclick="showDebugModal('${modalId}')">
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Debug
+                        </button>
+                    `;
+                    
+                    // Store the data for the modal
+                    window.debugData = window.debugData || {};
+                    window.debugData[modalId] = {
+                        modelName: result.model_name,
+                        rawData: JSON.stringify(result.detections, null, 2)
+                    };
+                }
+                
+                // Extract and show detected species
+                const detectedSpecies = extractDetectedSpecies(result.detections);
+                if (speciesCell) {
+                    if (detectedSpecies.length > 0) {
+                        speciesCell.innerHTML = detectedSpecies.map(s => 
+                            `<span class="badge badge-primary badge-xs mr-1">${s}</span>`
+                        ).join('');
+                    } else {
+                        speciesCell.innerHTML = '<span class="text-base-content/50">None</span>';
+                    }
+                }
+                
+                // Compare with ground truth
+                if (matchCell && groundTruthSpecies[imageId]) {
+                    const comparison = compareWithGroundTruth(detectedSpecies, groundTruthSpecies[imageId]);
+                    let matchHtml = '';
+                    
+                    if (comparison.matches.length > 0) {
+                        matchHtml += `<div class="text-success text-xs">✓ ${comparison.matches.length} match${comparison.matches.length > 1 ? 'es' : ''}</div>`;
+                    }
+                    if (comparison.missed.length > 0) {
+                        matchHtml += `<div class="text-warning text-xs">⚠ ${comparison.missed.length} missed</div>`;
+                    }
+                    if (comparison.falsePositives.length > 0) {
+                        matchHtml += `<div class="text-error text-xs">✗ ${comparison.falsePositives.length} false</div>`;
+                    }
+                    if (matchHtml === '') {
+                        matchHtml = '<span class="text-base-content/50">-</span>';
+                    }
+                    
+                    matchCell.innerHTML = matchHtml;
+                }
+                
+                // Other metrics  
+                if (timeCell) timeCell.textContent = `${Math.round(result.inference_time_ms)}ms`;
+                if (f1Cell) f1Cell.textContent = `${(result.f1_score * 100).toFixed(1)}%`;
+                if (costCell) costCell.textContent = result.cost > 0 ? `$${result.cost.toFixed(4)}` : '-';
+            }
+        }
+        
+        // Hide spinner if all tests for this image are done
+        const allDone = imageData.results.every(r => r.error !== undefined);
+        if (allDone && spinner) {
+            spinner.style.display = 'none';
+        }
+    }
+    
+    // Hide cost column if no costs
+    const hasCosts = Object.values(resultsByImage).some(imageData => 
+        imageData.results.some(r => r.cost > 0)
+    );
+    document.querySelectorAll('.cost-column, .cost-cell').forEach(el => {
+        el.style.display = hasCosts ? '' : 'none';
+    });
+}
+
+// Store ground truth species for comparison (we'll fetch this)
+let groundTruthSpecies = {};
+
+// Store available models for edit modal
+let editAvailableModels = { ollama: [], cloud: [] };
+
+// Current test run configuration
+const currentTestConfig = {
+    test_image_ids: {{ test_run.test_image_ids | tojson }},
+    model_names: {{ test_run.model_names | tojson }},
+    name: {{ test_run.name | tojson }},
+    description: {{ (test_run.description or '') | tojson }}
+};
+
+// Fetch ground truth data for all test images
+async function fetchGroundTruthData() {
+    const imageIds = {{ test_run.test_image_ids | tojson }};
+    
+    for (const imageId of imageIds) {
+        try {
+            const response = await fetch(`/api/test-images/${imageId}`);
+            if (response.ok) {
+                const data = await response.json();
+                groundTruthSpecies[imageId] = data.ground_truth_labels.map(label => label.species || label.foe_type).filter(Boolean);
+            }
+        } catch (error) {
+            console.error(`Error fetching ground truth for image ${imageId}:`, error);
+            groundTruthSpecies[imageId] = [];
+        }
+    }
+}
+
+// Fetch test run progress
+async function fetchTestRunProgress() {
+    try {
+        const response = await fetch(`/api/test-images/test-runs/${testRunId}`);
+        if (response.ok) {
+            const data = await response.json();
+            updateTestRunUI(data);
+        }
+    } catch (error) {
+        console.error('Error fetching test run progress:', error);
+    }
+}
+
+// Initialize
+async function initialize() {
+    // Fetch ground truth data first
+    await fetchGroundTruthData();
+    
+    // Then start polling for results
+    if (!isCompleted) {
+        // Poll every 2 seconds
+        pollingInterval = setInterval(fetchTestRunProgress, 2000);
+    }
+    
+    // Fetch immediately
+    fetchTestRunProgress();
+}
+
+// Start initialization
+initialize();
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (pollingInterval) {
+        clearInterval(pollingInterval);
+    }
+});
+
+// Rerun test with same configuration
+async function rerunTest() {
+    // Show confirmation modal instead of alert
+    const confirmed = await showConfirmationModal(
+        'Rerun Test', 
+        'Start a new test run with the same configuration?',
+        'Rerun Test',
+        'Cancel'
+    );
+    if (!confirmed) {
+        return;
+    }
+    
+    const payload = {
+        name: currentTestConfig.name + ' (Rerun)',
+        description: currentTestConfig.description || '',
+        test_image_ids: currentTestConfig.test_image_ids,
+        model_names: currentTestConfig.model_names
+    };
+    
+    console.log('Rerun payload:', payload);
+    
+    try {
+        const response = await fetch('/api/test-images/test-run', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Test started:', result);
+            // Redirect to the new test run results page
+            window.location.href = `/settings/test-runs/${result.test_run_id}`;
+        } else {
+            const error = await response.json();
+            console.error('Test failed:', error);
+            showErrorToast(`Failed to start test: ${error.detail || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('Error starting test:', error);
+        showErrorToast('Failed to start test: ' + error.message);
+    }
+}
+
+// Open edit and rerun modal
+async function editAndRerun() {
+    // Load available models if not already loaded
+    if (editAvailableModels.ollama.length === 0 && editAvailableModels.cloud.length === 0) {
+        await loadEditAvailableModels();
+    }
+    
+    // Pre-select current models
+    preselectCurrentModels();
+    
+    document.getElementById('edit-rerun-modal').showModal();
+}
+
+// Load available models for edit modal
+async function loadEditAvailableModels() {
+    try {
+        const response = await fetch('/api/test-images/available-models');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        editAvailableModels = await response.json();
+        
+        // Populate Ollama models
+        const ollamaDiv = document.getElementById('edit-ollama-models');
+        if (!editAvailableModels.ollama || editAvailableModels.ollama.length === 0) {
+            ollamaDiv.innerHTML = '<div class="alert alert-warning"><svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg><div><h4 class="font-semibold">No Ollama Models Found</h4><p class="text-sm">Install vision models with: <code class="bg-warning/20 px-1 rounded">ollama pull llava-phi3:3.8b-mini-q4_0</code></p></div></div>';
+        } else {
+            ollamaDiv.innerHTML = editAvailableModels.ollama.map(model => `
+                <label class="cursor-pointer label justify-start gap-3 hover:bg-base-200/50 transition-colors rounded-lg p-3 border border-transparent hover:border-primary/20">
+                    <input type="checkbox" class="checkbox checkbox-primary edit-model-checkbox" value="${model.name}" onchange="updateEditStartButton()">
+                    <div class="flex-1">
+                        <div class="font-medium text-base-content">${model.display_name || model.name}</div>
+                        <div class="text-sm text-base-content/70">${model.description}</div>
+                    </div>
+                    <div class="badge badge-success badge-sm">Local</div>
+                </label>
+            `).join('');
+        }
+        
+        // Populate Cloud models
+        const cloudDiv = document.getElementById('edit-cloud-models');
+        if (!editAvailableModels.cloud || editAvailableModels.cloud.length === 0) {
+            cloudDiv.innerHTML = '<div class="alert alert-info"><svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><div><h4 class="font-semibold">No Cloud Providers</h4><p class="text-sm">Configure cloud AI providers in <a href="/settings/providers" class="link">Settings > Providers</a></p></div></div>';
+        } else {
+            cloudDiv.innerHTML = editAvailableModels.cloud.map(model => `
+                <label class="cursor-pointer label justify-start gap-3 hover:bg-base-200/50 transition-colors rounded-lg p-3 border border-transparent hover:border-secondary/20">
+                    <input type="checkbox" class="checkbox checkbox-secondary edit-model-checkbox" value="${model.name}" onchange="updateEditStartButton()">
+                    <div class="flex-1">
+                        <div class="font-medium text-base-content">${model.display_name || model.name}</div>
+                        <div class="text-sm text-base-content/70">${model.description}</div>
+                        <div class="text-xs text-secondary font-medium">${model.provider || 'Cloud'}</div>
+                    </div>
+                    <div class="badge badge-secondary badge-sm">API</div>
+                </label>
+            `).join('');
+        }
+        
+        document.getElementById('edit-model-loading').classList.add('hidden');
+        document.getElementById('edit-model-selection').classList.remove('hidden');
+        
+    } catch (error) {
+        console.error('Error loading models:', error);
+        document.getElementById('edit-model-loading').classList.add('hidden');
+        document.getElementById('edit-model-selection').innerHTML = `
+            <div class="alert alert-error">
+                <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                    <h4 class="font-semibold">Failed to Load Models</h4>
+                    <p class="text-sm">Error: ${error.message}</p>
+                    <button onclick="loadEditAvailableModels()" class="btn btn-sm btn-outline mt-2">
+                        <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Retry
+                    </button>
+                </div>
+            </div>
+        `;
+        document.getElementById('edit-model-selection').classList.remove('hidden');
+    }
+}
+
+// Pre-select current models in edit modal
+function preselectCurrentModels() {
+    // Clear all checkboxes first
+    document.querySelectorAll('.edit-model-checkbox').forEach(cb => cb.checked = false);
+    
+    // Select current models
+    for (const modelName of currentTestConfig.model_names) {
+        const checkbox = document.querySelector(`.edit-model-checkbox[value="${modelName}"]`);
+        if (checkbox) {
+            checkbox.checked = true;
+        }
+    }
+    
+    updateEditStartButton();
+}
+
+// Update start button state for edit modal
+function updateEditStartButton() {
+    const selectedModels = document.querySelectorAll('.edit-model-checkbox:checked').length;
+    
+    // Update counter
+    const modelCounter = document.getElementById('edit-selected-models-count');
+    if (modelCounter) modelCounter.textContent = selectedModels;
+    
+    // Update button state
+    const startBtn = document.getElementById('start-edit-test-btn');
+    if (startBtn) {
+        startBtn.disabled = selectedModels === 0;
+        
+        // Update button text
+        const textSpan = document.getElementById('start-edit-test-text');
+        if (textSpan) {
+            if (selectedModels === 0) {
+                textSpan.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    Select Models First
+                `;
+            } else {
+                textSpan.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.5a2.5 2.5 0 011.414.586l.775.776a2.5 2.5 0 001.414.586H15M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Start Test Run (${currentTestConfig.test_image_ids.length} images × ${selectedModels} models)
+                `;
+            }
+        }
+    }
+}
+
+// Start edited test run
+async function startEditedTestRun() {
+    const selectedModels = Array.from(document.querySelectorAll('.edit-model-checkbox:checked')).map(cb => cb.value);
+    const testName = document.getElementById('edit-test-name').value;
+    const testDescription = document.getElementById('edit-test-description').value;
+    
+    if (selectedModels.length === 0) {
+        showErrorToast('Please select at least one model');
+        return;
+    }
+    
+    if (!testName.trim()) {
+        showErrorToast('Please enter a test run name');
+        return;
+    }
+    
+    // Show loading state
+    document.getElementById('start-edit-test-text').classList.add('hidden');
+    document.getElementById('start-edit-test-loading').classList.remove('hidden');
+    document.getElementById('start-edit-test-btn').disabled = true;
+    
+    try {
+        const response = await fetch('/api/test-images/test-run', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: testName,
+                description: testDescription,
+                test_image_ids: currentTestConfig.test_image_ids,
+                model_names: selectedModels
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            // Redirect to the new test run results page
+            window.location.href = `/settings/test-runs/${result.test_run_id}`;
+        } else {
+            const error = await response.json();
+            showErrorToast(`Test failed: ${error.detail || 'Unknown error'}`);
+            
+            // Reset loading state on error
+            document.getElementById('start-edit-test-text').classList.remove('hidden');
+            document.getElementById('start-edit-test-loading').classList.add('hidden');
+            document.getElementById('start-edit-test-btn').disabled = false;
+        }
+    } catch (error) {
+        console.error('Error running test:', error);
+        showErrorToast('Failed to run test');
+        
+        // Reset loading state on error
+        document.getElementById('start-edit-test-text').classList.remove('hidden');
+        document.getElementById('start-edit-test-loading').classList.add('hidden');
+        document.getElementById('start-edit-test-btn').disabled = false;
+    }
+}
+
+// Test Image Modal functionality
+let currentTestImageId = null;
+let testImageIds = [];
+let testImageData = {};
+
+// Open test image modal function
+async function openTestImageModal(imageId) {
+    // Fetch the test image data if not already loaded
+    if (!testImageData[imageId]) {
+        try {
+            const response = await fetch(`/api/test-images/${imageId}`);
+            if (response.ok) {
+                testImageData[imageId] = await response.json();
+            } else {
+                showErrorToast('Failed to load test image data');
+                return;
+            }
+        } catch (error) {
+            console.error('Error fetching test image data:', error);
+            showErrorToast('Failed to load test image data');
+            return;
+        }
+    }
+    
+    const imageData = testImageData[imageId];
+    if (!imageData) {
+        showErrorToast('Image data not found');
+        return;
+    }
+    
+    // Set current image and get list of all image IDs for navigation
+    currentTestImageId = imageId;
+    testImageIds = {{ test_run.test_image_ids | tojson }};
+    
+    // Update modal header
+    updateTestImageModalHeader(imageData);
+    
+    // Update navigation buttons
+    updateTestImageModalNavigation();
+    
+    // Load and display the image
+    const imgElement = document.getElementById('test-image-modal-img');
+    imgElement.src = `/${imageData.image_path}`;
+    imgElement.alt = imageData.name;
+    
+    // Wait for image to load before drawing labels
+    imgElement.onload = function() {
+        setTimeout(() => drawTestImageLabels(imageData), 50);
+    };
+    
+    // If image is already loaded (cached), draw labels immediately
+    if (imgElement.complete && imgElement.naturalHeight !== 0) {
+        setTimeout(() => drawTestImageLabels(imageData), 50);
+    }
+    
+    // Show labels information
+    updateTestImageLabelsInfo(imageData);
+    
+    // Update edit button link
+    document.getElementById('test-image-modal-edit-btn').href = `/settings/test-images/${imageId}/edit`;
+    
+    // Show modal
+    document.getElementById('test-image-view-modal').showModal();
+}
+
+// Update modal header with image information
+function updateTestImageModalHeader(imageData) {
+    // Update title
+    document.getElementById('test-image-modal-title').textContent = imageData.name;
+    
+    // Update metadata
+    const metadataEl = document.getElementById('test-image-modal-metadata');
+    const createdDate = new Date(imageData.created_at).toLocaleDateString();
+    metadataEl.textContent = `${imageData.image_width}×${imageData.image_height} • ${createdDate}`;
+    
+    // Update badges
+    const badgesEl = document.getElementById('test-image-modal-badges');
+    const labelCount = imageData.ground_truth_labels.length;
+    const speciesCount = new Set(imageData.ground_truth_labels.map(l => l.species)).size;
+    
+    badgesEl.innerHTML = `
+        <div class="badge badge-primary badge-sm">
+            ${labelCount} label${labelCount !== 1 ? 's' : ''}
+        </div>
+        ${speciesCount > 0 ? `
+        <div class="badge badge-secondary badge-sm">
+            ${speciesCount} species
+        </div>
+        ` : ''}
+    `;
+}
+
+// Update navigation buttons
+function updateTestImageModalNavigation() {
+    const currentIndex = testImageIds.indexOf(currentTestImageId);
+    const prevBtn = document.getElementById('test-image-modal-prev-btn');
+    const nextBtn = document.getElementById('test-image-modal-next-btn');
+    
+    if (prevBtn) {
+        prevBtn.disabled = currentIndex <= 0;
+        prevBtn.classList.toggle('btn-disabled', currentIndex <= 0);
+    }
+    
+    if (nextBtn) {
+        nextBtn.disabled = currentIndex >= testImageIds.length - 1;
+        nextBtn.classList.toggle('btn-disabled', currentIndex >= testImageIds.length - 1);
+    }
+}
+
+// Navigate between images in modal
+function navigateTestImageModal(direction) {
+    const currentIndex = testImageIds.indexOf(currentTestImageId);
+    let newIndex;
+    
+    if (direction === 'prev' && currentIndex > 0) {
+        newIndex = currentIndex - 1;
+    } else if (direction === 'next' && currentIndex < testImageIds.length - 1) {
+        newIndex = currentIndex + 1;
+    } else {
+        return; // No navigation possible
+    }
+    
+    const newImageId = testImageIds[newIndex];
+    openTestImageModal(newImageId);
+}
+
+// Draw bounding box labels on the image
+function drawTestImageLabels(imageData) {
+    const overlay = document.getElementById('test-image-modal-labels-overlay');
+    const imgElement = document.getElementById('test-image-modal-img');
+    
+    // Clear existing labels
+    overlay.innerHTML = '';
+    
+    if (!imageData.ground_truth_labels || imageData.ground_truth_labels.length === 0) {
+        return;
+    }
+    
+    // Get image display dimensions
+    const imgRect = imgElement.getBoundingClientRect();
+    const containerRect = overlay.getBoundingClientRect();
+    
+    // Calculate scaling factors
+    const scaleX = imgRect.width / imageData.image_width;
+    const scaleY = imgRect.height / imageData.image_height;
+    
+    // Calculate image position within container
+    const imgOffsetX = (containerRect.width - imgRect.width) / 2;
+    const imgOffsetY = (containerRect.height - imgRect.height) / 2;
+    
+    // Define colors for different species
+    const colors = [
+        '#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6'
+    ];
+    
+    // Group labels by species for consistent coloring
+    const speciesColorMap = {};
+    const uniqueSpecies = [...new Set(imageData.ground_truth_labels.map(l => l.species))];
+    uniqueSpecies.forEach((species, index) => {
+        speciesColorMap[species] = colors[index % colors.length];
+    });
+    
+    // Draw each label
+    imageData.ground_truth_labels.forEach((label, index) => {
+        // Convert from corner format to x,y,width,height format
+        const x = label.bbox_x1;
+        const y = label.bbox_y1;
+        const width = label.bbox_x2 - label.bbox_x1;
+        const height = label.bbox_y2 - label.bbox_y1;
+        
+        if (width === 0 || height === 0) return; // Skip invalid boxes
+        
+        // Calculate scaled position
+        const scaledX = imgOffsetX + (x * scaleX);
+        const scaledY = imgOffsetY + (y * scaleY);
+        const scaledWidth = width * scaleX;
+        const scaledHeight = height * scaleY;
+        
+        // Get color for this species
+        const color = speciesColorMap[label.species] || colors[0];
+        
+        // Create bounding box element
+        const boxElement = document.createElement('div');
+        boxElement.style.position = 'absolute';
+        boxElement.style.left = `${scaledX}px`;
+        boxElement.style.top = `${scaledY}px`;
+        boxElement.style.width = `${scaledWidth}px`;
+        boxElement.style.height = `${scaledHeight}px`;
+        boxElement.style.border = `3px solid ${color}`;
+        boxElement.style.backgroundColor = 'transparent';
+        boxElement.style.pointerEvents = 'none';
+        
+        // Create label element
+        const labelElement = document.createElement('div');
+        labelElement.style.position = 'absolute';
+        labelElement.style.left = `${scaledX}px`;
+        labelElement.style.top = `${scaledY - 28}px`; // Position above the box
+        labelElement.style.maxWidth = `${scaledWidth}px`;
+        labelElement.style.backgroundColor = color;
+        labelElement.style.color = 'white';
+        labelElement.style.padding = '2px 6px';
+        labelElement.style.fontSize = '12px';
+        labelElement.style.fontWeight = 'bold';
+        labelElement.style.borderRadius = '4px';
+        labelElement.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+        labelElement.style.pointerEvents = 'none';
+        labelElement.style.minWidth = '60px';
+        labelElement.style.textAlign = 'center';
+        labelElement.textContent = `${label.species}${label.confidence < 1.0 ? ` (${Math.round(label.confidence * 100)}%)` : ''}`;
+        
+        // Ensure label stays within bounds
+        if (scaledY < 28) {
+            labelElement.style.top = `${scaledY + scaledHeight + 4}px`; // Position below if too close to top
+        }
+        
+        overlay.appendChild(boxElement);
+        overlay.appendChild(labelElement);
+    });
+    
+    console.log(`Drew ${imageData.ground_truth_labels.length} bounding boxes for test image ${imageData.name}`);
+}
+
+// Update labels information display
+function updateTestImageLabelsInfo(imageData) {
+    const labelsInfoEl = document.getElementById('test-image-modal-labels-info');
+    
+    if (!imageData.ground_truth_labels || imageData.ground_truth_labels.length === 0) {
+        labelsInfoEl.innerHTML = `
+            <div class="alert alert-warning">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <div>
+                    <h4 class="font-medium">No Ground Truth Labels</h4>
+                    <p class="text-sm">Click "Edit Labels" to add species annotations to this image.</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    // Group labels by species
+    const labelsBySpecies = {};
+    imageData.ground_truth_labels.forEach(label => {
+        if (!labelsBySpecies[label.species]) {
+            labelsBySpecies[label.species] = [];
+        }
+        labelsBySpecies[label.species].push(label);
+    });
+    
+    let html = `
+        <div class="bg-base-200/50 rounded-lg p-4 border border-base-300">
+            <h4 class="font-semibold text-lg mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                Ground Truth Labels
+            </h4>
+            <div class="space-y-3">
+    `;
+    
+    Object.entries(labelsBySpecies).forEach(([species, labels]) => {
+        const totalLabels = labels.length;
+        const avgConfidence = labels.reduce((sum, l) => sum + l.confidence, 0) / totalLabels;
+        const foeTypes = [...new Set(labels.map(l => l.foe_type).filter(Boolean))];
+        
+        html += `
+            <div class="flex items-center justify-between p-3 bg-base-100 rounded-lg border border-base-200">
+                <div class="flex-1">
+                    <div class="font-medium text-base-content">${species}</div>
+                    <div class="text-sm text-base-content/70">
+                        ${totalLabels} instance${totalLabels !== 1 ? 's' : ''}
+                        ${avgConfidence < 1.0 ? ` • Avg confidence: ${Math.round(avgConfidence * 100)}%` : ''}
+                        ${foeTypes.length > 0 ? ` • Foe type: ${foeTypes.join(', ')}` : ''}
+                    </div>
+                </div>
+                <div class="badge badge-primary badge-lg">${totalLabels}</div>
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    // Add description if available
+    if (imageData.description) {
+        html += `
+            <div class="bg-base-200/30 rounded-lg p-4 border border-base-200">
+                <h5 class="font-medium mb-2 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Description
+                </h5>
+                <p class="text-sm text-base-content/80">${imageData.description}</p>
+            </div>
+        `;
+    }
+    
+    labelsInfoEl.innerHTML = html;
+}
+
+// Handle window resize to redraw labels
+window.addEventListener('resize', function() {
+    if (currentTestImageId && document.getElementById('test-image-view-modal').open) {
+        const imageData = testImageData[currentTestImageId];
+        if (imageData) {
+            // Small delay to allow layout to settle
+            setTimeout(() => drawTestImageLabels(imageData), 100);
+        }
+    }
+});
+</script>
+{% endblock %}

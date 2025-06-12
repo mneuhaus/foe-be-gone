@@ -170,7 +170,7 @@ class DummySurveillanceIntegration(IntegrationBase):
             
         # Create a Device model instance
         device = Device(
-            device_id="dummy-cam-001",
+            id="dummy-cam-001",
             integration_id=self.integration_id,
             name="Dummy Camera",
             device_type="camera",

@@ -5,81 +5,173 @@
 {% block content %}
 <div class="container mx-auto px-4">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-4">
-            <a href="/settings" class="btn btn-ghost btn-sm">
+            <a href="/settings" class="btn btn-ghost btn-sm hover:btn-primary transition-colors">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
                 Back
             </a>
-            <h1 class="text-2xl font-bold flex items-center gap-2">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Test Images
-            </h1>
+            <div>
+                <h1 class="text-3xl font-bold flex items-center gap-3">
+                    <div class="p-2 bg-primary/10 rounded-lg">
+                        <svg class="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    Test Images
+                </h1>
+                <p class="text-base-content/70 mt-1">Evaluate model performance with ground truth data</p>
+            </div>
         </div>
         
-        <div class="stats shadow">
-            <div class="stat">
-                <div class="stat-title">Total Images</div>
-                <div class="stat-value">{{ test_images|length }}</div>
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <div class="stats shadow bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/20">
+                <div class="stat">
+                    <div class="stat-figure text-primary">
+                        <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <div class="stat-title">Total Images</div>
+                    <div class="stat-value text-primary">{{ test_images|length }}</div>
+                    <div class="stat-desc">{% if test_images|length > 0 %}Ready for testing{% else %}Add images to start{% endif %}</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-figure text-secondary">
+                        <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                    </div>
+                    <div class="stat-title">Total Labels</div>
+                    <div class="stat-value text-secondary">{{ test_images|map(attribute='ground_truth_labels')|map('length')|sum }}</div>
+                    <div class="stat-desc">Ground truth annotations</div>
+                </div>
             </div>
-            <div class="stat">
-                <div class="stat-title">Total Labels</div>
-                <div class="stat-value">{{ test_images|map(attribute='ground_truth_labels')|map('length')|sum }}</div>
+            
+            {% if test_images %}
+            <div class="flex gap-2">
+                <button onclick="selectAllImages()" class="btn btn-outline btn-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Select All
+                </button>
+                <button onclick="openTestModal()" class="btn btn-primary shadow-lg hover:shadow-xl transition-all duration-200">
+                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    Run Tests
+                    <span id="selected-count" class="badge badge-secondary ml-2 hidden">0</span>
+                </button>
             </div>
+            {% endif %}
         </div>
     </div>
     
     <!-- Info Box -->
-    <div class="alert alert-info mb-6">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div class="alert alert-info mb-6 border-l-4 border-l-primary">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span>Test images are used to evaluate model performance. Label each animal with its species and bounding box to create ground truth data.</span>
+        <div>
+            <h3 class="font-bold">Test Image Evaluation</h3>
+            <div class="text-sm">Test images are used to evaluate model performance. Label each animal with its species and bounding box to create ground truth data for accurate benchmarking.</div>
+        </div>
     </div>
     
     <!-- Test Images Grid -->
     {% if test_images %}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {% for image in test_images %}
-        <div class="card bg-base-100 shadow-xl">
-            <figure class="relative h-48 bg-base-200">
+        <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-base-200 hover:border-primary/30">
+            <figure class="relative h-48 bg-gradient-to-br from-base-200 to-base-300 overflow-hidden">
                 {% if image.thumbnail_path %}
                 <img src="/{{ image.thumbnail_path }}" alt="{{ image.name }}" 
-                     class="w-full h-full object-cover"
+                     class="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                 {% endif %}
-                <div class="absolute inset-0 flex items-center justify-center" style="display: none;">
-                    <svg class="w-16 h-16 text-base-content/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
+                <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-base-200 to-base-300" style="display: none;">
+                    <div class="text-center">
+                        <svg class="w-16 h-16 text-base-content/30 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p class="text-xs text-base-content/50">Image unavailable</p>
+                    </div>
                 </div>
                 
-                <!-- Label Count Badge -->
-                <div class="absolute top-2 right-2">
-                    <div class="badge badge-primary badge-lg">
-                        {{ image.ground_truth_labels|length }} labels
+                <!-- Selection Checkbox with improved styling -->
+                <div class="absolute top-3 left-3 z-10">
+                    <label class="cursor-pointer">
+                        <input type="checkbox" class="checkbox checkbox-primary test-image-checkbox shadow-lg border-2 border-white/50" 
+                               value="{{ image.id }}" data-name="{{ image.name }}" onchange="updateSelectedImages()">
+                    </label>
+                </div>
+                
+                <!-- Label Count Badge with improved styling -->
+                <div class="absolute top-3 right-3 z-10">
+                    <div class="badge badge-primary badge-lg shadow-lg font-semibold">
+                        <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        {{ image.ground_truth_labels|length }}
+                    </div>
+                </div>
+                
+                <!-- Hover overlay for better UX -->
+                <div class="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center cursor-pointer" onclick="openImageModal({{ image.id }})">
+                    <div class="text-white text-center pointer-events-none">
+                        <svg class="w-8 h-8 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        <p class="text-xs">Click to view</p>
                     </div>
                 </div>
             </figure>
             
-            <div class="card-body">
-                <h2 class="card-title text-lg">{{ image.name }}</h2>
-                {% if image.description %}
-                <p class="text-sm text-base-content/70">{{ image.description }}</p>
-                {% endif %}
-                
-                <div class="text-xs text-base-content/50 mt-2">
-                    <div>{{ image.image_width }}x{{ image.image_height }} pixels</div>
-                    <div>Created {{ image.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+            <div class="card-body p-4">
+                <div class="flex justify-between items-start mb-2">
+                    <h2 class="card-title text-lg font-bold text-base-content truncate flex-1 mr-2">{{ image.name }}</h2>
+                    {% if image.ground_truth_labels %}
+                    <div class="tooltip tooltip-left" data-tip="Ground truth labels available">
+                        <svg class="w-5 h-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    {% else %}
+                    <div class="tooltip tooltip-left" data-tip="No labels yet">
+                        <svg class="w-5 h-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                    </div>
+                    {% endif %}
                 </div>
                 
-                <!-- Ground Truth Summary -->
+                {% if image.description %}
+                <p class="text-sm text-base-content/70 mb-3 line-clamp-2">{{ image.description }}</p>
+                {% endif %}
+                
+                <!-- Metadata with icons -->
+                <div class="flex items-center gap-4 text-xs text-base-content/60 mb-3">
+                    <div class="flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        {{ image.image_width }}×{{ image.image_height }}
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {{ image.created_at.strftime('%m/%d/%y') }}
+                    </div>
+                </div>
+                
+                <!-- Ground Truth Summary with improved design -->
                 {% if image.ground_truth_labels %}
-                <div class="mt-3 space-y-1">
+                <div class="mb-4">
                     {% set label_summary = {} %}
                     {% for label in image.ground_truth_labels %}
                         {% if label.species in label_summary %}
@@ -89,28 +181,60 @@
                         {% endif %}
                     {% endfor %}
                     
-                    <div class="text-sm font-medium">Labels:</div>
+                    <div class="text-xs font-medium text-base-content/80 mb-2 flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        Ground Truth Labels
+                    </div>
                     <div class="flex flex-wrap gap-1">
                         {% for species, count in label_summary.items() %}
-                        <span class="badge badge-sm">{{ species }} ({{ count }})</span>
+                        <span class="badge badge-sm badge-outline font-medium">
+                            {{ species.title() }}{% if count > 1 %} ×{{ count }}{% endif %}
+                        </span>
                         {% endfor %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="mb-4">
+                    <div class="alert alert-warning py-2 px-3">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <span class="text-xs">No labels yet - click Edit Labels to add</span>
                     </div>
                 </div>
                 {% endif %}
                 
-                <div class="card-actions justify-end mt-4">
-                    <a href="/settings/test-images/{{ image.id }}/edit" class="btn btn-primary btn-sm">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Edit Labels
-                    </a>
-                    <button onclick="deleteTestImage({{ image.id }}, '{{ image.name }}')" 
-                            class="btn btn-error btn-sm btn-outline">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
+                <!-- Action buttons with improved design -->
+                <div class="card-actions justify-between items-center pt-2 border-t border-base-200">
+                    <div class="text-xs text-base-content/50">
+                        ID: {{ image.id }}
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="/settings/test-images/{{ image.id }}/edit" 
+                           class="btn btn-primary btn-sm hover:btn-primary-focus transition-colors">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Edit
+                        </a>
+                        <div class="dropdown dropdown-end">
+                            <div tabindex="0" role="button" class="btn btn-ghost btn-sm">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                </svg>
+                            </div>
+                            <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-32 p-2 shadow-lg border border-base-200">
+                                <li><a onclick="deleteTestImage({{ image.id }}, '{{ image.name }}')" class="text-error hover:bg-error/10">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    Delete
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -135,9 +259,999 @@
     {% endif %}
 </div>
 
+<!-- Test Run Modal -->
+<dialog id="test-modal" class="modal">
+    <div class="modal-box w-11/12 max-w-5xl max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-base-100 pb-4 border-b border-base-200 mb-6">
+            <h3 class="font-bold text-2xl flex items-center gap-3">
+                <div class="p-2 bg-primary/10 rounded-lg">
+                    <svg class="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                </div>
+                Run Model Tests
+            </h3>
+            <p class="text-base-content/70 mt-1">Compare model performance on selected test images</p>
+        </div>
+        
+        <!-- Selected Images -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between mb-3">
+                <h4 class="font-semibold text-lg flex items-center gap-2">
+                    <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Selected Test Images
+                </h4>
+                <div class="text-sm text-base-content/60">
+                    <span id="selected-images-count">0</span> selected
+                </div>
+            </div>
+            <div id="selected-images" class="flex flex-wrap gap-2 p-4 bg-gradient-to-br from-base-200/50 to-base-300/30 rounded-lg border border-base-200 min-h-16 items-center">
+                <div class="flex items-center gap-2 text-base-content/50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Select images by checking the boxes above</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Model Selection -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between mb-3">
+                <h4 class="font-semibold text-lg flex items-center gap-2">
+                    <svg class="w-5 h-5 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Select Models to Test
+                </h4>
+                <div class="text-sm text-base-content/60">
+                    <span id="selected-models-count">0</span> selected
+                </div>
+            </div>
+            
+            <div id="model-loading" class="flex items-center justify-center py-8">
+                <div class="loading loading-spinner loading-md text-primary"></div>
+                <span class="ml-3 text-base-content/70">Loading available models...</span>
+            </div>
+            
+            <div id="model-selection" class="hidden space-y-6">
+                <!-- Ollama Models -->
+                <div class="card bg-base-100 border border-base-200">
+                    <div class="card-body p-4">
+                        <h5 class="font-medium text-base flex items-center gap-2 mb-3">
+                            <span class="text-lg">🤖</span>
+                            Local Models (Ollama)
+                            <div class="badge badge-outline badge-sm">Free</div>
+                        </h5>
+                        <div id="ollama-models" class="space-y-2"></div>
+                    </div>
+                </div>
+                
+                <!-- Cloud Models -->
+                <div class="card bg-base-100 border border-base-200">
+                    <div class="card-body p-4">
+                        <h5 class="font-medium text-base flex items-center gap-2 mb-3">
+                            <span class="text-lg">☁️</span>
+                            Cloud Models
+                            <div class="badge badge-secondary badge-sm">API</div>
+                        </h5>
+                        <div id="cloud-models" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Configuration -->
+        <div class="mb-8">
+            <h4 class="font-semibold text-lg flex items-center gap-2 mb-3">
+                <svg class="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Test Configuration
+            </h4>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Test Run Name</span>
+                        <span class="label-text-alt text-error">*</span>
+                    </label>
+                    <input type="text" id="test-name" class="input input-bordered focus:input-primary" 
+                           placeholder="e.g., Model Comparison - June 2024">
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Description</span>
+                        <span class="label-text-alt">Optional</span>
+                    </label>
+                    <textarea id="test-description" class="textarea textarea-bordered focus:textarea-primary h-20" 
+                              placeholder="Notes about this test run..."></textarea>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-action border-t border-base-200 pt-4">
+            <form method="dialog">
+                <button class="btn btn-ghost">
+                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Cancel
+                </button>
+            </form>
+            <button id="start-test-btn" class="btn btn-primary btn-lg shadow-lg hover:shadow-xl transition-all duration-200" onclick="startTestRun()" disabled>
+                <span id="start-test-text" class="flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.5a2.5 2.5 0 011.414.586l.775.776a2.5 2.5 0 001.414.586H15M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Start Test Run
+                </span>
+                <span id="start-test-loading" class="loading loading-spinner loading-sm hidden"></span>
+            </button>
+        </div>
+    </div>
+</dialog>
+
+<!-- Test Results Modal -->
+<dialog id="results-modal" class="modal">
+    <div class="modal-box w-11/12 max-w-6xl">
+        <h3 class="font-bold text-lg mb-4">Test Results</h3>
+        <div id="test-results-content">
+            <!-- Results will be populated here -->
+        </div>
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn btn-primary">Close</button>
+            </form>
+        </div>
+    </div>
+</dialog>
+
+<!-- Image View Modal -->
+<dialog id="image-view-modal" class="modal">
+    <div class="modal-box w-11/12 max-w-5xl max-h-[90vh] p-0 overflow-hidden">
+        <!-- Modal Header -->
+        <div class="sticky top-0 z-10 bg-base-100 border-b border-base-300 px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <h3 id="image-modal-title" class="font-bold text-xl">Test Image</h3>
+                    <div id="image-modal-badges" class="flex gap-2">
+                        <!-- Dynamic badges will be inserted here -->
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div id="image-modal-metadata" class="text-sm text-base-content/70"></div>
+                    <form method="dialog">
+                        <button class="btn btn-ghost btn-circle btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal Content -->
+        <div class="overflow-y-auto h-full pb-20">
+            <div class="p-6">
+                <!-- Image Container with Labels Overlay -->
+                <div class="relative bg-base-200 rounded-lg overflow-hidden mb-6">
+                    <img id="image-modal-img" src="" alt="" class="w-full h-auto max-h-[60vh] object-contain mx-auto block">
+                    
+                    <!-- Labels Overlay Container -->
+                    <div id="image-modal-labels-overlay" class="absolute inset-0 pointer-events-none">
+                        <!-- Dynamic bounding boxes and labels will be inserted here -->
+                    </div>
+                </div>
+                
+                <!-- Ground Truth Labels Info -->
+                <div id="image-modal-labels-info" class="space-y-4">
+                    <!-- Labels information will be populated here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal Footer -->
+        <div class="absolute bottom-0 left-0 right-0 bg-base-100 border-t border-base-300 p-4">
+            <div class="flex justify-between items-center">
+                <div class="flex gap-2">
+                    <button id="image-modal-prev-btn" class="btn btn-outline btn-sm" onclick="navigateImageModal('prev')">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                        </svg>
+                        Previous
+                    </button>
+                    <button id="image-modal-next-btn" class="btn btn-outline btn-sm" onclick="navigateImageModal('next')">
+                        Next
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex gap-2">
+                    <a id="image-modal-edit-btn" href="#" class="btn btn-primary btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                        </svg>
+                        Edit Labels
+                    </a>
+                    <form method="dialog">
+                        <button class="btn btn-outline">Close</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
 <script>
+let availableModels = { ollama: [], cloud: [] };
+
+// Utility functions for non-blocking UI feedback
+function showErrorToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-top toast-end z-50';
+    toast.innerHTML = `
+        <div class="alert alert-error shadow-lg">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>${message}</span>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5000);
+}
+
+function showConfirmationModal(title, message, confirmText = 'Confirm', cancelText = 'Cancel') {
+    return new Promise((resolve) => {
+        const modal = document.createElement('dialog');
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-box">
+                <h3 class="font-bold text-lg">${title}</h3>
+                <p class="py-4">${message}</p>
+                <div class="modal-action">
+                    <button class="btn btn-ghost" onclick="this.closest('dialog').close(); this.closest('dialog').resolve(false);">${cancelText}</button>
+                    <button class="btn btn-primary" onclick="this.closest('dialog').close(); this.closest('dialog').resolve(true);">${confirmText}</button>
+                </div>
+            </div>
+        `;
+        modal.resolve = resolve;
+        document.body.appendChild(modal);
+        modal.showModal();
+        modal.addEventListener('close', () => {
+            document.body.removeChild(modal);
+        });
+    });
+}
+
+// Update selected images display
+function updateSelectedImages() {
+    const checkboxes = document.querySelectorAll('.test-image-checkbox:checked');
+    const selectedImagesDiv = document.getElementById('selected-images');
+    const selectedCountBadge = document.getElementById('selected-count');
+    
+    if (checkboxes.length === 0) {
+        selectedImagesDiv.innerHTML = `
+            <div class="flex items-center gap-2 text-base-content/50">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Select images by checking the boxes above</span>
+            </div>
+        `;
+        if (selectedCountBadge) selectedCountBadge.classList.add('hidden');
+    } else {
+        const badges = Array.from(checkboxes).map(cb => 
+            `<span class="badge badge-primary badge-lg shadow-sm">${cb.dataset.name}</span>`
+        ).join('');
+        selectedImagesDiv.innerHTML = badges;
+        if (selectedCountBadge) {
+            selectedCountBadge.textContent = checkboxes.length;
+            selectedCountBadge.classList.remove('hidden');
+        }
+    }
+    
+    // Update select all button
+    updateSelectAllButton();
+    
+    // Update start button
+    updateStartButton();
+}
+
+// Update select all button appearance
+function updateSelectAllButton() {
+    const checkboxes = document.querySelectorAll('.test-image-checkbox');
+    const checkedBoxes = document.querySelectorAll('.test-image-checkbox:checked');
+    const selectAllBtn = document.querySelector('button[onclick="selectAllImages()"]');
+    
+    if (selectAllBtn && checkboxes.length > 0) {
+        const icon = selectAllBtn.querySelector('svg');
+        const text = selectAllBtn.childNodes[selectAllBtn.childNodes.length - 1];
+        
+        if (checkedBoxes.length === checkboxes.length) {
+            // All selected
+            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />';
+            text.textContent = ' Deselect All';
+        } else {
+            // Not all selected
+            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />';
+            text.textContent = ' Select All';
+        }
+    }
+}
+
+// Select/deselect all images
+function selectAllImages() {
+    const checkboxes = document.querySelectorAll('.test-image-checkbox');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = !allChecked;
+    });
+    
+    updateSelectedImages();
+}
+
+// Update start button state
+function updateStartButton() {
+    const selectedImages = document.querySelectorAll('.test-image-checkbox:checked').length;
+    const selectedModels = document.querySelectorAll('.model-checkbox:checked').length;
+    
+    // Update counters
+    const imageCounter = document.getElementById('selected-images-count');
+    const modelCounter = document.getElementById('selected-models-count');
+    
+    if (imageCounter) imageCounter.textContent = selectedImages;
+    if (modelCounter) modelCounter.textContent = selectedModels;
+    
+    // Update button state
+    const startBtn = document.getElementById('start-test-btn');
+    if (startBtn) {
+        startBtn.disabled = selectedImages === 0 || selectedModels === 0;
+        
+        // Update button text based on state
+        const textSpan = document.getElementById('start-test-text');
+        if (textSpan) {
+            if (selectedImages === 0) {
+                textSpan.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    Select Images First
+                `;
+            } else if (selectedModels === 0) {
+                textSpan.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    Select Models First
+                `;
+            } else {
+                textSpan.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.5a2.5 2.5 0 011.414.586l.775.776a2.5 2.5 0 001.414.586H15M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Start Test Run (${selectedImages} images × ${selectedModels} models)
+                `;
+            }
+        }
+    }
+}
+
+// Load available models
+async function loadAvailableModels() {
+    try {
+        const response = await fetch('/api/test-images/available-models');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        availableModels = await response.json();
+        
+        // Populate Ollama models
+        const ollamaDiv = document.getElementById('ollama-models');
+        if (!availableModels.ollama || availableModels.ollama.length === 0) {
+            ollamaDiv.innerHTML = '<div class="alert alert-warning"><svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg><div><h4 class="font-semibold">No Ollama Models Found</h4><p class="text-sm">Install vision models with: <code class="bg-warning/20 px-1 rounded">ollama pull llava-phi3:3.8b-mini-q4_0</code></p></div></div>';
+        } else {
+            ollamaDiv.innerHTML = availableModels.ollama.map(model => `
+                <label class="cursor-pointer label justify-start gap-3 hover:bg-base-200/50 transition-colors rounded-lg p-3 border border-transparent hover:border-primary/20">
+                    <input type="checkbox" class="checkbox checkbox-primary model-checkbox" value="${model.name}" onchange="updateStartButton()">
+                    <div class="flex-1">
+                        <div class="font-medium text-base-content">${model.display_name || model.name}</div>
+                        <div class="text-sm text-base-content/70">${model.description}</div>
+                    </div>
+                    <div class="badge badge-success badge-sm">Local</div>
+                </label>
+            `).join('');
+        }
+        
+        // Populate Cloud models
+        const cloudDiv = document.getElementById('cloud-models');
+        if (!availableModels.cloud || availableModels.cloud.length === 0) {
+            cloudDiv.innerHTML = '<div class="alert alert-info"><svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><div><h4 class="font-semibold">No Cloud Providers</h4><p class="text-sm">Configure cloud AI providers in <a href="/settings/providers" class="link">Settings > Providers</a></p></div></div>';
+        } else {
+            cloudDiv.innerHTML = availableModels.cloud.map(model => `
+                <label class="cursor-pointer label justify-start gap-3 hover:bg-base-200/50 transition-colors rounded-lg p-3 border border-transparent hover:border-secondary/20">
+                    <input type="checkbox" class="checkbox checkbox-secondary model-checkbox" value="${model.name}" onchange="updateStartButton()">
+                    <div class="flex-1">
+                        <div class="font-medium text-base-content">${model.display_name || model.name}</div>
+                        <div class="text-sm text-base-content/70">${model.description}</div>
+                        <div class="text-xs text-secondary font-medium">${model.provider || 'Cloud'}</div>
+                    </div>
+                    <div class="badge badge-secondary badge-sm">API</div>
+                </label>
+            `).join('');
+        }
+        
+        document.getElementById('model-loading').classList.add('hidden');
+        document.getElementById('model-selection').classList.remove('hidden');
+        
+    } catch (error) {
+        console.error('Error loading models:', error);
+        document.getElementById('model-loading').classList.add('hidden');
+        document.getElementById('model-selection').innerHTML = `
+            <div class="alert alert-error">
+                <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                    <h4 class="font-semibold">Failed to Load Models</h4>
+                    <p class="text-sm">Error: ${error.message}</p>
+                    <button onclick="loadAvailableModels()" class="btn btn-sm btn-outline mt-2">
+                        <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Retry
+                    </button>
+                </div>
+            </div>
+        `;
+        document.getElementById('model-selection').classList.remove('hidden');
+    }
+}
+
+// Open test modal
+async function openTestModal() {
+    // Update selected images
+    updateSelectedImages();
+    
+    // Set default test name
+    const now = new Date();
+    const defaultName = `Model Test ${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    document.getElementById('test-name').value = defaultName;
+    
+    // Load models if not already loaded
+    if (availableModels.ollama.length === 0 && availableModels.cloud.length === 0) {
+        await loadAvailableModels();
+    }
+    
+    document.getElementById('test-modal').showModal();
+}
+
+// Start test run
+async function startTestRun() {
+    const selectedImageIds = Array.from(document.querySelectorAll('.test-image-checkbox:checked')).map(cb => parseInt(cb.value));
+    const selectedModels = Array.from(document.querySelectorAll('.model-checkbox:checked')).map(cb => cb.value);
+    const testName = document.getElementById('test-name').value;
+    const testDescription = document.getElementById('test-description').value;
+    
+    if (selectedImageIds.length === 0 || selectedModels.length === 0) {
+        showErrorToast('Please select at least one image and one model');
+        return;
+    }
+    
+    if (!testName.trim()) {
+        showErrorToast('Please enter a test run name');
+        return;
+    }
+    
+    // Show loading state
+    document.getElementById('start-test-text').classList.add('hidden');
+    document.getElementById('start-test-loading').classList.remove('hidden');
+    document.getElementById('start-test-btn').disabled = true;
+    
+    try {
+        const response = await fetch('/api/test-images/test-run', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: testName,
+                description: testDescription,
+                test_image_ids: selectedImageIds,
+                model_names: selectedModels
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            
+            // Redirect to the test run results page with live progress
+            window.location.href = `/settings/test-runs/${result.test_run_id}`;
+        } else {
+            const error = await response.json();
+            showErrorToast(`Test failed: ${error.detail || 'Unknown error'}`);
+            
+            // Reset loading state on error
+            document.getElementById('start-test-text').classList.remove('hidden');
+            document.getElementById('start-test-loading').classList.add('hidden');
+            document.getElementById('start-test-btn').disabled = false;
+        }
+    } catch (error) {
+        console.error('Error running test:', error);
+        showErrorToast('Failed to run test');
+        
+        // Reset loading state on error
+        document.getElementById('start-test-text').classList.remove('hidden');
+        document.getElementById('start-test-loading').classList.add('hidden');
+        document.getElementById('start-test-btn').disabled = false;
+    }
+}
+
+// Show test results
+function showTestResults(testRun) {
+    const resultsDiv = document.getElementById('test-results-content');
+    
+    resultsDiv.innerHTML = `
+        <div class="alert alert-success mb-4">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <div>
+                <h3 class="font-bold">Test Completed Successfully!</h3>
+                <div class="text-sm">${testRun.message}</div>
+            </div>
+        </div>
+        
+        <div class="stats stats-vertical lg:stats-horizontal shadow w-full mb-6">
+            <div class="stat">
+                <div class="stat-title">Total Tests</div>
+                <div class="stat-value">${testRun.total_tests}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-title">Successful</div>
+                <div class="stat-value text-success">${testRun.completed_tests}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-title">Failed</div>
+                <div class="stat-value text-error">${testRun.failed_tests}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-title">Total Time</div>
+                <div class="stat-value text-sm">${testRun.total_time_seconds.toFixed(1)}s</div>
+            </div>
+            ${testRun.total_cost > 0 ? `
+            <div class="stat">
+                <div class="stat-title">Total Cost</div>
+                <div class="stat-value text-sm">$${testRun.total_cost.toFixed(4)}</div>
+            </div>
+            ` : ''}
+        </div>
+        
+        <div class="flex gap-2">
+            <a href="/api/test-images/test-runs/${testRun.test_run_id}" class="btn btn-primary" target="_blank">
+                View Detailed Results
+            </a>
+            <button onclick="location.reload()" class="btn btn-outline">
+                Refresh Page
+            </button>
+        </div>
+    `;
+    
+    document.getElementById('results-modal').showModal();
+}
+
+// Global variables for image modal navigation
+let currentImageId = null;
+let imageIds = [];
+
+// Create test image data object for JavaScript use
+const testImageData = {};
+{% for image in test_images %}
+testImageData[{{ image.id }}] = {
+    id: {{ image.id }},
+    name: {{ image.name | tojson }},
+    description: {{ (image.description or '') | tojson }},
+    image_path: {{ image.image_path | tojson }},
+    thumbnail_path: {{ (image.thumbnail_path or '') | tojson }},
+    image_width: {{ image.image_width or 0 }},
+    image_height: {{ image.image_height or 0 }},
+    created_at: {{ image.created_at.isoformat() | tojson }},
+    ground_truth_labels: [
+        {% for label in image.ground_truth_labels %}
+        {
+            id: {{ label.id }},
+            species: {{ label.species | tojson }},
+            foe_type: {{ (label.foe_type or '') | tojson }},
+            confidence: {{ label.confidence or 1.0 }},
+            x: {{ label.bbox_x1 }},
+            y: {{ label.bbox_y1 }},
+            width: {{ label.bbox_x2 - label.bbox_x1 }},
+            height: {{ label.bbox_y2 - label.bbox_y1 }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ]
+};
+{% endfor %}
+
+// Open image modal function
+async function openImageModal(imageId) {
+    const imageData = testImageData[imageId];
+    if (!imageData) {
+        showErrorToast('Image data not found');
+        return;
+    }
+    
+    // Set current image and get list of all image IDs for navigation
+    currentImageId = imageId;
+    imageIds = Object.keys(testImageData).map(id => parseInt(id)).sort((a, b) => a - b);
+    
+    // Update modal header
+    updateImageModalHeader(imageData);
+    
+    // Update navigation buttons
+    updateImageModalNavigation();
+    
+    // Load and display the image
+    const imgElement = document.getElementById('image-modal-img');
+    imgElement.src = `/${imageData.image_path}`;
+    imgElement.alt = imageData.name;
+    
+    // Wait for image to load before drawing labels
+    imgElement.onload = function() {
+        // Small delay to ensure layout is settled
+        setTimeout(() => {
+            drawImageLabels(imageData);
+        }, 50);
+    };
+    
+    // If image is already loaded (cached), draw labels immediately
+    if (imgElement.complete && imgElement.naturalHeight !== 0) {
+        setTimeout(() => {
+            drawImageLabels(imageData);
+        }, 50);
+    }
+    
+    // Show labels information
+    updateImageLabelsInfo(imageData);
+    
+    // Update edit button link
+    document.getElementById('image-modal-edit-btn').href = `/settings/test-images/${imageId}/edit`;
+    
+    // Show modal
+    document.getElementById('image-view-modal').showModal();
+}
+
+// Update modal header with image information
+function updateImageModalHeader(imageData) {
+    // Update title
+    document.getElementById('image-modal-title').textContent = imageData.name;
+    
+    // Update metadata
+    const metadataEl = document.getElementById('image-modal-metadata');
+    const createdDate = new Date(imageData.created_at).toLocaleDateString();
+    metadataEl.textContent = `${imageData.image_width}×${imageData.image_height} • ${createdDate}`;
+    
+    // Update badges
+    const badgesEl = document.getElementById('image-modal-badges');
+    const labelCount = imageData.ground_truth_labels.length;
+    const speciesCount = new Set(imageData.ground_truth_labels.map(l => l.species)).size;
+    
+    badgesEl.innerHTML = `
+        <div class="badge badge-primary badge-sm">
+            ${labelCount} label${labelCount !== 1 ? 's' : ''}
+        </div>
+        ${speciesCount > 0 ? `
+        <div class="badge badge-secondary badge-sm">
+            ${speciesCount} species
+        </div>
+        ` : ''}
+    `;
+}
+
+// Update navigation buttons
+function updateImageModalNavigation() {
+    const currentIndex = imageIds.indexOf(currentImageId);
+    const prevBtn = document.getElementById('image-modal-prev-btn');
+    const nextBtn = document.getElementById('image-modal-next-btn');
+    
+    if (prevBtn) {
+        prevBtn.disabled = currentIndex <= 0;
+        prevBtn.classList.toggle('btn-disabled', currentIndex <= 0);
+    }
+    
+    if (nextBtn) {
+        nextBtn.disabled = currentIndex >= imageIds.length - 1;
+        nextBtn.classList.toggle('btn-disabled', currentIndex >= imageIds.length - 1);
+    }
+}
+
+// Navigate between images in modal
+function navigateImageModal(direction) {
+    const currentIndex = imageIds.indexOf(currentImageId);
+    let newIndex;
+    
+    if (direction === 'prev' && currentIndex > 0) {
+        newIndex = currentIndex - 1;
+    } else if (direction === 'next' && currentIndex < imageIds.length - 1) {
+        newIndex = currentIndex + 1;
+    } else {
+        return; // No navigation possible
+    }
+    
+    const newImageId = imageIds[newIndex];
+    openImageModal(newImageId);
+}
+
+// Draw bounding box labels on the image
+function drawImageLabels(imageData) {
+    const overlay = document.getElementById('image-modal-labels-overlay');
+    const imgElement = document.getElementById('image-modal-img');
+    
+    if (!overlay || !imgElement) {
+        console.warn('Image modal elements not found');
+        return;
+    }
+    
+    // Clear existing labels
+    overlay.innerHTML = '';
+    
+    if (!imageData.ground_truth_labels || imageData.ground_truth_labels.length === 0) {
+        console.log('No ground truth labels to draw');
+        return;
+    }
+    
+    console.log(`Drawing ${imageData.ground_truth_labels.length} labels for image:`, imageData.name);
+    
+    // Get image display dimensions
+    const imgRect = imgElement.getBoundingClientRect();
+    const containerRect = overlay.getBoundingClientRect();
+    
+    // Calculate scaling factors
+    const scaleX = imgRect.width / imageData.image_width;
+    const scaleY = imgRect.height / imageData.image_height;
+    
+    // Calculate image position within container
+    const imgOffsetX = (containerRect.width - imgRect.width) / 2;
+    const imgOffsetY = (containerRect.height - imgRect.height) / 2;
+    
+    console.log('Scaling information:', {
+        imageRect: { width: imgRect.width, height: imgRect.height },
+        originalSize: { width: imageData.image_width, height: imageData.image_height },
+        scaleFactors: { x: scaleX, y: scaleY },
+        offsets: { x: imgOffsetX, y: imgOffsetY }
+    });
+    
+    // Define colors for different species with better visibility
+    const colors = [
+        'border-red-500 bg-red-500/10 text-red-100',
+        'border-blue-500 bg-blue-500/10 text-blue-100',
+        'border-green-500 bg-green-500/10 text-green-100',
+        'border-yellow-500 bg-yellow-500/10 text-yellow-800',
+        'border-purple-500 bg-purple-500/10 text-purple-100',
+        'border-pink-500 bg-pink-500/10 text-pink-100',
+        'border-orange-500 bg-orange-500/10 text-orange-100',
+        'border-teal-500 bg-teal-500/10 text-teal-100'
+    ];
+    
+    // Group labels by species for consistent coloring
+    const speciesColorMap = {};
+    const uniqueSpecies = [...new Set(imageData.ground_truth_labels.map(l => l.species))];
+    uniqueSpecies.forEach((species, index) => {
+        speciesColorMap[species] = colors[index % colors.length];
+    });
+    
+    // Draw each label
+    imageData.ground_truth_labels.forEach((label, index) => {
+        console.log(`Processing label ${index + 1}:`, {
+            species: label.species,
+            x: label.x,
+            y: label.y,
+            width: label.width,
+            height: label.height,
+            confidence: label.confidence
+        });
+        
+        if (label.width === 0 || label.height === 0) {
+            console.warn(`Skipping label ${index + 1} - invalid dimensions:`, label.width, 'x', label.height);
+            return; // Skip invalid boxes
+        }
+        
+        // Calculate scaled position
+        const x = imgOffsetX + (label.x * scaleX);
+        const y = imgOffsetY + (label.y * scaleY);
+        const width = label.width * scaleX;
+        const height = label.height * scaleY;
+        
+        // Get color for this species
+        const colorClass = speciesColorMap[label.species] || colors[0];
+        
+        // Create bounding box element with improved visibility
+        const boxElement = document.createElement('div');
+        boxElement.className = `absolute shadow-lg`;
+        boxElement.style.left = `${x}px`;
+        boxElement.style.top = `${y}px`;
+        boxElement.style.width = `${width}px`;
+        boxElement.style.height = `${height}px`;
+        boxElement.style.pointerEvents = 'none';
+        boxElement.style.border = '3px solid';
+        boxElement.style.borderColor = colorClass.includes('yellow') ? '#fbbf24' : 
+                                      colorClass.includes('red') ? '#ef4444' :
+                                      colorClass.includes('blue') ? '#3b82f6' :
+                                      colorClass.includes('green') ? '#10b981' :
+                                      colorClass.includes('purple') ? '#8b5cf6' :
+                                      colorClass.includes('pink') ? '#ec4899' :
+                                      colorClass.includes('orange') ? '#f97316' : '#14b8a6';
+        boxElement.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+        
+        // Create label element with enhanced styling
+        const labelElement = document.createElement('div');
+        labelElement.className = `absolute px-2 py-1 text-xs font-bold rounded-md shadow-xl border-2`;
+        
+        // Enhanced background color for better visibility
+        const bgColor = colorClass.split(' ')[0].replace('border-', 'bg-');
+        const textColor = colorClass.split(' ')[2];
+        labelElement.className += ` ${bgColor} ${textColor} border-white/50`;
+        labelElement.style.backgroundColor = colorClass.includes('yellow') ? '#fbbf24' : 
+                                           colorClass.includes('red') ? '#ef4444' :
+                                           colorClass.includes('blue') ? '#3b82f6' :
+                                           colorClass.includes('green') ? '#10b981' :
+                                           colorClass.includes('purple') ? '#8b5cf6' :
+                                           colorClass.includes('pink') ? '#ec4899' :
+                                           colorClass.includes('orange') ? '#f97316' : '#14b8a6';
+        
+        labelElement.style.left = `${x}px`;
+        labelElement.style.top = `${y - 32}px`; // Position above the box
+        labelElement.style.maxWidth = `${Math.max(width, 120)}px`; // Ensure minimum width for readability
+        labelElement.style.zIndex = '10';
+        labelElement.style.pointerEvents = 'none';
+        labelElement.textContent = `${label.species}${label.confidence < 1.0 ? ` (${Math.round(label.confidence * 100)}%)` : ''}`;
+        
+        // Ensure label stays within bounds
+        if (y < 35) {
+            labelElement.style.top = `${y + height + 4}px`; // Position below if too close to top
+        }
+        
+        // Ensure label doesn't overflow container width
+        const maxRight = containerRect.width - 10;
+        if (x + 120 > maxRight) {
+            labelElement.style.right = '10px';
+            labelElement.style.left = 'auto';
+        }
+        
+        overlay.appendChild(boxElement);
+        overlay.appendChild(labelElement);
+        
+        console.log(`Label ${index + 1} drawn successfully at position:`, {
+            scaledX: x, scaledY: y, scaledWidth: width, scaledHeight: height
+        });
+    });
+    
+    console.log(`Successfully drew ${imageData.ground_truth_labels.filter(l => l.width > 0 && l.height > 0).length} labels`);
+}
+
+// Update labels information display
+function updateImageLabelsInfo(imageData) {
+    const labelsInfoEl = document.getElementById('image-modal-labels-info');
+    
+    if (!imageData.ground_truth_labels || imageData.ground_truth_labels.length === 0) {
+        labelsInfoEl.innerHTML = `
+            <div class="alert alert-warning">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <div>
+                    <h4 class="font-medium">No Ground Truth Labels</h4>
+                    <p class="text-sm">Click "Edit Labels" to add species annotations to this image.</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    // Group labels by species
+    const labelsBySpecies = {};
+    imageData.ground_truth_labels.forEach(label => {
+        if (!labelsBySpecies[label.species]) {
+            labelsBySpecies[label.species] = [];
+        }
+        labelsBySpecies[label.species].push(label);
+    });
+    
+    let html = `
+        <div class="bg-base-200/50 rounded-lg p-4 border border-base-300">
+            <h4 class="font-semibold text-lg mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                Ground Truth Labels
+            </h4>
+            <div class="space-y-3">
+    `;
+    
+    Object.entries(labelsBySpecies).forEach(([species, labels]) => {
+        const totalLabels = labels.length;
+        const avgConfidence = labels.reduce((sum, l) => sum + l.confidence, 0) / totalLabels;
+        const foeTypes = [...new Set(labels.map(l => l.foe_type).filter(Boolean))];
+        
+        html += `
+            <div class="flex items-center justify-between p-3 bg-base-100 rounded-lg border border-base-200">
+                <div class="flex-1">
+                    <div class="font-medium text-base-content">${species}</div>
+                    <div class="text-sm text-base-content/70">
+                        ${totalLabels} instance${totalLabels !== 1 ? 's' : ''}
+                        ${avgConfidence < 1.0 ? ` • Avg confidence: ${Math.round(avgConfidence * 100)}%` : ''}
+                        ${foeTypes.length > 0 ? ` • Foe type: ${foeTypes.join(', ')}` : ''}
+                    </div>
+                </div>
+                <div class="badge badge-primary badge-lg">${totalLabels}</div>
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    // Add description if available
+    if (imageData.description) {
+        html += `
+            <div class="bg-base-200/30 rounded-lg p-4 border border-base-200">
+                <h5 class="font-medium mb-2 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Description
+                </h5>
+                <p class="text-sm text-base-content/80">${imageData.description}</p>
+            </div>
+        `;
+    }
+    
+    labelsInfoEl.innerHTML = html;
+}
+
+// Handle window resize to redraw labels
+window.addEventListener('resize', function() {
+    if (currentImageId && document.getElementById('image-view-modal').open) {
+        const imageData = testImageData[currentImageId];
+        if (imageData) {
+            // Small delay to allow layout to settle
+            setTimeout(() => drawImageLabels(imageData), 100);
+        }
+    }
+});
+
+// View test image function (kept for compatibility)
+function viewTestImage(imageId) {
+    openImageModal(imageId);
+}
+
 async function deleteTestImage(imageId, imageName) {
-    if (!confirm(`Are you sure you want to delete "${imageName}"? This will also delete all ground truth labels.`)) {
+    const confirmed = await showConfirmationModal(
+        'Delete Test Image',
+        `Are you sure you want to delete "${imageName}"? This will also delete all ground truth labels.`,
+        'Delete',
+        'Cancel'
+    );
+    if (!confirmed) {
         return;
     }
     
@@ -149,11 +1263,11 @@ async function deleteTestImage(imageId, imageName) {
         if (response.ok) {
             location.reload();
         } else {
-            alert('Failed to delete test image');
+            showErrorToast('Failed to delete test image');
         }
     } catch (error) {
         console.error('Error deleting test image:', error);
-        alert('Failed to delete test image');
+        showErrorToast('Failed to delete test image');
     }
 }
 </script>

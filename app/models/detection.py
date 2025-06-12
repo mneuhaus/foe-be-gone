@@ -82,6 +82,9 @@ class Detection(SQLModel, table=True):
     ai_analysis: Optional[str] = Field(default=None, description="AI analysis text")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="When the detection was created")
     
+    # Visual similarity grouping
+    visual_hash: Optional[str] = Field(default=None, description="Perceptual hash for visual similarity grouping")
+    
     # Relationships
     device: Optional["Device"] = Relationship(back_populates="detections")
     foes: List["Foe"] = Relationship(back_populates="detection", cascade_delete=True)

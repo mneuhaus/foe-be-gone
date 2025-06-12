@@ -69,7 +69,21 @@
       "Bash(/Users/mneuhaus/Workspace/foe-be-gone/venv/bin/alembic upgrade head)",
       "Bash(/Users/mneuhaus/Workspace/foe-be-gone/venv/bin/alembic revision --autogenerate -m \"Add test image models with ground truth\")",
       "Bash(/Users/mneuhaus/Workspace/foe-be-gone/venv/bin/alembic heads)",
-      "Bash(/Users/mneuhaus/Workspace/foe-be-gone/venv/bin/alembic merge -m \"Merge test image migrations\" 81eb41d20d3a test_image_migration)"
+      "Bash(/Users/mneuhaus/Workspace/foe-be-gone/venv/bin/alembic merge -m \"Merge test image migrations\" 81eb41d20d3a test_image_migration)",
+      "mcp__puppeteer__puppeteer_click",
+      "mcp__puppeteer__puppeteer_evaluate",
+      "mcp__puppeteer__puppeteer_screenshot",
+      "mcp__puppeteer__puppeteer_navigate",
+      "mcp__puppeteer__puppeteer_fill",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_click",
+      "Bash(venv/bin/python:*)",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_press_key",
+      "Bash(cat:*)",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_select_option"
     ],
     "deny": []
   },

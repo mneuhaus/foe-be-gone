@@ -28,7 +28,7 @@ DEFAULT_SETTINGS = {
     "confidence_threshold": {"value": "0.5", "label": "Confidence Threshold", "type": "number", "min": 0.1, "max": 1.0, "step": 0.1, "description": "Minimum confidence for foe detection"},
     "max_image_size_mb": {"value": "10", "label": "Max Image Size (MB)", "type": "number", "min": 1, "max": 50, "description": "Maximum allowed image upload size"},
     "snapshot_retention_days": {"value": "7", "label": "Snapshot Retention (days)", "type": "number", "min": 1, "max": 365, "description": "How long to keep detection snapshots"},
-    "timezone": {"value": "UTC", "label": "Timezone", "type": "select", "options": ["UTC", "Europe/Berlin", "Europe/London", "Europe/Paris", "Europe/Rome", "Europe/Madrid", "Europe/Vienna", "Europe/Warsaw", "Europe/Amsterdam", "Europe/Brussels", "Europe/Zurich", "America/New_York", "America/Chicago", "America/Los_Angeles", "America/Toronto", "America/Mexico_City", "Asia/Tokyo", "Asia/Shanghai", "Asia/Hong_Kong", "Asia/Singapore", "Australia/Sydney", "Australia/Melbourne"], "description": "Timezone for displaying dates and times"},
+    "timezone": {"value": "UTC", "label": "Timezone", "type": "select", "options": ["UTC", "Europe/Berlin", "Europe/London", "Europe/Paris", "Europe/Rome", "Europe/Madrid", "Europe/Vienna", "Europe/Warsaw", "Europe/Amsterdam", "Europe/Brussels", "Europe/Zurich", "America/New_York", "America/Chicago", "America/Los_Angeles", "America/Toronto", "America/Mexico_City", "America/Sao_Paulo", "Asia/Tokyo", "Asia/Shanghai", "Asia/Hong_Kong", "Asia/Singapore", "Australia/Sydney", "Australia/Melbourne"], "description": "Timezone for displaying dates and times"},
     "yolo_enabled": {"value": "true", "label": "Enable YOLO Detection", "type": "checkbox", "description": "Use YOLO for fast local animal detection"},
     "yolo_confidence_threshold": {"value": "0.25", "label": "YOLO Confidence Threshold", "type": "number", "min": 0.1, "max": 0.9, "step": 0.05, "description": "Minimum confidence for YOLO detections"},
     "camera_tracking_enabled": {"value": "true", "label": "Enable Camera Tracking", "type": "checkbox", "description": "Enable or disable all camera monitoring and detection processing"}
@@ -105,12 +105,19 @@ async def integrations_page(
     session: Session = Depends(get_session)
 ):
     """Display integrations settings page."""
-    # Get all integration instances with their devices
+    # Get all integration instances with their devices 
     integrations = session.exec(
         select(IntegrationInstance)
         .options(selectinload(IntegrationInstance.devices))
         .order_by(IntegrationInstance.created_at.desc())
     ).all()
+    
+    # Filter out disabled duplicate devices in Python (more reliable than SQLAlchemy filtering)
+    for integration in integrations:
+        integration.devices = [
+            device for device in integration.devices 
+            if not device.status.startswith('disabled - duplicate removed')
+        ]
     
     return templates.TemplateResponse(
         "settings/integrations.html",
@@ -232,3 +239,85 @@ async def set_language(
     session.commit()
     
     return success_response(f"Language set to {language}")
+
+
+@router.get("/test-images", response_class=HTMLResponse, name="settings_test_images")
+async def test_images_page(
+    request: Request,
+    session: Session = Depends(get_session)
+):
+    """Display test images management page."""
+    from sqlmodel import select
+    from app.models.test_image import TestImage
+    from sqlalchemy.orm import selectinload
+    
+    # Get all test images with their ground truth labels
+    query = select(TestImage).options(selectinload(TestImage.ground_truth_labels))
+    test_images = session.exec(query).all()
+    
+    return templates.TemplateResponse(
+        request,
+        "settings/test_images.html",
+        {
+            "page": "settings",
+            "test_images": test_images
+        }
+    )
+
+
+@router.get("/test-images/{test_image_id}/edit", response_class=HTMLResponse, name="edit_test_image")
+async def edit_test_image_page(
+    test_image_id: int,
+    request: Request,
+    session: Session = Depends(get_session)
+):
+    """Display test image editor page."""
+    from app.models.test_image import TestImage
+    from sqlalchemy.orm import selectinload
+    
+    # Get test image with ground truth labels
+    query = select(TestImage).where(TestImage.id == test_image_id).options(
+        selectinload(TestImage.ground_truth_labels)
+    )
+    test_image = session.exec(query).first()
+    
+    if not test_image:
+        raise HTTPException(status_code=404, detail="Test image not found")
+    
+    return templates.TemplateResponse(
+        request,
+        "settings/test_image_editor.html",
+        {
+            "page": "settings",
+            "test_image": test_image
+        }
+    )
+
+
+@router.get("/test-runs/{test_run_id}", response_class=HTMLResponse, name="test_run_results")
+async def test_run_results_page(
+    test_run_id: int,
+    request: Request,
+    session: Session = Depends(get_session)
+):
+    """Display test run results page with live progress."""
+    from app.models.test_image import TestRun, TestResult
+    from sqlalchemy.orm import selectinload
+    
+    # Get test run with results
+    query = select(TestRun).where(TestRun.id == test_run_id).options(
+        selectinload(TestRun.results)
+    )
+    test_run = session.exec(query).first()
+    
+    if not test_run:
+        raise HTTPException(status_code=404, detail="Test run not found")
+    
+    return templates.TemplateResponse(
+        request,
+        "settings/test_run_results.html",
+        {
+            "page": "settings",
+            "test_run": test_run
+        }
+    )

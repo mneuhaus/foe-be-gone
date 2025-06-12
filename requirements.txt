@@ -10,6 +10,7 @@ python-dotenv>=1.1.0
 # API and image processing
 httpx>=0.28.1
 pillow>=11.2.1
+imagehash>=4.3.1
 
 # AI integration
 litellm>=1.57.0

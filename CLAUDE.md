@@ -42,6 +42,7 @@
 | **Frontend JS (optional)** | Vanilla ES-modules (add Alpine/hyperscript only if needed) | Sprinkle just the behaviour you actually need.                        |
 | **Acceptance tests**       | **Pytest + Playwright**                                    | Drive a real browser with a pure-Python API; `pytest --browser=all`.  |
 | **Package management**     | **uv**                                                     | Lightning-fast Python package installer and resolver.                  |
+| **Browser automation**     | **Playwright & Puppeteer**                                 | Available for testing, debugging, and automated UI interactions.       |
 
 ### Dev workflow in three commands
 
@@ -204,6 +205,13 @@ uv run python -m app.main                         # Alternative start method
 pytest --browser=chromium                         # Run Playwright tests
 pytest --browser=all                              # Test all browsers
 pytest -v                                         # Verbose test output
+
+# Browser Automation (Available for Claude)
+# Playwright and Puppeteer are installed and available for:
+# - Automated testing and debugging of UI features
+# - Screenshot capture for verification
+# - Interactive testing of complex user flows
+# - End-to-end validation of new functionality
 ```
 
 ### Rules for Claude
