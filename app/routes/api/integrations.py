@@ -274,10 +274,50 @@ async def test_integration(
             for device in existing_devices:
                 session.delete(device)
             
-            # Get and save new devices
-            devices = await integration_instance.get_devices()
-            for device in devices:
-                session.add(device)
+            if integration.integration_type == "unifi_protect":
+                # For UniFi Protect, get cameras using the native method and filter by selection
+                cameras = await integration_instance.get_cameras_from_unifi()
+                enabled_cameras = integration.config_dict.get("enabled_cameras", [])
+                logger.info(f"Enabled cameras in config: {enabled_cameras[:3]}...")  # Show first 3
+                
+                devices = []
+                for camera in cameras:
+                    if len(devices) < 3:  # Log first few for debugging
+                        logger.info(f"Checking camera {camera.name}: camera_id={camera.id}, enabled={camera.id in enabled_cameras}")
+                    
+                    if camera.id in enabled_cameras and camera.is_adopted_by_us and camera.is_connected:
+                        # Create Device object for selected camera
+                        device = Device(
+                            integration_id=integration.id,
+                            device_type="camera",
+                            name=camera.name,
+                            model=camera.model,
+                            status="online"
+                        )
+                        # Set metadata after creation to ensure property setter is called
+                        device.device_metadata = {
+                            "camera_id": camera.id,  # Store stable UniFi camera ID
+                            "firmware": camera.firmware_version,
+                            "mac": camera.mac,
+                            "features": {
+                                "has_speaker": camera.feature_flags.has_speaker,
+                                "has_smart_detect": camera.feature_flags.has_smart_detect,
+                                "can_zoom": getattr(camera.feature_flags, "can_zoom", False),
+                            }
+                        }
+                        session.add(device)
+                        session.flush()  # Flush to generate the device ID
+                        # Set the snapshot URL with the actual device ID
+                        device.current_image_url = f"/api/integrations/{integration.id}/devices/{device.id}/snapshot"
+                        devices.append(device)
+                
+                logger.info(f"UniFi Protect: Added {len(devices)} selected cameras out of {len(cameras)} available")
+            else:
+                # For other integrations, get and add all devices
+                all_devices = await integration_instance.get_devices()
+                devices = all_devices
+                for device in devices:
+                    session.add(device)
             
             # Update integration status
             integration.update_status("connected", "Successfully connected")
@@ -373,46 +413,40 @@ async def get_cameras(
     integration_instance = integration_class(integration)
     
     try:
-        # Get all cameras from UniFi
-        async with integration_instance:
-            if not integration_instance._client:
-                integration_instance._init_client()
-            
-            url = f"{integration_instance.host}/proxy/protect/integration/v1/cameras"
-            
-            try:
-                response = await integration_instance._client.get(url)
-            except httpx.ConnectError as e:
-                logger.error(f"Connection failed to UniFi Protect: {str(e)}")
+        # Get all cameras from UniFi using the new uiprotect library
+        import asyncio
+        
+        try:
+            # Test connection with timeout
+            connected = await asyncio.wait_for(integration_instance.test_connection(), timeout=30.0)
+            if not connected:
                 raise HTTPException(status_code=503, detail="Unable to connect to UniFi Protect. Please check your connection settings.")
-            except httpx.TimeoutException:
-                logger.error("Connection timeout to UniFi Protect")
-                raise HTTPException(status_code=504, detail="Connection timeout to UniFi Protect")
-            except Exception as e:
-                logger.error(f"Unexpected error connecting to UniFi Protect: {type(e).__name__}: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"Connection error: {str(e)}")
             
-            if response.status_code == 401:
-                raise HTTPException(status_code=401, detail="Invalid API key")
-            elif response.status_code != 200:
-                raise HTTPException(status_code=500, detail=f"UniFi API returned status {response.status_code}")
-            
-            cameras = response.json()
+            # Get cameras directly from UniFi using the native method
+            cameras = await asyncio.wait_for(integration_instance.get_cameras_from_unifi(), timeout=30.0)
             enabled_cameras = integration.config_dict.get("enabled_cameras", [])
             
-            # Format camera data with enabled status
+            # Format camera data with enabled status using stable camera IDs
             camera_list = []
             for camera in cameras:
-                camera_list.append({
-                    "id": camera["id"],
-                    "name": camera["name"],
-                    "model": camera.get("modelKey", "Unknown"),
-                    "state": camera.get("state", "UNKNOWN"),
-                    "enabled": camera["id"] in enabled_cameras
-                })
+                if camera.is_adopted_by_us and camera.is_connected:
+                    camera_list.append({
+                        "id": camera.id,  # Use the actual UniFi camera ID
+                        "name": camera.name,
+                        "model": camera.model or "Unknown",
+                        "state": "CONNECTED",
+                        "enabled": camera.id in enabled_cameras
+                    })
             
             return {"cameras": camera_list}
+            
+        except asyncio.TimeoutError:
+            raise HTTPException(status_code=504, detail="Connection to UniFi Protect timed out. Please check your network connection and try again.")
+            
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Unexpected error fetching cameras: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error fetching cameras: {str(e)}")
 
 
@@ -485,49 +519,105 @@ async def update_camera_selection(
         existing_devices = [d for d in existing_devices if d not in duplicates_to_remove]
         existing_device_ids = {device.id for device in existing_devices}
     
-    # Get devices that would be created for the new selection
+    # Get the integration instance
     integration_class = get_integration_class(integration.integration_type)
     integration_instance = integration_class(integration)
     
     try:
-        new_devices = await integration_instance.get_devices()
-        new_device_ids = {device.id for device in new_devices}
+        if integration.integration_type == "unifi_protect":
+            # For UniFi Protect, use native camera objects to ensure proper metadata
+            cameras = await integration_instance.get_cameras_from_unifi()
+            logger.info(f"Camera selection: {len(enabled_cameras)} selected out of {len(cameras)} available cameras")
         
-        # Only delete devices that are no longer in the selection
-        devices_to_delete = existing_device_ids - new_device_ids
-        for device in existing_devices:
-            if device.id in devices_to_delete:
-                # Check if this device has any detections
-                from app.models.detection import Detection
-                detection_count = session.exec(
-                    select(Detection).where(Detection.device_id == device.id).limit(1)
-                ).first()
+            # Build a mapping of camera ID to camera object for easy lookup
+            camera_map = {camera.id: camera for camera in cameras}
+            
+            # Find existing devices that should be removed (no longer selected)
+            for existing_device in existing_devices:
+                existing_camera_id = existing_device.device_metadata.get("camera_id", existing_device.id)
+                if existing_camera_id not in enabled_cameras:
+                    # This camera is no longer selected, remove it
+                    from app.models.detection import Detection
+                    detection_count = session.exec(
+                        select(Detection).where(Detection.device_id == existing_device.id).limit(1)
+                    ).first()
+                    
+                    if detection_count:
+                        # If device has detections, disable it instead of deleting
+                        existing_device.status = "disabled"
+                        existing_device.update_status("disabled")
+                        logger.info(f"Disabled camera with detections: {existing_device.name}")
+                    else:
+                        # Safe to delete if no detections reference it
+                        session.delete(existing_device)
+                        logger.info(f"Removed unselected camera: {existing_device.name}")
+            
+            # Update existing devices and add new ones
+            existing_camera_ids = set()
+            for existing_device in existing_devices:
+                existing_camera_id = existing_device.device_metadata.get("camera_id", existing_device.id)
+                existing_camera_ids.add(existing_camera_id)
                 
-                if detection_count:
-                    # If device has detections, disable it instead of deleting
-                    device.status = "disabled"
-                    device.update_status("disabled")
-                else:
-                    # Safe to delete if no detections reference it
-                    session.delete(device)
-        
-        # Add new devices that don't exist yet
-        for new_device in new_devices:
-            if new_device.id not in existing_device_ids:
-                session.add(new_device)
-                
-        # Update existing devices that are still enabled
-        for existing_device in existing_devices:
-            if existing_device.id in new_device_ids:
-                # Find corresponding new device to get updated properties
-                for new_device in new_devices:
-                    if new_device.id == existing_device.id:
-                        existing_device.status = "online"
-                        existing_device.name = new_device.name
-                        existing_device.device_metadata = new_device.device_metadata
-                        break
-        
-        devices = new_devices
+                if existing_camera_id in enabled_cameras and existing_camera_id in camera_map:
+                    # Update existing device with fresh camera data
+                    camera = camera_map[existing_camera_id]
+                    existing_device.status = "online"
+                    existing_device.name = camera.name
+                    existing_device.model = camera.model
+                    # Update metadata with proper camera information
+                    existing_device.device_metadata = {
+                        "camera_id": camera.id,
+                        "firmware": camera.firmware_version,
+                        "mac": camera.mac,
+                        "features": {
+                            "has_speaker": camera.feature_flags.has_speaker,
+                            "has_smart_detect": camera.feature_flags.has_smart_detect,
+                            "can_zoom": getattr(camera.feature_flags, "can_zoom", False),
+                        }
+                    }
+                    # Update the snapshot URL
+                    existing_device.current_image_url = f"/api/integrations/{integration.id}/devices/{existing_device.id}/snapshot"
+                    existing_device.updated_at = datetime.utcnow()
+                    logger.info(f"Updated selected camera: {existing_device.name} with camera_id: {camera.id}")
+            
+            # Add new selected cameras that don't exist yet
+            for camera_id in enabled_cameras:
+                if camera_id not in existing_camera_ids and camera_id in camera_map:
+                    camera = camera_map[camera_id]
+                    if camera.is_adopted_by_us and camera.is_connected:
+                        new_device = Device(
+                            integration_id=integration.id,
+                            device_type="camera",
+                            name=camera.name,
+                            model=camera.model,
+                            status="online"
+                        )
+                        # Set metadata after creation to ensure property setter is called
+                        new_device.device_metadata = {
+                            "camera_id": camera.id,
+                            "firmware": camera.firmware_version,
+                            "mac": camera.mac,
+                            "features": {
+                                "has_speaker": camera.feature_flags.has_speaker,
+                                "has_smart_detect": camera.feature_flags.has_smart_detect,
+                                "can_zoom": getattr(camera.feature_flags, "can_zoom", False),
+                            }
+                        }
+                        session.add(new_device)
+                        session.flush()  # Flush to generate the device ID
+                        # Now set the current_image_url with the actual device ID
+                        new_device.current_image_url = f"/api/integrations/{integration.id}/devices/{new_device.id}/snapshot"
+                        logger.info(f"Added new selected camera: {camera.name} with camera_id: {camera.id}")
+            
+            devices = [d for d in existing_devices if d.device_metadata.get("camera_id") in enabled_cameras]
+        else:
+            # For other integrations, just get all devices
+            devices = await integration_instance.get_devices()
+            # Remove existing devices and add new ones
+            for existing in existing_devices:
+                session.delete(existing)
+            for device in devices:
+                session.add(device)
         
     except Exception as e:
         integration.update_status("error", f"Failed to update devices: {str(e)}")
@@ -568,39 +658,27 @@ async def test_device_talkback(
     integration_instance = integration_class(integration)
     
     try:
-        async with integration_instance:
-            # For UniFi Protect, the device_id in our database corresponds to the device.id (UUID)
-            # but we need the UniFi camera ID from metadata
-            logger.info(f"Device metadata: {device.device_metadata}")
+        # For UniFi Protect, use the external_id which is the camera ID
+        camera_id = device.external_id
+        if not camera_id:
+            # Fallback to device_metadata if external_id is not set
             camera_id = device.device_metadata.get("camera_id")
-            logger.info(f"Camera ID from metadata: {camera_id}")
             
-            # If camera_id is not in metadata, try using the device_id directly
-            # (this might happen with older device records)
-            if not camera_id:
-                # Let's refresh the device data by testing the integration
-                devices = await integration_instance.get_devices()
-                # Find our device in the fresh list
-                for fresh_device in devices:
-                    if fresh_device.name == device.name:
-                        camera_id = fresh_device.device_metadata.get("camera_id")
-                        break
-                
-                if not camera_id:
-                    return error_response("Camera ID not found. Please test the integration connection first.")
-            
-            # Get the device interface
-            device_interface = await integration_instance.get_device(camera_id)
-            if not device_interface:
-                return error_response("Camera not found in UniFi system")
-            
-            # Test talkback
-            success = await device_interface.test_talkback()
-            
-            if success:
-                return success_response("Talkback test initiated")
-            else:
-                return error_response("Failed to initiate talkback")
+        if not camera_id:
+            return error_response("Camera ID not found. Please test the integration connection first.")
+        
+        # Get the device interface
+        device_interface = await integration_instance.get_device(camera_id)
+        if not device_interface:
+            return error_response("Camera not found in UniFi system")
+        
+        # Test talkback
+        success = await device_interface.test_talkback()
+        
+        if success:
+            return success_response("Talkback test initiated")
+        else:
+            return error_response("Failed to initiate talkback")
     
     except Exception as e:
         return error_response(f"Talkback error: {str(e)}")
@@ -624,26 +702,41 @@ async def get_device_snapshot(
     integration_instance = integration_class(integration)
     
     try:
-        async with integration_instance:
-            if not integration_instance._client:
-                integration_instance._init_client()
+        # For UniFi Protect, we need to get the camera ID from the device
+        if integration.integration_type == "unifi_protect":
+            # Get the device from database to find camera_id
+            device = session.get(Device, device_id)
+            if not device:
+                raise HTTPException(status_code=404, detail="Device not found")
             
-            # Get snapshot from UniFi
-            url = f"{integration_instance.host}/proxy/protect/integration/v1/cameras/{device_id}/snapshot"
-            response = await integration_instance._client.get(url)
+            camera_id = device.device_metadata.get("camera_id")
+            if not camera_id:
+                raise HTTPException(status_code=400, detail="Device has no camera_id in metadata")
             
-            if response.status_code == 200:
-                return Response(
-                    content=response.content,
-                    media_type="image/jpeg",
-                    headers={
-                        "Cache-Control": "no-cache, no-store, must-revalidate",
-                        "Pragma": "no-cache",
-                        "Expires": "0"
-                    }
-                )
-            else:
-                raise HTTPException(status_code=response.status_code, detail="Failed to get snapshot")
+            # Get the device interface using the camera ID
+            device_interface = await integration_instance.get_device(camera_id)
+        else:
+            # For other integrations, use device_id directly
+            device_interface = await integration_instance.get_device(device_id)
+            
+        if not device_interface:
+            raise HTTPException(status_code=404, detail="Camera not found")
+        
+        # Get snapshot using the device interface
+        snapshot_data = await device_interface.get_snapshot()
+        
+        if snapshot_data:
+            return Response(
+                content=snapshot_data,
+                media_type="image/jpeg",
+                headers={
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0"
+                }
+            )
+        else:
+            raise HTTPException(status_code=500, detail="Failed to get snapshot")
     
     except Exception as e:
         logger.error(f"Error getting snapshot: {str(e)}")

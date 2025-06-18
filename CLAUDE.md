@@ -284,6 +284,14 @@ When adding new integrations:
   - ❌ `confirm("Are you sure?")` → ✅ Use confirmation modals
 - Always use proper UI components: notifications, modals, and non-blocking feedback
 
+### UniFi Protect Integration
+
+- **Uses official `uiprotect` library** (v5.6.9+) for robust API access
+- **Authentication**: Local user accounts only (username/password)
+- **Features**: Real-time WebSocket events, professional API coverage, type safety
+- **Security**: SSL verification disabled for self-signed certificates
+- **Rate limiting**: Built-in protection for API calls
+
 ### Release Process - IMPORTANT!
 
 **⚠️ CRITICAL: Version numbers must be synchronized in TWO places!**

@@ -61,7 +61,7 @@ class CameraManager:
             # Get fresh camera instance with integration
             camera_db = session.get(Device, camera.id)
             if not camera_db or not camera_db.integration:
-                logger.error(f"Camera {camera.device_id} not found or has no integration")
+                logger.error(f"Camera {camera.id} not found or has no integration")
                 return None
                 
             integration = camera_db.integration
@@ -112,7 +112,7 @@ class CameraManager:
             # Get fresh camera instance with integration
             camera_db = session.get(Device, camera.id)
             if not camera_db or not camera_db.integration:
-                logger.error(f"Camera {camera.device_id} not found or has no integration")
+                logger.error(f"Camera {camera.id} not found or has no integration")
                 return False
                 
             integration = camera_db.integration

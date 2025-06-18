@@ -231,17 +231,33 @@
             
             <div class="form-control">
                 <label class="label">
-                    <span class="label-text">{{ t('settings.integrations.api_key', request) }}</span>
+                    <span class="label-text">{{ t('settings.integrations.username', request) }}</span>
                 </label>
                 <input 
-                    type="password" 
-                    name="api_key" 
-                    placeholder="Enter your UniFi Protect API key" 
+                    type="text" 
+                    name="username" 
+                    placeholder="Local user account username" 
                     class="input input-bordered" 
                     required
                 />
                 <label class="label">
-                    <span class="label-text-alt">{{ t('settings.integrations.generate_from_unifi', request) }}</span>
+                    <span class="label-text-alt">{{ t('settings.integrations.local_user_help', request) }}</span>
+                </label>
+            </div>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">{{ t('settings.integrations.password', request) }}</span>
+                </label>
+                <input 
+                    type="password" 
+                    name="password" 
+                    placeholder="Local user account password" 
+                    class="input input-bordered" 
+                    required
+                />
+                <label class="label">
+                    <span class="label-text-alt">{{ t('settings.integrations.password_help', request) }}</span>
                 </label>
             </div>
             
@@ -433,12 +449,24 @@ function populateEditConfigFields(integrationType, config) {
             
             <div class="form-control mb-4">
                 <label class="label">
-                    <span class="label-text">{{ t('settings.integrations.api_key', request) }}</span>
+                    <span class="label-text">{{ t('settings.integrations.username', request) }}</span>
+                </label>
+                <input type="text" id="edit-username" class="input input-bordered" 
+                       placeholder="Local user account username" 
+                       value="${config.username || ''}" required>
+                <div class="label">
+                    <span class="label-text-alt">{{ t('settings.integrations.local_user_help', request) }}</span>
+                </div>
+            </div>
+            
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">{{ t('settings.integrations.password', request) }}</span>
                 </label>
                 <div class="join">
-                    <input type="password" id="edit-api-key" class="input input-bordered join-item flex-1" 
-                           placeholder="Your UniFi Protect API key" 
-                           value="${config.api_key || ''}" required>
+                    <input type="password" id="edit-password" class="input input-bordered join-item flex-1" 
+                           placeholder="Local user account password" 
+                           value="${config.password || ''}" required>
                     <button type="button" class="btn btn-outline join-item" id="toggle-api-key-btn" 
                             onclick="toggleApiKeyVisibility()">
                         <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -476,18 +504,18 @@ function populateEditConfigFields(integrationType, config) {
     }
 }
 
-// Toggle API key visibility
+// Toggle password visibility
 function toggleApiKeyVisibility() {
-    const apiKeyInput = document.getElementById('edit-api-key');
+    const passwordInput = document.getElementById('edit-password');
     const eyeIcon = document.getElementById('eye-icon');
     const eyeSlashIcon = document.getElementById('eye-slash-icon');
     
-    if (apiKeyInput.type === 'password') {
-        apiKeyInput.type = 'text';
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
         eyeIcon.classList.add('hidden');
         eyeSlashIcon.classList.remove('hidden');
     } else {
-        apiKeyInput.type = 'password';
+        passwordInput.type = 'password';
         eyeIcon.classList.remove('hidden');
         eyeSlashIcon.classList.add('hidden');
     }
@@ -506,10 +534,12 @@ document.getElementById('edit-integration-form').addEventListener('submit', asyn
     let config = {};
     if (integrationType === 'unifi_protect') {
         const host = document.getElementById('edit-host')?.value;
-        const apiKey = document.getElementById('edit-api-key')?.value;
+        const username = document.getElementById('edit-username')?.value;
+        const password = document.getElementById('edit-password')?.value;
         
         if (host) config.host = host;
-        if (apiKey) config.api_key = apiKey;
+        if (username) config.username = username;
+        if (password) config.password = password;
     }
     
     try {
@@ -629,7 +659,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData(e.target);
             const config = {
                 host: formData.get('host'),
-                api_key: formData.get('api_key')
+                username: formData.get('username'),
+                password: formData.get('password')
             };
             
             console.log('Creating UniFi integration with config:', config);

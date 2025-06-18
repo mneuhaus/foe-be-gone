@@ -78,9 +78,12 @@ class DetectionProcessor:
         # Create snapshots directory if needed
         config.SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
         
+        # Sanitize camera name for filesystem (replace slashes and other problematic characters)
+        safe_camera_name = camera_name.replace('/', '_').replace('\\', '_').replace(':', '_')
+        
         # Generate filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{camera_name}_{timestamp}_{uuid.uuid4().hex[:8]}.jpg"
+        filename = f"{safe_camera_name}_{timestamp}_{uuid.uuid4().hex[:8]}.jpg"
         filepath = config.SNAPSHOTS_DIR / filename
         
         # Save image
